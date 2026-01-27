@@ -501,6 +501,7 @@ export function parseDBCopyTemplate<T extends CopyData>(data: any) {
 // Global configuration for external integrations
 export type ExternalGlobalProjectConfig = {
   register: {
+    fallbackEmailFrom: string;
     strategy: Partial<{
       email: EGPCEmail;
       phone: EGPCPhone;

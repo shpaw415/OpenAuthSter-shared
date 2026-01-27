@@ -6,6 +6,7 @@ import {
 } from "@openauthjs/openauth/client";
 import type { createSubjects } from "@openauthjs/openauth/subject";
 import { COOKIE_NAME } from "..";
+import HTMLErrorFallback from "./error-fallback";
 
 export type AuthManagerProps<Schema extends ReturnType<typeof createSubjects>> =
   {
@@ -105,8 +106,33 @@ export class AuthManager<Schema extends ReturnType<typeof createSubjects>> {
     this.client_id = props.client_id;
   }
 
-  public run(request: Request) {
-    switch (new URL(request.url).pathname) {
+  public async run(request: Request) {
+    const url = new URL(request.url);
+
+    if (url.searchParams.get("error")) {
+      await this.props.callback?.onError?.(
+        new Error(
+          url.searchParams.get("error_description") ||
+            "Unknown error during authentication",
+        ),
+      );
+      const errorHTML = await import("mustache").then((m) =>
+        m.default.render(HTMLErrorFallback, {
+          error_description:
+            url.searchParams.get("error_description") ||
+            "Unknown error during authentication",
+          error: url.searchParams.get("error") || "unknown_error",
+        }),
+      );
+      return new Response(errorHTML, {
+        status: 400,
+        headers: {
+          "Content-Type": "text/html",
+        },
+      });
+    }
+
+    switch (url.pathname) {
       case `${this.publicPath}/callback`:
         return this.callback({ ...this.props.callback, request });
       case `${this.publicPath}/authorize`:

@@ -5,7 +5,8 @@
   "private": false,
   "devDependencies": {
     "@openauthjs/openauth": "^0.4.3",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/mustache": "^4.2.6"
   },
   "peerDependencies": {
     "typescript": "^5",
@@ -17,5 +18,8 @@
     "./drizzle": "./database/drizzle.ts",
     "./endpoints": "./endpoints/index.ts",
     "./client": "./client/index.ts"
+  },
+  "dependencies": {
+    "mustache": "^4.2.0"
   }
 }
