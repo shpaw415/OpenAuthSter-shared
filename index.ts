@@ -512,7 +512,6 @@ export type EGPCEmail =
   | {
       provider: "resend";
       apiKey: string;
-      fromEmail: string;
     }
   | {
       provider: "custom";
