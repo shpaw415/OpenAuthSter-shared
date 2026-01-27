@@ -127,8 +127,8 @@ openauth-webui-shared-types/
 ## Related Repositories
 
 - [OpenAuthster](https://github.com/shpaw415/openauthster) - Main project documentation
-- [OpenAuthster Issuer](https://github.com/shpaw415/openauth-multi-tenant-server-provider) - Authentication server
-- [OpenAuthster WebUI](https://github.com/shpaw415/openauth-webui) - Management dashboard
+- [OpenAuthster Issuer](https://github.com/shpaw415/OpenAuthSter-issuer) - Authentication server
+- [OpenAuthster WebUI](https://github.com/shpaw415/OpenAuthSter-webUI) - Management dashboard
 - [React SDK](https://github.com/shpaw415/openauth-react) - React integration (WIP)
 
 ## License
