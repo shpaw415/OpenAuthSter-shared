@@ -1,0 +1,21 @@
+{
+  "name": "openauthster-shared",
+  "module": "index.ts",
+  "type": "module",
+  "private": false,
+  "devDependencies": {
+    "@openauthjs/openauth": "^0.4.3",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5",
+    "drizzle-orm": "^0.45.1"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./database": "./database/schema.ts",
+    "./drizzle": "./database/drizzle.ts",
+    "./endpoints": "./endpoints/index.ts",
+    "./client": "./client/index.ts"
+  }
+}
