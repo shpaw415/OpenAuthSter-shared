@@ -3,6 +3,7 @@ import type { CodeUICopy } from "@openauthjs/openauth/ui/code";
 import type { CognitoConfig } from "@openauthjs/openauth/provider/cognito";
 import type { KeycloakConfig } from "@openauthjs/openauth/provider/keycloak";
 import type { MicrosoftConfig } from "@openauthjs/openauth/provider/microsoft";
+import type { projectTable } from "./database/schema";
 
 // All available provider types
 export type ProviderType =
@@ -123,7 +124,6 @@ export interface CodeProviderConfig extends BaseProviderConfig {
   type: "code";
   data: {
     length?: number; // Default 6
-    mode: "email" | "phone";
   };
 }
 
@@ -139,8 +139,6 @@ export interface PasswordProviderConfig extends BaseProviderConfig {
     requireNumberMsg?: string;
     requireSpecialChar?: boolean;
     requireSpecialCharMsg?: string;
-    templateName?: string;
-    subject: string;
   };
 }
 
@@ -456,10 +454,13 @@ export interface Project {
   providers_data: ProviderConfig[];
   themeId?: string | null;
   emailTemplateId?: string | null;
+  codeMode: "email" | "phone";
   projectData?: ProjectData;
 }
 
-export function parseDBProject(data: any): Project {
+export function parseDBProject(
+  data: typeof projectTable.$inferSelect,
+): Project {
   return {
     clientID: String(data.clientID),
     created_at: String(data.created_at),
@@ -470,6 +471,7 @@ export function parseDBProject(data: any): Project {
         : data.providers_data,
     themeId: data.themeId || null,
     emailTemplateId: data.emailTemplateId || null,
+    codeMode: String(data.codeMode) === "phone" ? "phone" : "email",
     projectData:
       typeof data.projectData === "string"
         ? JSON.parse(data.projectData)
@@ -496,24 +498,38 @@ export function parseDBCopyTemplate<T extends CopyData>(data: any) {
   };
 }
 
+// Global configuration for external integrations
 export type ExternalGlobalProjectConfig = {
-  register: EGPCPassword;
+  register: {
+    strategy: Partial<{
+      email: EGPCEmail;
+      phone: EGPCPhone;
+    }>;
+  };
 };
 
-export type EGPCPasswordEmail =
+export type EGPCEmail =
   | {
-      strategy: "email";
-      provider: "resend" /* | "Postmark" */;
+      provider: "resend";
       apiKey: string;
       fromEmail: string;
     }
   | {
-      strategy: "email";
       provider: "custom";
       sendEmailFunction: (to: string, code: string) => Promise<void> | void;
     };
 
-export type EGPCPassword = EGPCPasswordEmail;
+export type EGPCPhone =
+  | {
+      provider: "twilio";
+      accountSID: string;
+      authToken: string;
+      fromNumber: string;
+    }
+  | {
+      provider: "custom";
+      sendSMSFunction: (to: string, code: string) => Promise<void> | void;
+    };
 
 export function createExternalGlobalProjectConfig(
   config: ExternalGlobalProjectConfig,
