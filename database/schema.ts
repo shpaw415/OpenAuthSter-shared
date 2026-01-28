@@ -22,6 +22,7 @@ export async function createUserTable(
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS ${validName}_users (
       id TEXT PRIMARY KEY,
+      identifier TEXT UNIQUE NOT NULL,
       data TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
