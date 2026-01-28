@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-import { drizzle } from "./drizzle";
+
 const reservedTableNames = [
   "openauth_webui_projects",
   "openauth_webui_email_templates",
@@ -22,7 +22,6 @@ export async function createUserTable(
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS ${validName}_users (
       id TEXT PRIMARY KEY,
-      identifier TEXT UNIQUE,
       data TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
@@ -45,7 +44,7 @@ export async function DeleteOTFusersTable(
 export const OTFusersTable = (clientID: string) =>
   sqliteTable(clientID + "_users", {
     id: text().primaryKey(),
-    identifier: text().unique(),
+    identifier: text().unique().notNull(),
     data: text({
       mode: "json",
     }).notNull(),
@@ -93,14 +92,7 @@ export const webuiProjectTable = sqliteTable("openauth_webui", {
   expiry: integer(),
 });
 
-export const WebUiProjectUserTable = sqliteTable("openauth_webui_users", {
-  id: text().primaryKey(),
-  email: text().notNull().unique(),
-  data: text({
-    mode: "json",
-  }).notNull(),
-  created_at: text().notNull(),
-});
+export const WebUiProjectUserTable = OTFusersTable("openauth_webui");
 
 export const WebUiCopyTemplateTable = sqliteTable(
   "openauth_webui_copy_templates",
