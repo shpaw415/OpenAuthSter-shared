@@ -20,19 +20,22 @@ export const createClient = ({
   issuer: string;
 }) =>
   _createClient({
-    clientID,
+    clientID: buildClientIDWithParams({ clientID }),
     issuer,
     fetch(input: RequestInfo, init?: RequestInit) {
       const header = new Headers(init?.headers);
       header.append("Cookie", `${COOKIE_NAME}=${clientID}`);
-      globalThis.OpenAuthOptions.copyId &&
-        header.append("X-OpenAuth-Copy-ID", globalThis.OpenAuthOptions.copyId);
       return fetch(input, {
         ...init,
         headers: header,
       });
     },
   });
+
+function buildClientIDWithParams({ clientID }: { clientID: string }) {
+  const copyId = globalThis.OpenAuthOptions.copyId;
+  return `${clientID}${copyId ? `::${copyId}` : ""}`;
+}
 
 export function setOpenAuthOptions(options: Partial<OpenAuthOptions>) {
   globalThis.OpenAuthOptions = {
