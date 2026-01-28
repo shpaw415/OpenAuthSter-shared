@@ -4,6 +4,7 @@ import type { CognitoConfig } from "@openauthjs/openauth/provider/cognito";
 import type { KeycloakConfig } from "@openauthjs/openauth/provider/keycloak";
 import type { MicrosoftConfig } from "@openauthjs/openauth/provider/microsoft";
 import type { projectTable } from "./database/schema";
+import type { OnSuccessResponder, Prettify } from "@openauthjs/openauth/issuer";
 
 // All available provider types
 export type ProviderType =
@@ -502,6 +503,18 @@ export function parseDBCopyTemplate<T extends CopyData>(data: any) {
 export type ExternalGlobalProjectConfig = {
   register: {
     fallbackEmailFrom: string;
+    onSuccessfulRegistration?: (
+      ctx: OnSuccessResponder<
+        Prettify<{
+          type: "user";
+          properties: {
+            id: string;
+          };
+        }>
+      >,
+      value: Record<string, any>,
+      request: Request,
+    ) => Promise<void> | void;
     strategy: Partial<{
       email: EGPCEmail;
       phone: EGPCPhone;
