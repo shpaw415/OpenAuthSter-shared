@@ -1,46 +1,25 @@
 import { createClient as _createClient } from "@openauthjs/openauth/client";
-import { COOKIE_COPY_TEMPLATE_ID, COOKIE_NAME } from "..";
-
-export type OpenAuthOptions = {
-  copyId: string | null;
-};
-declare global {
-  var OpenAuthOptions: OpenAuthOptions;
-}
-
-globalThis.OpenAuthOptions ??= {
-  copyId: null,
-};
 
 export const createClient = ({
   clientID,
   issuer,
+  copyID,
 }: {
   clientID: string;
   issuer: string;
+  copyID: string | null;
 }) =>
   _createClient({
-    clientID,
+    clientID: buildClientIDWithParams({ clientID, copyID }),
     issuer,
-    fetch(input: RequestInfo, init?: RequestInit) {
-      const header = new Headers(init?.headers);
-      header.append(
-        "Cookie",
-        [
-          `${COOKIE_NAME}=${clientID}`,
-          `${COOKIE_COPY_TEMPLATE_ID}=${globalThis.OpenAuthOptions.copyId}`,
-        ].join("; "),
-      );
-      return fetch(input, {
-        ...init,
-        headers: header,
-      });
-    },
   });
 
-export function setOpenAuthOptions(options: Partial<OpenAuthOptions>) {
-  globalThis.OpenAuthOptions = {
-    ...globalThis.OpenAuthOptions,
-    ...options,
-  };
+function buildClientIDWithParams({
+  clientID,
+  copyID,
+}: {
+  clientID: string;
+  copyID: string | null;
+}) {
+  return `${clientID}${copyID ? `::${copyID}` : ""}`;
 }
