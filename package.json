@@ -17,7 +17,8 @@
     "./database": "./database/schema.ts",
     "./drizzle": "./database/drizzle.ts",
     "./endpoints": "./endpoints/index.ts",
-    "./client": "./client/index.ts"
+    "./client": "./client/index.ts",
+    "./utils": "./utils.ts"
   },
   "dependencies": {
     "mustache": "^4.2.0"
