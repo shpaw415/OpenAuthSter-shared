@@ -17,7 +17,6 @@ const ensureTableisValid = (name: string) => {
 export const OTFusersTable = (tableName: string) =>
   sqliteTable(ensureTableisValid(tableName + "_users"), {
     id: text().primaryKey(),
-    email: text().notNull(),
     data: text({
       mode: "json",
     }).notNull(),
