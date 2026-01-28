@@ -67,6 +67,7 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
   projectData: text({
     mode: "json",
   }).default("{}"),
+  originURL: text(),
 });
 
 export const emailTemplatesTable = sqliteTable(
