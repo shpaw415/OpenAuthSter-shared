@@ -22,6 +22,7 @@ export async function createUserTable(
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS ${validName}_users (
       id TEXT PRIMARY KEY,
+      identifier TEXT UNIQUE,
       data TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
@@ -44,6 +45,7 @@ export async function DeleteOTFusersTable(
 export const OTFusersTable = (clientID: string) =>
   sqliteTable(clientID + "_users", {
     id: text().primaryKey(),
+    identifier: text().unique(),
     data: text({
       mode: "json",
     }).notNull(),
