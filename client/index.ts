@@ -5,6 +5,7 @@ import { createCookieContent } from "../utils";
 const fetcher = (clientID: string, copyID: string | null) => {
   return async (input: RequestInfo, init?: RequestInit) => {
     const headers = new Headers(init?.headers || {});
+
     headers.append(
       "Cookie",
       createCookieContent(COOKIE_NAME, clientID, { path: "/" }),
@@ -16,7 +17,7 @@ const fetcher = (clientID: string, copyID: string | null) => {
       );
     }
 
-    return await fetch(input, { ...init, headers });
+    return await fetch(input, { ...init, headers, credentials: "include" });
   };
 };
 
