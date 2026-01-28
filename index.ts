@@ -457,6 +457,7 @@ export interface Project {
   emailTemplateId?: string | null;
   codeMode: "email" | "phone";
   projectData?: ProjectData;
+  originURL?: string | null;
 }
 
 export function parseDBProject(
