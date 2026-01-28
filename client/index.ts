@@ -1,5 +1,4 @@
 import { createClient as _createClient } from "@openauthjs/openauth/client";
-import { getCookiesFromRequest } from "../utils";
 
 export const createClient = ({
   clientID,
