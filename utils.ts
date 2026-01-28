@@ -14,3 +14,25 @@ export function getCookiesFromRequest(
 
   return cookies;
 }
+
+export function createCookieContent(
+  name: string,
+  value: string,
+  options?: { path?: string; maxAge?: number; httpOnly?: boolean },
+): string {
+  let cookieString = `${name}=${encodeURIComponent(value)}`;
+
+  if (options?.path) {
+    cookieString += `; Path=${options.path}`;
+  }
+
+  if (options?.maxAge !== undefined) {
+    cookieString += `; Max-Age=${options.maxAge}`;
+  }
+
+  if (options?.httpOnly) {
+    cookieString += `; HttpOnly`;
+  }
+
+  return cookieString;
+}

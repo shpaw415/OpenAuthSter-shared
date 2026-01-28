@@ -1,4 +1,24 @@
 import { createClient as _createClient } from "@openauthjs/openauth/client";
+import { COOKIE_NAME, COOKIE_COPY_TEMPLATE_ID } from "..";
+import { createCookieContent } from "../utils";
+
+const fetcher = (clientID: string, copyID: string | null) => {
+  return async (input: RequestInfo, init?: RequestInit) => {
+    const headers = new Headers(init?.headers || {});
+    headers.append(
+      "Cookie",
+      createCookieContent(COOKIE_NAME, clientID, { path: "/" }),
+    );
+    if (copyID) {
+      headers.append(
+        "Cookie",
+        createCookieContent(COOKIE_COPY_TEMPLATE_ID, copyID, { path: "/" }),
+      );
+    }
+
+    return await fetch(input, { ...init, headers });
+  };
+};
 
 export const createClient = ({
   clientID,
@@ -12,6 +32,7 @@ export const createClient = ({
   _createClient({
     clientID: buildClientIDWithParams({ clientID, copyID }),
     issuer,
+    fetch: fetcher(clientID, copyID),
   });
 
 export function createServerClient({
@@ -31,9 +52,10 @@ export function createServerClient({
   return _createClient({
     clientID: buildClientIDWithParams({
       clientID,
-      copyID: clientIdWithParams ? clientIdWithParams[1] || null : null,
+      copyID: clientIdWithParams?.at(1) || null,
     }),
     issuer,
+    fetch: fetcher(clientID, clientIdWithParams?.at(1) || null),
   });
 }
 
