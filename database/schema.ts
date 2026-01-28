@@ -29,6 +29,18 @@ export async function createUserTable(
   await database.prepare(createTableSQL).run();
 }
 
+export async function DeleteOTFusersTable(
+  clientID: string,
+  database: D1Database,
+): Promise<void> {
+  const res = await database
+    .prepare(`DROP TABLE IF EXISTS ${clientID}_users;`)
+    .run();
+  if (!res.success) {
+    throw new Error("Failed to delete user table", { cause: res.error });
+  }
+}
+
 export const OTFusersTable = (clientID: string) =>
   sqliteTable(clientID + "_users", {
     id: text().primaryKey(),
