@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-
+import { drizzle } from "./drizzle";
 const reservedTableNames = [
   "openauth_webui_projects",
   "openauth_webui_email_templates",
@@ -14,8 +14,23 @@ const ensureTableisValid = (name: string) => {
   return name;
 };
 
-export const OTFusersTable = (tableName: string) =>
-  sqliteTable(ensureTableisValid(tableName + "_users"), {
+export async function createUserTable(
+  clientID: string,
+  database: D1Database,
+): Promise<void> {
+  const validName = ensureTableisValid(clientID);
+  const createTableSQL = `
+    CREATE TABLE IF NOT EXISTS ${validName}_users (
+      id TEXT PRIMARY KEY,
+      data TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+  `;
+  await database.prepare(createTableSQL).run();
+}
+
+export const OTFusersTable = (clientID: string) =>
+  sqliteTable(clientID + "_users", {
     id: text().primaryKey(),
     data: text({
       mode: "json",
