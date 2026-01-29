@@ -9,10 +9,9 @@ export const UserEndpointValidation = v.object({
   action: v.union([v.literal("get"), v.literal("update")]),
   data: v.optional(v.any()),
   clientID: v.string(),
-  token: v.string(),
 });
 
-type RequestData = InferOutput<typeof UserEndpointValidation>;
+export type RequestData = InferOutput<typeof UserEndpointValidation>;
 
 export type ClientProps = {
   issuerURI: string;
@@ -21,11 +20,15 @@ export type ClientProps = {
   userId?: string;
   token: string | null;
   refreshToken: string | null;
-  // Server side ONLY !!
+  /**
+   * Server side ONLY !! but necessary for private user session `get/update`
+   */
   secret?: string;
 };
 
-export function createOpenAuthsterClient() {}
+export function createOpenAuthsterClient(props: ClientProps) {
+  return new OpenAuthsterClient(props);
+}
 
 export class OpenAuthsterClient {
   issuerURI: string;
@@ -62,7 +65,19 @@ export class OpenAuthsterClient {
       type,
       id: this.userId!,
       clientID: this.clientID,
-      token: this.token!,
+    });
+
+    return this.createFetch(body);
+  }
+
+  updateUserSession(type: RequestData["type"], data: any) {
+    this.ensureReady();
+    const body = this.createFormData({
+      action: "update",
+      type,
+      id: this.userId!,
+      clientID: this.clientID,
+      data,
     });
 
     return this.createFetch(body);
@@ -81,8 +96,6 @@ export class OpenAuthsterClient {
   }
 
   private createFetch(body?: RequestInit<RequestInitCfProperties>["body"]) {
-    const header = this.token ? `Bearer ${this.token}` : "";
-
     return fetch(`${this.issuerURI}${userEndpointURI}`, {
       method: "POST",
       headers: {
