@@ -460,6 +460,7 @@ export interface Project {
   originURL?: string | null;
   authEndpointURL: string;
   cloudflareDomaineID: string;
+  secret: string;
 }
 
 export function parseDBProject(

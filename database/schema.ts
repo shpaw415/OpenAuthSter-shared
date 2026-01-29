@@ -80,6 +80,7 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
     mode: "json",
   }).default("{}"),
   originURL: text(),
+  secret: text().notNull(),
   authEndpointURL: text().notNull(),
   cloudflareDomaineID: text().notNull(),
 });
