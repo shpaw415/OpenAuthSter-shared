@@ -18,6 +18,7 @@
     "./drizzle": "./database/drizzle.ts",
     "./endpoints": "./endpoints/index.ts",
     "./client": "./client/index.ts",
+    "./client/user": "./client/user.ts",
     "./utils": "./utils.ts"
   },
   "dependencies": {
