@@ -459,6 +459,7 @@ export interface Project {
   projectData?: ProjectData;
   originURL?: string | null;
   authEndpointURL: string;
+  cloudflareDomaineID: string;
 }
 
 export function parseDBProject(
@@ -482,6 +483,7 @@ export function parseDBProject(
         : data.projectData || {},
     originURL: data.originURL || null,
     authEndpointURL: String(data.authEndpointURL),
+    cloudflareDomaineID: String(data.cloudflareDomaineID),
   } satisfies Project;
 }
 
