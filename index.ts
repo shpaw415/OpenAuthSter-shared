@@ -464,6 +464,7 @@ export function parseDBProject(
   data: typeof projectTable.$inferSelect,
 ): Project {
   return {
+    ...data,
     clientID: String(data.clientID),
     created_at: String(data.created_at),
     active: Boolean(data.active),
@@ -478,7 +479,8 @@ export function parseDBProject(
       typeof data.projectData === "string"
         ? JSON.parse(data.projectData)
         : data.projectData || {},
-  };
+    originURL: data.originURL || null,
+  } satisfies Project;
 }
 
 type CopyData = CodeUICopy | PasswordUIOptions["copy"];
