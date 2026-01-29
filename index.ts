@@ -458,6 +458,7 @@ export interface Project {
   codeMode: "email" | "phone";
   projectData?: ProjectData;
   originURL?: string | null;
+  authEndpointURL: string;
 }
 
 export function parseDBProject(
@@ -480,6 +481,7 @@ export function parseDBProject(
         ? JSON.parse(data.projectData)
         : data.projectData || {},
     originURL: data.originURL || null,
+    authEndpointURL: String(data.authEndpointURL),
   } satisfies Project;
 }
 
