@@ -40,6 +40,14 @@ export async function DeleteOTFusersTable(
   if (!res.success) {
     throw new Error("Failed to delete user table", { cause: res.error });
   }
+  const dropOpenAuthTable = await database
+    .prepare(`DROP TABLE IF EXISTS ${clientID};`)
+    .run();
+  if (!dropOpenAuthTable.success) {
+    throw new Error("Failed to delete openAuth table", {
+      cause: dropOpenAuthTable.error,
+    });
+  }
 }
 
 export const OTFusersTable = (clientID: string) =>
