@@ -24,6 +24,8 @@ export async function createUserTable(
       id TEXT PRIMARY KEY,
       identifier TEXT UNIQUE NOT NULL,
       data TEXT NOT NULL,
+      session_private TEXT,
+      session_public TEXT,
       created_at TEXT NOT NULL
     );
   `;
@@ -57,6 +59,8 @@ export const OTFusersTable = (clientID: string) =>
     data: text({
       mode: "json",
     }).notNull(),
+    session_private: text(),
+    session_public: text(),
     created_at: text().notNull(),
   });
 
