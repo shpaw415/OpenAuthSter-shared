@@ -69,6 +69,11 @@ export function createOpenAuthsterClient<
   return new OpenAuthsterClient<PublicSessionData, PrivateSessionData>(props);
 }
 
+export type USerMetaData = {
+  user_id: string | null;
+  user_identifier: string | null;
+};
+
 export class OpenAuthsterClient<
   PublicSessionData = any,
   PrivateSessionData = any,
@@ -84,6 +89,10 @@ export class OpenAuthsterClient<
     public: {} as PublicSessionData,
     private: {} as PrivateSessionData,
   };
+  public userMeta: USerMetaData = {
+    user_id: null,
+    user_identifier: null,
+  };
 
   private issuerURI: string;
   private clientID: string;
@@ -92,6 +101,7 @@ export class OpenAuthsterClient<
   private refreshToken: string | null = null;
   private redirectURI: string;
   private refreshTimer: number | undefined;
+  private initListeners: Map<string, () => void> = new Map();
 
   constructor(props: ClientProps) {
     this.issuerURI = props.issuerURI;
@@ -127,30 +137,13 @@ export class OpenAuthsterClient<
    * ```
    */
   async init() {
-    return this._init();
+    return this._init().then(() => {
+      this.initListeners.forEach((callback) => callback());
+    });
   }
 
-  private async _init() {
-    if (this.getCode()) {
-      await this.callback();
-    } else {
-      const accessToken = this.token || this.getStoredToken();
-      const refreshToken = this.refreshToken || this.getStoredRefreshToken();
-      if (accessToken) {
-        this.token = accessToken;
-        this.isAuthenticated = true;
-      }
-      if (refreshToken) {
-        this.refreshToken = refreshToken;
-      }
-    }
-    this.isLoaded = true;
-  }
-
-  private ensureReady() {
-    if (!this.token) {
-      throw new Error("Client is not authenticated. Token is missing.");
-    }
+  triggerUpdate() {
+    this.initListeners.forEach((callback) => callback());
   }
 
   getUserSession(type: RequestData["type"]) {
@@ -168,17 +161,12 @@ export class OpenAuthsterClient<
             UserFetchResponse<PublicSessionData, PrivateSessionData>
           >,
       )
-      .then((_json) => {
-        const value = v.parse(UserEndpointResponseValidation, _json);
-        if (value.success) {
-          this.data = value.data!;
-          return value.data!;
-        } else {
-          return Promise.reject(
-            new Error("Failed to fetch user session data."),
-          );
-        }
-      });
+      .then((_json) =>
+        this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
+      )
+      .catch(
+        (err) => new Error(`Failed to fetch user session: ${err.message}`),
+      );
   }
 
   updateUserSession<SessionData extends PublicSessionData | PrivateSessionData>(
@@ -200,17 +188,12 @@ export class OpenAuthsterClient<
             UserFetchResponse<PublicSessionData, PrivateSessionData>
           >,
       )
-      .then((_json) => {
-        const json = v.parse(UserEndpointResponseValidation, _json);
-        if (json.success) {
-          this.data = json.data!;
-          return json.data;
-        } else {
-          return Promise.reject(
-            new Error("Failed to update user session data."),
-          );
-        }
-      });
+      .then((_json) =>
+        this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
+      )
+      .catch(
+        (err) => new Error(`Failed to update user session: ${err.message}`),
+      );
   }
 
   async login(): Promise<void> {
@@ -273,6 +256,49 @@ export class OpenAuthsterClient<
         copyID: options.copyID,
       });
     }
+  }
+
+  addInitializationListener(key: string, callback: () => void) {
+    this.initListeners.set(key, callback);
+  }
+
+  private async _init() {
+    if (this.getCode()) {
+      await this.callback();
+    } else {
+      const accessToken = this.token || this.getStoredToken();
+      const refreshToken = this.refreshToken || this.getStoredRefreshToken();
+      if (accessToken) {
+        this.token = accessToken;
+        this.isAuthenticated = true;
+      }
+      if (refreshToken) {
+        this.refreshToken = refreshToken;
+      }
+    }
+    this.isLoaded = true;
+  }
+
+  private ensureReady() {
+    if (!this.token) {
+      throw new Error("Client is not authenticated. Token is missing.");
+    }
+  }
+
+  private parseResponseData(data: ResponseData) {
+    if (data.success && data.data) {
+      this.data = {
+        public: data.data.public,
+        private: data.data.private,
+      };
+      this.userMeta = {
+        user_id: data.data.user_id,
+        user_identifier: data.data.user_identifier,
+      };
+    } else {
+      throw new Error(data.error || "Failed to parse response data.");
+    }
+    return data.data;
   }
 
   private createResetTimer(tokens: ExchangeSuccess | RefreshSuccess) {
