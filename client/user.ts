@@ -18,6 +18,19 @@ export const UserEndpointValidation = v.object({
 
 export type RequestData = InferOutput<typeof UserEndpointValidation>;
 
+export const UserEndpointResponseValidation = v.object({
+  success: v.boolean(),
+  data: v.optional(
+    v.object({
+      public: v.any(),
+      private: v.any(),
+    }),
+  ),
+  error: v.optional(v.string()),
+});
+
+export type ResponseData = InferOutput<typeof UserEndpointResponseValidation>;
+
 export type OpenAuthsterOptions = {
   copyID?: string | null;
 };
@@ -78,7 +91,6 @@ export class OpenAuthsterClient<
   private issuerURI: string;
   private clientID: string;
   private secret?: string;
-  private userId?: string;
   private token: string | null = null;
   private refreshToken: string | null = null;
   private redirectURI: string;
@@ -140,10 +152,11 @@ export class OpenAuthsterClient<
             UserFetchResponse<PublicSessionData, PrivateSessionData>
           >,
       )
-      .then((json) => {
-        if (json.success) {
-          this.data = json.data!;
-          return json.data;
+      .then((_json) => {
+        const value = v.parse(UserEndpointResponseValidation, _json);
+        if (value.success) {
+          this.data = value.data!;
+          return value.data!;
         } else {
           return Promise.reject(
             new Error("Failed to fetch user session data."),
@@ -171,7 +184,8 @@ export class OpenAuthsterClient<
             UserFetchResponse<PublicSessionData, PrivateSessionData>
           >,
       )
-      .then((json) => {
+      .then((_json) => {
+        const json = v.parse(UserEndpointResponseValidation, _json);
         if (json.success) {
           this.data = json.data!;
           return json.data;
@@ -228,6 +242,11 @@ export class OpenAuthsterClient<
       .finally(() => {
         this.removeChallenge();
         this.isLoaded = true;
+        location.search = location.search
+          .replace(/([?&])code=[^&]*&?/, "$1")
+          .replace(/([?&])state=[^&]*&?/, "$1")
+          .replace(/&$/, "")
+          .replace(/^\?&/, "?");
       });
   }
 
