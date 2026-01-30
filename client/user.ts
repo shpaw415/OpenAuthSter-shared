@@ -10,11 +10,10 @@ import { createClient } from ".";
 export const userEndpointURI = "/user-endpoint" as const;
 
 export const UserEndpointValidation = v.object({
-  id: v.string(),
   type: v.union([v.literal("public"), v.literal("private")]),
   action: v.union([v.literal("get"), v.literal("update")]),
   data: v.optional(v.any()),
-  clientID: v.string(),
+  client_id: v.string(),
 });
 
 export type RequestData = InferOutput<typeof UserEndpointValidation>;
@@ -26,9 +25,8 @@ export type OpenAuthsterOptions = {
 export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
   issuerURI: string;
   clientID: string;
-  userId?: string;
-  token: string | null;
-  refreshToken: string | null;
+  token?: string | null;
+  refreshToken?: string | null;
   redirectURI: string;
   onCheck?: (
     openauthserClient: OpenAuthsterClient<
@@ -94,7 +92,6 @@ export class OpenAuthsterClient<
       copyID: props.copyID ?? null,
     });
     this.secret = props.secret;
-    this.userId = props.userId;
     this.token = props.token ?? this.getStoredToken();
     this.refreshToken = props.refreshToken ?? this.getStoredRefreshToken();
     this.clientID = props.clientID;
@@ -105,6 +102,12 @@ export class OpenAuthsterClient<
   async init() {
     const accessToken = this.token || this.getStoredToken();
     const refreshToken = this.refreshToken || this.getStoredRefreshToken();
+    const code = this.getCode();
+
+    if (code) {
+      await this.callback();
+      return;
+    }
 
     if (accessToken) {
       this.token = accessToken;
@@ -120,9 +123,6 @@ export class OpenAuthsterClient<
     if (!this.token) {
       throw new Error("Client is not authenticated. Token is missing.");
     }
-    if (!this.userId) {
-      throw new Error("Client is not authenticated. User ID is missing.");
-    }
   }
 
   getUserSession(type: RequestData["type"]) {
@@ -130,8 +130,7 @@ export class OpenAuthsterClient<
     const body = this.createFormData({
       action: "get",
       type,
-      id: this.userId!,
-      clientID: this.clientID,
+      client_id: this.clientID,
     });
 
     return this.createFetch(body)
@@ -161,8 +160,7 @@ export class OpenAuthsterClient<
     const body = this.createFormData({
       action: "update",
       type,
-      id: this.userId!,
-      clientID: this.clientID,
+      client_id: this.clientID,
       data,
     });
 
@@ -329,8 +327,7 @@ export class OpenAuthsterClient<
     const formData = new FormData();
     formData.append("action", data.action);
     formData.append("type", data.type);
-    formData.append("id", data.id);
-    formData.append("clientID", data.clientID);
+    formData.append("client_id", data.client_id);
     if (data.data) {
       formData.append("data", JSON.stringify(data.data));
     }
@@ -341,11 +338,10 @@ export class OpenAuthsterClient<
     return fetch(`${this.issuerURI}${userEndpointURI}`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
         Authorization: this.token ? `Bearer ${this.token}` : "",
-        "X-Client-Secret": this.secret ? this.secret : "",
+        ...(this.secret ? { "X-Client-Secret": this.secret } : {}),
       },
-      credentials: "include",
+      //credentials: "include",
       body,
     });
   }
