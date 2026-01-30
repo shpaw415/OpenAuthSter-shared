@@ -24,10 +24,25 @@ export const UserEndpointResponseValidation = v.object({
     v.object({
       public: v.any(),
       private: v.any(),
+      user_id: v.string(),
+      user_identifier: v.string(),
     }),
   ),
   error: v.optional(v.string()),
 });
+export type UserFetchResponse<
+  PublicSessionData = any,
+  PrivateSessionData = any,
+> = {
+  success: boolean;
+  data?: {
+    private: PrivateSessionData;
+    public: PublicSessionData;
+    user_id: string;
+    user_identifier: string;
+  };
+  error?: string;
+};
 
 export type ResponseData = InferOutput<typeof UserEndpointResponseValidation>;
 
@@ -41,29 +56,11 @@ export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
   token?: string | null;
   refreshToken?: string | null;
   redirectURI: string;
-  onCheck?: (
-    openauthserClient: OpenAuthsterClient<
-      PublicSessionData,
-      PrivateSessionData
-    >,
-  ) => void;
   /**
    * Server side ONLY !! but necessary for private user session `get/update`
    */
   secret?: string;
 } & OpenAuthsterOptions;
-
-export type UserFetchResponse<
-  PublicSessionData = any,
-  PrivateSessionData = any,
-> = {
-  success: boolean;
-  data?: {
-    private: PrivateSessionData;
-    public: PublicSessionData;
-  };
-  error?: string;
-};
 
 export function createOpenAuthsterClient<
   PublicSessionData = any,
@@ -108,27 +105,46 @@ export class OpenAuthsterClient<
     this.refreshToken = props.refreshToken ?? this.getStoredRefreshToken();
     this.clientID = props.clientID;
     this.redirectURI = props.redirectURI;
-    this.init().finally(() => props.onCheck?.(this));
+  }
+  /**
+   * Trigger client initialization. Must be called after the first page load, for SSR compatibility.
+   * @example
+   * ```ts
+   * // React example
+   * const [openAuthsterClient] = useState(() =>
+   *   createOpenAuthsterClient({
+   *     issuerURI: "https://your-issuer.com",
+   *     clientID: "your-client-id",
+   *     redirectURI: "https://your-app.com/callback",
+   *   }),
+   * );
+   * const [isInitialized, setIsInitialized] = useState(false);
+   * useEffect(() => {
+   *   openAuthsterClient.init().then(() => {
+   *     setIsInitialized(true);
+   *   });
+   * }, []);
+   * ```
+   */
+  async init() {
+    return this._init();
   }
 
-  async init() {
-    const accessToken = this.token || this.getStoredToken();
-    const refreshToken = this.refreshToken || this.getStoredRefreshToken();
-    const code = this.getCode();
-
-    if (code) {
+  private async _init() {
+    if (this.getCode()) {
       await this.callback();
-      return;
+    } else {
+      const accessToken = this.token || this.getStoredToken();
+      const refreshToken = this.refreshToken || this.getStoredRefreshToken();
+      if (accessToken) {
+        this.token = accessToken;
+        this.isAuthenticated = true;
+      }
+      if (refreshToken) {
+        this.refreshToken = refreshToken;
+      }
     }
-
-    if (accessToken) {
-      this.token = accessToken;
-      this.isAuthenticated = true;
-      this.isLoaded = true;
-    }
-    if (refreshToken) {
-      this.refreshToken = refreshToken;
-    }
+    this.isLoaded = true;
   }
 
   private ensureReady() {
@@ -241,7 +257,6 @@ export class OpenAuthsterClient<
       })
       .finally(() => {
         this.removeChallenge();
-        this.isLoaded = true;
         location.search = location.search
           .replace(/([?&])code=[^&]*&?/, "$1")
           .replace(/([?&])state=[^&]*&?/, "$1")
