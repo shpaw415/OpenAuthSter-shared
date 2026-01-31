@@ -166,6 +166,7 @@ export type ProviderConfig =
   | GoogleProviderConfig
   | CognitoProviderConfig
   | MicrosoftProviderConfig
+  | AppleProviderConfig
   | SlackProviderConfig;
 
 // Provider metadata for UI
