@@ -508,16 +508,14 @@ export function parseDBCopyTemplate<T extends CopyData>(data: any) {
 }
 
 // Global configuration for external integrations
-export type ExternalGlobalProjectConfig = {
+export type ExternalGlobalProjectConfig<CTXProperties = any> = {
   register: {
     fallbackEmailFrom: string;
     onSuccessfulRegistration?: (
       ctx: OnSuccessResponder<
         Prettify<{
           type: "user";
-          properties: {
-            id: string;
-          };
+          properties: CTXProperties;
         }>
       >,
       value: Record<string, any>,
@@ -552,9 +550,9 @@ export type EGPCPhone =
       sendSMSFunction: (to: string, code: string) => Promise<void> | void;
     };
 
-export function createExternalGlobalProjectConfig(
-  config: ExternalGlobalProjectConfig,
-): ExternalGlobalProjectConfig {
+export function createExternalGlobalProjectConfig<CTXProperties = any>(
+  config: ExternalGlobalProjectConfig<CTXProperties>,
+): ExternalGlobalProjectConfig<CTXProperties> {
   return config;
 }
 
