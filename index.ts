@@ -62,6 +62,18 @@ export interface MicrosoftProviderConfig extends BaseProviderConfig {
   data: MicrosoftConfig;
 }
 
+export interface AppleProviderConfig extends BaseProviderConfig {
+  type: "apple";
+  data: {
+    clientID: string;
+    clientSecret: string;
+    scopes?: string[];
+    pkce?: boolean;
+    responseMode?: "form_post" | "query";
+    query?: Record<string, string>;
+  };
+}
+
 export interface CognitoProviderConfig extends BaseProviderConfig {
   type: "cognito";
   data: CognitoConfig;
