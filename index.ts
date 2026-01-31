@@ -39,7 +39,6 @@ export interface BaseProviderConfig {
 // OAuth2-based provider configuration
 export interface OAuth2ProviderConfig extends BaseProviderConfig {
   type:
-    | "apple"
     | "x"
     | "spotify"
     | "discord"
