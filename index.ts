@@ -73,7 +73,7 @@ export interface MicrosoftProviderConfig extends BaseProviderConfig {
 
 export interface AppleOAuthProviderConfig extends BaseProviderConfig {
   type: "appleoauth";
-  data: AppleConfig;
+  data: AppleConfig & { responseMode?: "form_post" | "query" };
 }
 
 export interface AppleOIDCProviderConfig extends BaseProviderConfig {
