@@ -1,17 +1,27 @@
 import type { PasswordUIOptions } from "@openauthjs/openauth/ui/password";
 import type { CodeUICopy } from "@openauthjs/openauth/ui/code";
+import type { CodeProviderConfig as CodeConfig } from "@openauthjs/openauth/provider/code";
 import type { CognitoConfig } from "@openauthjs/openauth/provider/cognito";
 import type { KeycloakConfig } from "@openauthjs/openauth/provider/keycloak";
 import type { MicrosoftConfig } from "@openauthjs/openauth/provider/microsoft";
 import type { projectTable } from "./database/schema";
 import type { OnSuccessResponder, Prettify } from "@openauthjs/openauth/issuer";
+import type {
+  AppleConfig,
+  AppleOidcConfig,
+} from "@openauthjs/openauth/provider/apple";
+import type { GoogleConfig } from "@openauthjs/openauth/provider/google";
+import type { SlackConfig } from "@openauthjs/openauth/provider/slack";
+import type { OidcConfig } from "@openauthjs/openauth/provider/oidc";
+import type { Oauth2Config } from "@openauthjs/openauth/provider/oauth2";
 
 // All available provider types
 export type ProviderType =
   | "code" //
   | "oidc"
   | "oauth"
-  | "apple" //
+  | "appleoauth" //
+  | "appleoidc" //
   | "x" //
   | "slack"
   | "yahoo"
@@ -61,16 +71,14 @@ export interface MicrosoftProviderConfig extends BaseProviderConfig {
   data: MicrosoftConfig;
 }
 
-export interface AppleProviderConfig extends BaseProviderConfig {
-  type: "apple";
-  data: {
-    clientID: string;
-    clientSecret: string;
-    scopes?: string[];
-    pkce?: boolean;
-    responseMode?: "form_post" | "query";
-    query?: Record<string, string>;
-  };
+export interface AppleOAuthProviderConfig extends BaseProviderConfig {
+  type: "appleoauth";
+  data: AppleConfig;
+}
+
+export interface AppleOIDCProviderConfig extends BaseProviderConfig {
+  type: "appleoidc";
+  data: AppleOidcConfig;
 }
 
 export interface CognitoProviderConfig extends BaseProviderConfig {
@@ -80,49 +88,24 @@ export interface CognitoProviderConfig extends BaseProviderConfig {
 
 export interface GoogleProviderConfig extends BaseProviderConfig {
   type: "google";
-  data: {
-    clientID: string;
-    clientSecret: string;
-    scopes?: string[];
-    pkce?: boolean;
-    query?: Record<string, string>;
-  };
+  data: GoogleConfig;
 }
 
 export interface SlackProviderConfig extends BaseProviderConfig {
   type: "slack";
-  data: {
-    clientID: string;
-    clientSecret: string;
-    scopes?: string[];
-    team: string;
-    pkce?: boolean;
-  };
+  data: SlackConfig;
 }
 
 // OIDC provider configuration
 export interface OIDCProviderConfig extends BaseProviderConfig {
   type: "oidc";
-  data: {
-    clientID: string;
-    issuer: string;
-    scopes?: string[];
-    query?: Record<string, string>;
-  };
+  data: OidcConfig;
 }
 
 // Generic OAuth provider configuration
 export interface GenericOAuthProviderConfig extends BaseProviderConfig {
   type: "oauth";
-  data: {
-    clientID: string;
-    clientSecret: string;
-    authorizationEndpoint: string;
-    tokenEndpoint: string;
-    jwksEndpoint?: string;
-    scopes?: string[];
-    query?: Record<string, string>;
-  };
+  data: Oauth2Config;
 }
 
 // Keycloak provider configuration
@@ -134,9 +117,7 @@ export interface KeycloakProviderConfig extends BaseProviderConfig {
 // Code provider configuration (email/SMS pin code)
 export interface CodeProviderConfig extends BaseProviderConfig {
   type: "code";
-  data: {
-    length?: number; // Default 6
-  };
+  data: CodeConfig<any> & { mode: "email" | "phone" };
 }
 
 // Password provider configuration
@@ -165,7 +146,8 @@ export type ProviderConfig =
   | GoogleProviderConfig
   | CognitoProviderConfig
   | MicrosoftProviderConfig
-  | AppleProviderConfig
+  | AppleOIDCProviderConfig
+  | AppleOAuthProviderConfig
   | SlackProviderConfig;
 
 // Provider metadata for UI
@@ -175,8 +157,6 @@ export interface ProviderMeta {
   category: ProviderCategory;
   icon: string;
   description: string;
-  requiredFields: string[];
-  optionalFields: string[];
 }
 
 export type EmailTemplateProps = {
@@ -194,8 +174,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "social",
     icon: "🔵",
     description: "Sign in with Google OAuth2",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   {
     type: "github",
@@ -203,8 +181,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "social",
     icon: "⚫",
     description: "Sign in with GitHub OAuth2",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   {
     type: "discord",
@@ -212,8 +188,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "social",
     icon: "💜",
     description: "Sign in with Discord OAuth2",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   {
     type: "x",
@@ -221,8 +195,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "social",
     icon: "✖️",
     description: "Sign in with X OAuth2",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   {
     type: "facebook",
@@ -230,17 +202,20 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "social",
     icon: "📘",
     description: "Sign in with Facebook OAuth2",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   {
-    type: "apple",
+    type: "appleoauth",
     name: "Apple",
     category: "social",
     icon: "🍎",
-    description: "Sign in with Apple",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
+    description: "Sign in with Apple OAuth2",
+  },
+  {
+    type: "appleoidc",
+    name: "Apple OIDC",
+    category: "social",
+    icon: "🍏",
+    description: "Sign in with Apple OIDC",
   },
   {
     type: "slack",
@@ -248,8 +223,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "social",
     icon: "💬",
     description: "Sign in with Slack OAuth2",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   {
     type: "spotify",
@@ -257,8 +230,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "social",
     icon: "🎵",
     description: "Sign in with Spotify OAuth2",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   {
     type: "twitch",
@@ -266,8 +237,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "social",
     icon: "🎮",
     description: "Sign in with Twitch OAuth2",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   {
     type: "yahoo",
@@ -275,8 +244,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "social",
     icon: "🟣",
     description: "Sign in with Yahoo OAuth2",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   // Enterprise Providers
   {
@@ -285,8 +252,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "enterprise",
     icon: "🪟",
     description: "Sign in with Microsoft Azure AD",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   {
     type: "cognito",
@@ -294,8 +259,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "enterprise",
     icon: "☁️",
     description: "Sign in with AWS Cognito",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   {
     type: "keycloak",
@@ -303,8 +266,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "enterprise",
     icon: "🔐",
     description: "Sign in with Keycloak",
-    requiredFields: ["clientID", "clientSecret", "realm", "baseUrl"],
-    optionalFields: ["scopes"],
   },
   {
     type: "jumpcloud",
@@ -312,8 +273,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "enterprise",
     icon: "☁️",
     description: "Sign in with JumpCloud",
-    requiredFields: ["clientID", "clientSecret"],
-    optionalFields: ["scopes"],
   },
   // Custom Providers
   {
@@ -322,8 +281,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "custom",
     icon: "🔗",
     description: "Connect to any OIDC provider",
-    requiredFields: ["clientID", "issuer"],
-    optionalFields: ["scopes", "query"],
   },
   {
     type: "oauth",
@@ -331,13 +288,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "custom",
     icon: "🔑",
     description: "Connect to any OAuth2 provider",
-    requiredFields: [
-      "clientID",
-      "clientSecret",
-      "authorizationEndpoint",
-      "tokenEndpoint",
-    ],
-    optionalFields: ["jwksEndpoint", "scopes", "query"],
   },
   // Form-based Providers
   {
@@ -346,8 +296,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "form",
     icon: "📧",
     description: "Email or SMS verification code",
-    requiredFields: ["mode"],
-    optionalFields: ["length"],
   },
   {
     type: "password",
@@ -355,13 +303,6 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "form",
     icon: "🔒",
     description: "Traditional email and password",
-    requiredFields: [],
-    optionalFields: [
-      "minLength",
-      "requireUppercase",
-      "requireNumber",
-      "requireSpecialChar",
-    ],
   },
 ];
 
@@ -391,8 +332,13 @@ export function createDefaultProviderConfig(
       return {
         ...base,
         type: "code",
-        data: { length: 6, mode: "email" },
-      } as CodeProviderConfig;
+        data: {
+          length: 6,
+          mode: "email",
+          sendCode: async (claim, code) => console.log({ claim, code }),
+          request: undefined as any,
+        },
+      } satisfies CodeProviderConfig;
     case "password":
       return {
         ...base,
@@ -424,6 +370,7 @@ export function createDefaultProviderConfig(
           authorizationEndpoint: "",
           tokenEndpoint: "",
           scopes: [],
+          endpoint: { authorization: "", token: "" },
         },
       } as GenericOAuthProviderConfig;
     case "keycloak":
