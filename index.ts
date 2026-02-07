@@ -206,7 +206,7 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
   },
   {
     type: "appleoauth",
-    name: "Apple",
+    name: "Apple OAuth2",
     category: "social",
     icon: "🍎",
     description: "Sign in with Apple OAuth2",
