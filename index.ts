@@ -17,23 +17,24 @@ import type { Oauth2Config } from "@openauthjs/openauth/provider/oauth2";
 
 // All available provider types
 export type ProviderType =
-  | "code" //
+  | "code"
   | "oidc"
   | "oauth"
-  | "appleoauth" //
-  | "appleoidc" //
-  | "x" //
+  | "appleoauth"
+  | "appleoidc"
+  | "apple"
+  | "x"
   | "slack"
   | "yahoo"
-  | "google" //
-  | "github" //
+  | "google"
+  | "github"
   | "twitch"
   | "spotify"
   | "cognito"
   | "discord"
-  | "facebook" //
+  | "facebook"
   | "keycloak"
-  | "password" //
+  | "password"
   | "microsoft"
   | "jumpcloud";
 
