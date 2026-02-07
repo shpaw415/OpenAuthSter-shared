@@ -100,7 +100,7 @@ export interface SlackProviderConfig extends BaseProviderConfig {
 // OIDC provider configuration
 export interface OIDCProviderConfig extends BaseProviderConfig {
   type: "oidc";
-  data: OidcConfig;
+  data: OidcConfig & { parser: string };
 }
 
 // Generic OAuth provider configuration
