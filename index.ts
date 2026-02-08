@@ -111,6 +111,7 @@ export interface GenericOAuthProviderConfig extends BaseProviderConfig {
       url: string;
       method: "GET" | "POST";
       headers?: Record<string, string>;
+      idPath: string; // Dot notation path to extract user identifier from user info response
     };
   };
 }
@@ -381,6 +382,7 @@ export function createDefaultProviderConfig(
           userInfoGetter: {
             url: "",
             method: "GET",
+            headers: {},
           },
         },
       } as GenericOAuthProviderConfig;
