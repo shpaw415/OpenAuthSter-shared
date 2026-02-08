@@ -11,7 +11,7 @@ export const userEndpointURI = "/user-endpoint" as const;
 
 export const UserEndpointValidation = v.object({
   type: v.union([v.literal("public"), v.literal("private")]),
-  action: v.union([v.literal("get"), v.literal("update")]),
+  action: v.union([v.literal("get"), v.literal("update"), v.literal("delete")]),
   data: v.optional(v.any()),
   client_id: v.string(),
 });
@@ -291,6 +291,63 @@ export class OpenAuthsterClient<
       },
     };
     return fetch(input, authInit);
+  }
+  /**
+   * Clears the user's public session data by sending a request to the user endpoint with an empty data object. This will not merge with existing data, but will replace it entirely with an empty object.
+   *
+   * **`Can be called both on client and server side.`**
+   */
+  clearPublicSession() {
+    return this.createFetch(
+      this.createFormData({
+        action: "delete",
+        type: "public",
+        client_id: this.clientID,
+        data: {},
+      }),
+    )
+      .then(
+        (res) =>
+          res.json() as Promise<
+            UserFetchResponse<PublicSessionData, PrivateSessionData>
+          >,
+      )
+      .then((_json) =>
+        this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
+      )
+      .catch(
+        (err) => new Error(`Failed to clear public session: ${err.message}`),
+      );
+  }
+  /**
+   * Clears the user's private session data by sending a request to the user endpoint with an empty data object. This will not merge with existing data, but will replace it entirely with an empty object.
+   *
+   * **`Server side only.`**
+   *
+   * **Note: Secret is required to update private session, so this method will throw an error if the client was not initialized with a secret.**
+   *
+   */
+  clearPrivateSession() {
+    return this.createFetch(
+      this.createFormData({
+        action: "delete",
+        type: "private",
+        client_id: this.clientID,
+        data: {},
+      }),
+    )
+      .then(
+        (res) =>
+          res.json() as Promise<
+            UserFetchResponse<PublicSessionData, PrivateSessionData>
+          >,
+      )
+      .then((_json) =>
+        this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
+      )
+      .catch(
+        (err) => new Error(`Failed to clear private session: ${err.message}`),
+      );
   }
 
   private async _init() {
