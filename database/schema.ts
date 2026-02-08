@@ -14,6 +14,12 @@ const ensureTableisValid = (name: string) => {
   return name;
 };
 
+export function isClientIdValid(name: string) {
+  // SQLite table name safe: must start with letter/underscore, only alphanumeric + underscore
+  const regex = /^[a-zA-Z_][a-zA-Z0-9_]{2,29}$/;
+  return regex.test(name);
+}
+
 export async function createUserTable(
   clientID: string,
   database: D1Database,
