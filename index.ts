@@ -383,6 +383,7 @@ export function createDefaultProviderConfig(
             url: "",
             method: "GET",
             headers: {},
+            idPath: "email",
           },
         },
       } as GenericOAuthProviderConfig;
