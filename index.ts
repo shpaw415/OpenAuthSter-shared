@@ -106,7 +106,13 @@ export interface OIDCProviderConfig extends BaseProviderConfig {
 // Generic OAuth provider configuration
 export interface GenericOAuthProviderConfig extends BaseProviderConfig {
   type: "oauth";
-  data: Oauth2Config & { parser: string };
+  data: Oauth2Config & {
+    userInfoGetter: {
+      url: string;
+      method: "GET" | "POST";
+      headers?: Record<string, string>;
+    };
+  };
 }
 
 // Keycloak provider configuration
@@ -372,7 +378,10 @@ export function createDefaultProviderConfig(
           tokenEndpoint: "",
           scopes: [],
           endpoint: { authorization: "", token: "" },
-          parser: "",
+          userInfoGetter: {
+            url: "",
+            method: "GET",
+          },
         },
       } as GenericOAuthProviderConfig;
     case "keycloak":
