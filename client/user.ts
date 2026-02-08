@@ -62,13 +62,6 @@ export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
   secret?: string;
 } & OpenAuthsterOptions;
 
-export function createOpenAuthsterClient<
-  PublicSessionData = any,
-  PrivateSessionData = any,
->(props: ClientProps<PublicSessionData, PrivateSessionData>) {
-  return new OpenAuthsterClient<PublicSessionData, PrivateSessionData>(props);
-}
-
 export type USerMetaData = {
   user_id: string | null;
   user_identifier: string | null;
@@ -118,6 +111,8 @@ export class OpenAuthsterClient<
   }
   /**
    * Trigger client initialization. Must be called after the first page load, for SSR compatibility.
+   *
+   * **Browser Only**
    * @example
    * ```ts
    * // React example
@@ -261,6 +256,42 @@ export class OpenAuthsterClient<
   addInitializationListener(key: string, callback: () => void) {
     this.initListeners.set(key, callback);
   }
+  /**
+   * Extracts the Bearer token from the Authorization header of a Request object.
+   *
+   * **`Server side only`**
+   */
+  getTokenFromRequest(request: Request) {
+    const authHeader = request.headers.get("Authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      return authHeader.substring(7); // Remove "Bearer " prefix
+    }
+    return null;
+  }
+  /** Sets the client's token based on the Authorization header of a Request object. Also updates authentication state accordingly.
+   *
+   * **`Server side only`**
+   */
+  setTokenFromRequest(request: Request) {
+    const token = this.getTokenFromRequest(request);
+    if (token) {
+      this.token = token;
+      this.isAuthenticated = true;
+    }
+  }
+
+  fetch(input: RequestInfo, init?: RequestInit) {
+    this.ensureReady();
+    const authInit = {
+      ...init,
+      headers: {
+        ...init?.headers,
+        Authorization: `Bearer ${this.token}`,
+        ...(this.secret ? { "X-Client-Secret": this.secret } : {}),
+      },
+    };
+    return fetch(input, authInit);
+  }
 
   private async _init() {
     if (this.getCode()) {
@@ -365,22 +396,34 @@ export class OpenAuthsterClient<
   }
 
   private getStoredToken(): string | null {
-    return localStorage.getItem("oa_token");
+    return typeof window !== "undefined"
+      ? localStorage.getItem("oa_token")
+      : null;
   }
   private storeToken(token: string) {
-    localStorage.setItem("oa_token", token);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("oa_token", token);
+    }
   }
   private removeToken() {
-    localStorage.removeItem("oa_token");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("oa_token");
+    }
   }
   private getStoredRefreshToken(): string | null {
-    return localStorage.getItem("oa_refresh_token");
+    return typeof window !== "undefined"
+      ? localStorage.getItem("oa_refresh_token")
+      : null;
   }
   private storeRefreshToken(refreshToken: string) {
-    localStorage.setItem("oa_refresh_token", refreshToken);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("oa_refresh_token", refreshToken);
+    }
   }
   private removeRefreshToken() {
-    localStorage.removeItem("oa_refresh_token");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("oa_refresh_token");
+    }
   }
 
   private createFormData(data: RequestData): FormData {
@@ -405,4 +448,11 @@ export class OpenAuthsterClient<
       body,
     });
   }
+}
+
+export function createOpenAuthsterClient<
+  PublicSessionData = any,
+  PrivateSessionData = any,
+>(props: ClientProps<PublicSessionData, PrivateSessionData>) {
+  return new OpenAuthsterClient<PublicSessionData, PrivateSessionData>(props);
 }
