@@ -7,6 +7,11 @@ import type {
 import * as v from "valibot";
 import type { InferOutput } from "valibot";
 import { createClient } from ".";
+import {
+  createSubjects,
+  type SubjectSchema,
+} from "@openauthjs/openauth/subject";
+
 export const userEndpointURI = "/user-endpoint" as const;
 
 export const UserEndpointValidation = v.object({
@@ -14,6 +19,13 @@ export const UserEndpointValidation = v.object({
   action: v.union([v.literal("get"), v.literal("update"), v.literal("delete")]),
   data: v.optional(v.any()),
   client_id: v.string(),
+});
+
+export const defaultSubjectSchema = createSubjects({
+  user: v.object({
+    id: v.string(),
+    data: v.any(),
+  }),
 });
 
 export type RequestData = InferOutput<typeof UserEndpointValidation>;
@@ -60,6 +72,16 @@ export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
    * Server side ONLY !! but necessary for private user session `get/update`
    */
   secret?: string;
+  /**
+   * Schema for validating the subject of incoming tokens from requests.
+   *
+   * Required for using `getTokenFromRequest` and `setTokenFromRequest` methods, as the client will attempt to verify incoming tokens using this schema. If verification fails, the token will be rejected and an error will be logged in the console. This is a security measure to prevent unauthorized access with invalid tokens.
+   *
+   * if not provided, the default OpenAuthSter subject schema will be used. However, if your issuer uses a custom subject format or you want to enforce specific claims in the subject, you should provide a custom schema here.
+   *
+   * **Server side only.**
+   */
+  subject?: SubjectSchema;
 } & OpenAuthsterOptions;
 
 export type USerMetaData = {
@@ -95,6 +117,7 @@ export class OpenAuthsterClient<
   private redirectURI: string;
   private refreshTimer: number | undefined;
   private initListeners: Map<string, () => void> = new Map();
+  private subject: SubjectSchema = defaultSubjectSchema;
 
   constructor(props: ClientProps) {
     this.issuerURI = props.issuerURI;
@@ -108,6 +131,9 @@ export class OpenAuthsterClient<
     this.refreshToken = props.refreshToken ?? this.getStoredRefreshToken();
     this.clientID = props.clientID;
     this.redirectURI = props.redirectURI;
+    if (props.subject) {
+      this.subject = props.subject;
+    }
   }
   /**
    * Trigger client initialization. Must be called after the first page load, for SSR compatibility.
@@ -264,6 +290,11 @@ export class OpenAuthsterClient<
   getTokenFromRequest(request: Request) {
     const authHeader = request.headers.get("Authorization");
     if (authHeader && authHeader.startsWith("Bearer ")) {
+      this.openAuthClient
+        .verify(this.subject, authHeader.substring(7))
+        .catch(() => {
+          console.warn("Failed to verify token from request.");
+        });
       return authHeader.substring(7); // Remove "Bearer " prefix
     }
     return null;
