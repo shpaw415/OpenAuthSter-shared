@@ -292,7 +292,15 @@ export class OpenAuthsterClient<
     if (authHeader && authHeader.startsWith("Bearer ")) {
       return authHeader.substring(7); // Remove "Bearer " prefix
     }
-    return null;
+    const tokenFromCookie = request.headers
+      .get("Cookie")
+      ?.split(";")
+      .find((cookie) => cookie.trim().startsWith("access_token="))
+      ?.split("=")
+      .at(1)
+      ?.trim();
+
+    return tokenFromCookie || null;
   }
 
   /** Sets the client's token based on the Authorization header of a Request object. Also updates authentication state accordingly.
