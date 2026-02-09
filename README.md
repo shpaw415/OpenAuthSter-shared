@@ -2,23 +2,39 @@
 
 Shared TypeScript types, database schemas, and client SDK used across the OpenAuthster stack.
 
+> **📦 Package Status:** This package is currently for local development use within the OpenAuthster mono-repo workspace. Public npm package publication is planned for future releases.
+
 ## What's Inside
 
-- **TypeScript types** – shared domain types and endpoint contracts
+- **TypeScript types** – Shared domain types and endpoint contracts
 - **Database schemas** – Drizzle ORM schemas for the issuer's D1 database
-- **Low-level client** (`openauthster-shared/client`) – thin wrapper around `@openauthjs/openauth` that sets cookies the issuer expects
-- **OpenAuthsterClient** (`openauthster-shared/client/user`) – high-level client class that manages the full auth lifecycle (login, tokens, sessions, auto-refresh)
+- **Low-level client** (`openauthster-shared/client`) – Thin wrapper around `@openauthjs/openauth` that sets cookies the issuer expects
+- **OpenAuthsterClient** (`openauthster-shared/client/user`) – High-level client class that manages the full auth lifecycle (login, tokens, sessions, auto-refresh)
 
 ## Installation
 
-```bash
-# Bun
-bun add openauthster-shared
+### For Local Development (Current)
 
-# npm
+This package is currently used within the OpenAuthster mono-repo workspace. When developing locally:
+
+```bash
+# Clone the OpenAuthster workspace
+git clone https://github.com/shpaw415/openauthster-workspace
+cd openauthster-workspace
+
+# The shared types are available to other workspace projects
+```
+
+### For Production Use (Coming Soon)
+
+```bash
+# npm (not yet published)
 npm install openauthster-shared
 
-# Yarn
+# Bun (not yet published)
+bun add openauthster-shared
+
+# Yarn (not yet published)
 yarn add openauthster-shared
 ```
 
@@ -38,23 +54,23 @@ import { createOpenAuthsterClient } from "openauthster-shared/client/user";
 
 ```typescript
 const client = createOpenAuthsterClient({
-  clientID: "my_project_01",                // Project slug from the WebUI
+  clientID: "my_project_01", // Project slug from the WebUI
   issuerURI: "https://auth.yourdomain.com", // Your OpenAuthster issuer URL
-  redirectURI: "https://myapp.com/",        // Where the issuer redirects after login
-  copyID: "en-us",                          // Copy template ID for i18n (optional, null if unused)
-  secret: process.env.AUTH_SECRET,           // Server-side only – required for private session ops
+  redirectURI: "https://myapp.com/", // Where the issuer redirects after login
+  copyID: "en-us", // Copy template ID for i18n (optional, null if unused)
+  secret: process.env.AUTH_SECRET, // Server-side only – required for private session ops
 });
 ```
 
-| Option        | Type               | Required | Description                                                                 |
-| ------------- | ------------------ | -------- | --------------------------------------------------------------------------- |
-| `clientID`    | `string`           | Yes      | Project identifier from the WebUI                                           |
-| `issuerURI`   | `string`           | Yes      | Base URL of the OpenAuthster issuer                                         |
-| `redirectURI` | `string`           | Yes      | URL the issuer sends the user back to after authentication                  |
-| `copyID`      | `string` \| `null` | No       | Copy template ID for i18n support (e.g. `"en-us"`, `"fr-fr"`)              |
-| `secret`      | `string`           | No       | Client secret – **server-side only**, needed for private session read/write |
-| `token`       | `string` \| `null` | No       | Pre-existing access token (server-side scenarios)                           |
-| `refreshToken`| `string` \| `null` | No       | Pre-existing refresh token                                                  |
+| Option         | Type               | Required | Description                                                                 |
+| -------------- | ------------------ | -------- | --------------------------------------------------------------------------- |
+| `clientID`     | `string`           | Yes      | Project identifier from the WebUI                                           |
+| `issuerURI`    | `string`           | Yes      | Base URL of the OpenAuthster issuer                                         |
+| `redirectURI`  | `string`           | Yes      | URL the issuer sends the user back to after authentication                  |
+| `copyID`       | `string` \| `null` | No       | Copy template ID for i18n support (e.g. `"en-us"`, `"fr-fr"`)               |
+| `secret`       | `string`           | No       | Client secret – **server-side only**, needed for private session read/write |
+| `token`        | `string` \| `null` | No       | Pre-existing access token (server-side scenarios)                           |
+| `refreshToken` | `string` \| `null` | No       | Pre-existing refresh token                                                  |
 
 ### Initialization (Browser)
 
@@ -82,8 +98,8 @@ client.logout();
 
 ```typescript
 client.isAuthenticated; // boolean – true once tokens are obtained
-client.isLoaded;        // boolean – true once init() has completed
-client.expiresIn;       // number | undefined – seconds until the access token expires
+client.isLoaded; // boolean – true once init() has completed
+client.expiresIn; // number | undefined – seconds until the access token expires
 
 client.userMeta;
 // { user_id: string | null, user_identifier: string | null }
@@ -315,22 +331,22 @@ function HomePage() {
 ## Directory Map
 
 ```
-openauthster-shared/
-├── index.ts              # Main exports (types, constants, provider registry)
-├── utils.ts              # Cookie utilities
+openauthster-shared/          # (workspace: openauth-webui-shared-types)
+├── index.ts                  # Main exports (types, constants, provider registry)
+├── utils.ts                  # Cookie utilities
 ├── client/
-│   ├── index.ts          # Low-level createClient / createServerClient
-│   └── user.ts           # OpenAuthsterClient class + createOpenAuthsterClient
+│   ├── index.ts              # Low-level createClient / createServerClient
+│   └── user.ts               # OpenAuthsterClient class + createOpenAuthsterClient
 ├── database/
-│   ├── drizzle.ts        # Drizzle configuration
-│   └── schema.ts         # Database schemas
+│   ├── drizzle.ts            # Drizzle configuration
+│   └── schema.ts             # Database schemas
 └── endpoints/
-    └── index.ts          # API endpoint types
+    └── index.ts              # API endpoint types
 ```
 
 ## Related Repositories
 
-- [OpenAuthster](https://github.com/shpaw415/openauthster) – Main project docs
+- [OpenAuthster](https://github.com/shpaw415/openauthster) – Main project documentation
 - [OpenAuthster Issuer](https://github.com/shpaw415/OpenAuthSter-issuer) – Cloudflare Worker issuer
 - [OpenAuthster WebUI](https://github.com/shpaw415/OpenAuthSter-webUI) – Management dashboard
 - [React SDK](https://github.com/shpaw415/openauth-react) – React integration (WIP)
