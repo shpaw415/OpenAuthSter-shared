@@ -301,12 +301,12 @@ export class OpenAuthsterClient<
    *
    * **`Server side only`**
    */
-  setTokenFromRequest(request: Request) {
+  setTokenFromRequest(request: Request): Promise<this> {
     const token = this.getTokenFromRequest(request);
     if (!token) {
       this.token = null;
       this.isAuthenticated = false;
-      return;
+      return Promise.resolve(this);
     }
     return this.verifyToken(token).then((res) => {
       if (res.err) {
@@ -318,6 +318,7 @@ export class OpenAuthsterClient<
         this.token = token;
         this.isAuthenticated = true;
       }
+      return this;
     });
   }
 
