@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { drizzle } from "./drizzle";
 
 const reservedTableNames = [
   "openauth_webui_projects",
@@ -138,3 +139,31 @@ export const LogsTable = sqliteTable("openauth_webui_logs", {
   message: text().notNull(),
   timestamp: text().notNull(),
 });
+
+export function insertLog(
+  type: "info" | "error" | "warning",
+  clientID: string,
+  message: string,
+  database: D1Database,
+): Promise<void> {
+  const logEntry = {
+    id: crypto.randomUUID(),
+    clientID,
+    type,
+    message,
+    timestamp: new Date().toISOString(),
+  };
+  return drizzle(database)
+    .insert(LogsTable)
+    .values(logEntry)
+    .run()
+    .then((res) => {
+      if (!res.success) {
+        console.error("Failed to insert log entry:", res.error);
+      }
+    })
+    .catch((err) => {
+      console.error("Error inserting log entry:", err);
+      throw err;
+    });
+}
