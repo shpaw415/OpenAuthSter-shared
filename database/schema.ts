@@ -6,6 +6,7 @@ const reservedTableNames = [
   "openauth_webui",
   "openauth_webui_ui_styles",
   "openauth_webui_copy_templates",
+  "openauth_webui_logs",
 ];
 
 const ensureTableisValid = (name: string) => {
@@ -129,3 +130,11 @@ export const WebUiCopyTemplateTable = sqliteTable(
     updated_at: text().notNull(),
   },
 );
+
+export const LogsTable = sqliteTable("openauth_webui_logs", {
+  id: text().primaryKey(),
+  clientID: text().notNull(),
+  type: text().notNull(),
+  message: text().notNull(),
+  timestamp: text().notNull(),
+});
