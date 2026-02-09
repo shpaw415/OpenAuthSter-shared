@@ -287,28 +287,38 @@ export class OpenAuthsterClient<
    *
    * **`Server side only`**
    */
-  getTokenFromRequest(request: Request) {
+  getTokenFromRequest(request: Request): string | null {
     const authHeader = request.headers.get("Authorization");
     if (authHeader && authHeader.startsWith("Bearer ")) {
-      this.openAuthClient
-        .verify(this.subject, authHeader.substring(7))
-        .catch(() => {
-          console.warn("Failed to verify token from request.");
-        });
       return authHeader.substring(7); // Remove "Bearer " prefix
     }
     return null;
   }
+
   /** Sets the client's token based on the Authorization header of a Request object. Also updates authentication state accordingly.
+   *
+   * Verify the token authenticity using the client's subject schema. If verification fails, the token will be rejected and an error will be logged in the console. This is a security measure to prevent unauthorized access with invalid tokens.
    *
    * **`Server side only`**
    */
   setTokenFromRequest(request: Request) {
     const token = this.getTokenFromRequest(request);
-    if (token) {
-      this.token = token;
-      this.isAuthenticated = true;
+    if (!token) {
+      this.token = null;
+      this.isAuthenticated = false;
+      return;
     }
+    return this.verifyToken(token).then((res) => {
+      if (res.err) {
+        throw new Error("Failed to verify token from request.", {
+          cause: res.err,
+        });
+      }
+      if (token) {
+        this.token = token;
+        this.isAuthenticated = true;
+      }
+    });
   }
 
   fetch(input: RequestInfo, init?: RequestInit) {
@@ -379,6 +389,10 @@ export class OpenAuthsterClient<
       .catch(
         (err) => new Error(`Failed to clear private session: ${err.message}`),
       );
+  }
+
+  private verifyToken(token: string) {
+    return this.openAuthClient.verify(this.subject, token);
   }
 
   private async _init() {
