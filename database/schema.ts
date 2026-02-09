@@ -140,17 +140,24 @@ export const LogsTable = sqliteTable("openauth_webui_logs", {
   timestamp: text().notNull(),
 });
 
-export function insertLog(
-  type: "info" | "error" | "warning",
-  clientID: string,
-  message: string,
-  database: D1Database,
-): Promise<void> {
+export function insertLog({
+  type,
+  clientID,
+  endpoint,
+  message,
+  database,
+}: {
+  type: "info" | "error" | "warning";
+  clientID: string;
+  endpoint?: string;
+  message: string;
+  database: D1Database;
+}): Promise<void> {
   const logEntry = {
     id: crypto.randomUUID(),
     clientID,
     type,
-    message,
+    message: endpoint ? `[${endpoint}] ${message}` : message,
     timestamp: new Date().toISOString(),
   };
   return drizzle(database)
