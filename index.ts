@@ -531,3 +531,4 @@ export function createExternalGlobalProjectConfig<CTXProperties = any>(
 
 export const COOKIE_NAME = "oauth_client_id" as const;
 export const COOKIE_COPY_TEMPLATE_ID = "oauth_copy_template_id" as const;
+export const COOKIE_INVITE_ID = "oauth_invite_id" as const;
