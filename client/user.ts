@@ -26,6 +26,7 @@ export const defaultSubjectSchema = createSubjects({
     id: v.string(),
     data: v.any(),
     clientID: v.string(),
+    provider: v.string(),
   }),
 });
 
@@ -39,7 +40,9 @@ export const UserEndpointResponseValidation = v.object({
       private: v.any(),
       user_id: v.string(),
       user_identifier: v.string(),
-      userInfo: v.looseObject({}),
+      userInfo: v.looseObject({
+        provider: v.string(),
+      }),
     }),
   ),
   error: v.optional(v.string()),
@@ -94,7 +97,7 @@ export type USerMetaData = {
 export class OpenAuthsterClient<
   PublicSessionData = any,
   PrivateSessionData = any,
-  UserInfo = any,
+  UserInfo extends Exclude<ResponseData["data"], undefined>["userInfo"] = any,
 > {
   public openAuthClient: Client;
   public expiresIn?: number;
@@ -334,6 +337,11 @@ export class OpenAuthsterClient<
     });
   }
 
+  /**
+   * Make Authenticated fetch request to an endpoint needing user authentication. Automatically adds the Bearer token to the Authorization header and X-Client-Secret header if secret is provided in client initialization.
+   *
+   * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
+   */
   fetch(input: RequestInfo, init?: RequestInit) {
     this.ensureReady();
     const authInit = {
@@ -576,8 +584,12 @@ export class OpenAuthsterClient<
 export function createOpenAuthsterClient<
   PublicSessionData = any,
   PrivateSessionData = any,
-  UserInfo = any,
->(props: ClientProps<PublicSessionData, PrivateSessionData>) {
+  UserInfo extends Exclude<ResponseData["data"], undefined>["userInfo"] = {
+    provider: string;
+  },
+>(
+  props: ClientProps<PublicSessionData, PrivateSessionData>,
+): OpenAuthsterClient<PublicSessionData, PrivateSessionData, UserInfo> {
   return new OpenAuthsterClient<
     PublicSessionData,
     PrivateSessionData,
