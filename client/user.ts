@@ -36,8 +36,8 @@ export const UserEndpointResponseValidation = v.object({
   success: v.boolean(),
   data: v.optional(
     v.object({
-      public: v.intersect([v.looseObject({}), v.null()]),
-      private: v.intersect([v.looseObject({}), v.null()]),
+      public: v.nullable(v.looseObject({})),
+      private: v.nullable(v.looseObject({})),
       user_id: v.string(),
       user_identifier: v.string(),
       userInfo: v.looseObject({
@@ -94,6 +94,8 @@ export type USerMetaData = {
   user_identifier: string | null;
 };
 
+type RequiredResponseData = Exclude<ResponseData["data"], undefined>;
+
 /**
  * OpenAuthsterClient is a client library for interacting with an OpenAuthSter Issuer, providing methods for authentication, session management, and user data fetching/updating. It supports both browser and server environments, with specific methods for handling tokens from incoming requests on the server side. The client manages authentication state, session data, and provides a simple interface for making authenticated requests to protected endpoints. It also includes functionality for automatically refreshing tokens before they expire to maintain an active session.
  *
@@ -102,9 +104,9 @@ export type USerMetaData = {
  * @typeParam UserInfo - The type of the user info data returned by the provider depending on the scopes you setted. Defaults to `any`.
  */
 export class OpenAuthsterClient<
-  PublicSessionData = any,
-  PrivateSessionData = any,
-  UserInfo extends Exclude<ResponseData["data"], undefined>["userInfo"] = any,
+  PublicSessionData extends RequiredResponseData["public"] = {},
+  PrivateSessionData extends RequiredResponseData["private"] = {},
+  UserInfo extends RequiredResponseData["userInfo"] = { provider: string },
 > {
   public openAuthClient: Client;
   public expiresIn?: number;
@@ -214,7 +216,7 @@ export class OpenAuthsterClient<
       client_id: this.clientID,
     });
 
-    return this.createFetch(body)
+    const res = this.createFetch(body)
       .then(
         (res) =>
           res.json() as Promise<
@@ -224,9 +226,12 @@ export class OpenAuthsterClient<
       .then((_json) =>
         this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
       )
-      .catch(
-        (err) => new Error(`Failed to fetch user session: ${err.message}`),
-      );
+      .catch((err) => {
+        console.error(`Failed to fetch user session: ${err.message}`);
+        return new Error(`Failed to fetch user session: ${err.message}`);
+      });
+
+    return res;
   }
   /**
    * Updates the user's session data on the user endpoint. Requires the client to be authenticated and have a valid token.
@@ -535,19 +540,17 @@ export class OpenAuthsterClient<
   }
 
   private parseResponseData(data: ResponseData) {
-    if (data.success && data.data) {
-      this.data = {
-        public: data.data.public,
-        private: data.data.private,
-      };
-      this.userMeta = {
-        user_id: data.data.user_id,
-        user_identifier: data.data.user_identifier,
-      };
-      this.userInfo = data.data.userInfo as UserInfo;
-    } else {
-      throw new Error(data.error || "Failed to parse response data.");
-    }
+    if (!data.success || !data.data)
+      throw new Error(data.error || "Failed to fetch user session data.");
+
+    if (data.data.private)
+      this.data.private = data.data.private as PrivateSessionData;
+    if (data.data.public)
+      this.data.public = data.data.public as PublicSessionData;
+    if (data.data.user_id) this.userMeta.user_id = data.data.user_id;
+    if (data.data.user_identifier)
+      this.userMeta.user_identifier = data.data.user_identifier;
+    if (data.data.userInfo) this.userInfo = data.data.userInfo as UserInfo;
     return data.data;
   }
 
@@ -677,9 +680,9 @@ export class OpenAuthsterClient<
  * @typeParam UserInfo - The type of the user info data returned by the provider depending on the scopes you setted. Defaults to `any`.
  */
 export function createOpenAuthsterClient<
-  PublicSessionData = any,
-  PrivateSessionData = any,
-  UserInfo extends Exclude<ResponseData["data"], undefined>["userInfo"] = {
+  PublicSessionData extends RequiredResponseData["public"] = {},
+  PrivateSessionData extends RequiredResponseData["private"] = {},
+  UserInfo extends RequiredResponseData["userInfo"] = {
     provider: string;
   },
 >(
