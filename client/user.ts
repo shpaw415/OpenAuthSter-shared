@@ -25,6 +25,7 @@ export const defaultSubjectSchema = createSubjects({
   user: v.object({
     id: v.string(),
     data: v.any(),
+    clientID: v.string(),
   }),
 });
 
@@ -38,7 +39,7 @@ export const UserEndpointResponseValidation = v.object({
       private: v.any(),
       user_id: v.string(),
       user_identifier: v.string(),
-      userInfo: v.object({}),
+      userInfo: v.looseObject({}),
     }),
   ),
   error: v.optional(v.string()),
