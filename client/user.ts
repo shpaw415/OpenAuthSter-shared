@@ -552,6 +552,10 @@ export class OpenAuthsterClient<
     const inviteFlow = url.get("invite_flow");
 
     if (inviteFlow) {
+      const copyID = url.get("copyID");
+      if (copyID) {
+        this.updateOptions({ copyID });
+      }
       return this.login();
     } else if (this.getCode()) {
       await this.callback();
