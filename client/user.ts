@@ -96,6 +96,20 @@ export type USerMetaData = {
 
 type RequiredResponseData = Exclude<ResponseData["data"], undefined>;
 
+type ErrorType = {
+  error: string;
+  error_description: string | null;
+};
+
+type CallbackType<
+  PublicSessionData extends RequiredResponseData["public"] = {},
+  PrivateSessionData extends RequiredResponseData["private"] = {},
+  UserInfo extends RequiredResponseData["userInfo"] = { provider: string },
+> = (
+  client: OpenAuthsterClient<PublicSessionData, PrivateSessionData, UserInfo>,
+  error?: ErrorType,
+) => void | Promise<void>;
+
 /**
  * OpenAuthsterClient is a client library for interacting with an OpenAuthSter Issuer, providing methods for authentication, session management, and user data fetching/updating. It supports both browser and server environments, with specific methods for handling tokens from incoming requests on the server side. The client manages authentication state, session data, and provides a simple interface for making authenticated requests to protected endpoints. It also includes functionality for automatically refreshing tokens before they expire to maintain an active session.
  *
@@ -124,6 +138,8 @@ export class OpenAuthsterClient<
     user_identifier: null,
   };
   public userInfo: UserInfo | null = null;
+  public error: { error: string; error_description: string | null } | null =
+    null;
 
   private issuerURI: string;
   private clientID: string;
@@ -132,8 +148,10 @@ export class OpenAuthsterClient<
   private refreshToken: string | null = null;
   private redirectURI: string;
   private refreshTimer: number | undefined;
-  private initListeners: Map<string, (client: this) => void | Promise<void>> =
-    new Map();
+  private initListeners: Map<
+    string,
+    CallbackType<PublicSessionData, PrivateSessionData, UserInfo>
+  > = new Map();
   private subject: SubjectSchema = defaultSubjectSchema;
 
   constructor(props: ClientProps) {
@@ -183,9 +201,15 @@ export class OpenAuthsterClient<
    * **Browser Only**
    * @example
    * ```ts
+   *
+   * type ErrorType = {
+   *   error: string;
+   *  error_description: string | null;
+   * };
+   *
    * // React example of a component listening for updates
    * useEffect(() => {
-   *   const updateData = (client: OpenAuthsterClient) => {
+   *   const updateData = (client: OpenAuthsterClient, error?: ErrorType) => {
    *     // Fetch new data or trigger re-render
    *   };
    *   openAuthsterClient.addInitializationListener("myComponent", updateData);
@@ -198,7 +222,9 @@ export class OpenAuthsterClient<
    */
   triggerUpdate() {
     return Promise.all(
-      this.initListeners.values().map((callback) => callback(this)),
+      this.initListeners
+        .values()
+        .map((callback) => callback(this, this.error || undefined)),
     ) as unknown as Promise<void>;
   }
   /**
@@ -359,7 +385,10 @@ export class OpenAuthsterClient<
    * }, []);
    * ```
    */
-  addInitializationListener(key: string, callback: () => void) {
+  addInitializationListener(
+    key: string,
+    callback: CallbackType<PublicSessionData, PrivateSessionData, UserInfo>,
+  ) {
     this.initListeners.set(key, callback);
   }
   /**
@@ -517,8 +546,19 @@ export class OpenAuthsterClient<
   }
 
   private async _init() {
+    const error = new URLSearchParams(window.location.search).get("error");
+    const error_description = new URLSearchParams(window.location.search).get(
+      "error_description",
+    );
+
     if (this.getCode()) {
       await this.callback();
+    } else if (error) {
+      console.error(`Error from authorization callback: `, {
+        error,
+        error_description,
+      });
+      this.error = { error, error_description: error_description || null };
     } else {
       const accessToken = this.token || this.getStoredToken();
       const refreshToken = this.refreshToken || this.getStoredRefreshToken();
