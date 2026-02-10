@@ -87,6 +87,9 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
   projectData: text({
     mode: "json",
   }).default("{}"),
+  registerOnInvite: integer({
+    mode: "boolean",
+  }).default(false),
   originURL: text(),
   secret: text().notNull(),
   authEndpointURL: text().notNull(),
