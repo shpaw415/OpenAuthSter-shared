@@ -301,7 +301,13 @@ export class OpenAuthsterClient<
   async login(): Promise<void> {
     return this.openAuthClient.authorize(this.redirectURI, "code").then((e) => {
       this.setChallenge(e.challenge);
-      window.location.href = e.url;
+      const authURL = new URL(e.url);
+      const currentURI = new URL(window.location.href);
+      const inviteId = currentURI.searchParams.get("invite_id");
+      inviteId && authURL.searchParams.set("invite_id", inviteId);
+      const copyID = currentURI.searchParams.get("copyID");
+      copyID && authURL.searchParams.set("copyID", copyID);
+      window.location.href = authURL.toString();
     });
   }
 
@@ -552,10 +558,6 @@ export class OpenAuthsterClient<
     const inviteFlow = url.get("invite_flow");
 
     if (inviteFlow) {
-      const copyID = url.get("copyID");
-      if (copyID) {
-        this.updateOptions({ copyID });
-      }
       return this.login();
     } else if (this.getCode()) {
       await this.callback();
