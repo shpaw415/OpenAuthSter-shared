@@ -36,8 +36,8 @@ export const UserEndpointResponseValidation = v.object({
   success: v.boolean(),
   data: v.optional(
     v.object({
-      public: v.any(),
-      private: v.any(),
+      public: v.intersect([v.looseObject({}), v.null()]),
+      private: v.intersect([v.looseObject({}), v.null()]),
       user_id: v.string(),
       user_identifier: v.string(),
       userInfo: v.looseObject({
@@ -94,6 +94,13 @@ export type USerMetaData = {
   user_identifier: string | null;
 };
 
+/**
+ * OpenAuthsterClient is a client library for interacting with an OpenAuthSter Issuer, providing methods for authentication, session management, and user data fetching/updating. It supports both browser and server environments, with specific methods for handling tokens from incoming requests on the server side. The client manages authentication state, session data, and provides a simple interface for making authenticated requests to protected endpoints. It also includes functionality for automatically refreshing tokens before they expire to maintain an active session.
+ *
+ * @typeParam PublicSessionData - The type of the public session data. Defaults to `any`.
+ * @typeParam PrivateSessionData - The type of the private session data. Defaults to `any`.
+ * @typeParam UserInfo - The type of the user info data returned by the provider depending on the scopes you setted. Defaults to `any`.
+ */
 export class OpenAuthsterClient<
   PublicSessionData = any,
   PrivateSessionData = any,
@@ -123,7 +130,8 @@ export class OpenAuthsterClient<
   private refreshToken: string | null = null;
   private redirectURI: string;
   private refreshTimer: number | undefined;
-  private initListeners: Map<string, () => void> = new Map();
+  private initListeners: Map<string, (client: this) => void | Promise<void>> =
+    new Map();
   private subject: SubjectSchema = defaultSubjectSchema;
 
   constructor(props: ClientProps) {
@@ -165,15 +173,39 @@ export class OpenAuthsterClient<
    * ```
    */
   async init() {
-    return this._init().then(() => {
-      this.initListeners.forEach((callback) => callback());
-    });
+    return this._init().then(this.triggerUpdate.bind(this));
   }
-
+  /**
+   * Triggers an update by calling all registered initialization listeners. This can be used to notify any components or parts of the application that are listening for updates to re-render or fetch new data after changes to authentication state or session data. The listeners will be called in the order they were registered, and can be asynchronous if needed.
+   *
+   * **Browser Only**
+   * @example
+   * ```ts
+   * // React example of a component listening for updates
+   * useEffect(() => {
+   *   const updateData = (client: OpenAuthsterClient) => {
+   *     // Fetch new data or trigger re-render
+   *   };
+   *   openAuthsterClient.addInitializationListener("myComponent", updateData);
+   *   return () => {
+   *     // Cleanup listener on unmount if needed
+   *     openAuthsterClient.removeInitializationListener("myComponent");
+   *   };
+   * }, []);
+   * ```
+   */
   triggerUpdate() {
-    this.initListeners.forEach((callback) => callback());
+    return Promise.all(
+      this.initListeners.values().map((callback) => callback(this)),
+    ) as unknown as Promise<void>;
   }
-
+  /**
+   * Fetches the user's session data from the user endpoint. Requires the client to be authenticated and have a valid token.
+   *
+   * Private session data can only be accessed if the client was initialized with a secret, as the user endpoint requires the secret to authenticate requests for private session data. If the client was not initialized with a secret, attempts to fetch private session data will result in an error.
+   *
+   * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
+   */
   getUserSession(type: RequestData["type"]) {
     this.ensureReady();
     const body = this.createFormData({
@@ -196,7 +228,13 @@ export class OpenAuthsterClient<
         (err) => new Error(`Failed to fetch user session: ${err.message}`),
       );
   }
-
+  /**
+   * Updates the user's session data on the user endpoint. Requires the client to be authenticated and have a valid token.
+   *
+   * Private session data can only be updated if the client was initialized with a secret, as the user endpoint requires the secret to authenticate requests for private session data. If the client was not initialized with a secret, attempts to update private session data will result in an error.
+   *
+   * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
+   */
   updateUserSession<SessionData extends PublicSessionData | PrivateSessionData>(
     type: RequestData["type"],
     data: SessionData,
@@ -224,6 +262,11 @@ export class OpenAuthsterClient<
       );
   }
 
+  /**
+   * Initiates the login process by redirecting the user to the authorization URL provided by the OpenAuth client. The client will generate a PKCE challenge and store it in local storage before redirecting. After the user completes the login flow and is redirected back to the application, the `callback` method should be called to complete the authentication process and exchange the authorization code for tokens.
+   *
+   * **Browser Only**
+   */
   async login(): Promise<void> {
     return this.openAuthClient.authorize(this.redirectURI, "code").then((e) => {
       this.setChallenge(e.challenge);
@@ -231,6 +274,11 @@ export class OpenAuthsterClient<
     });
   }
 
+  /**
+   * Logs the user out by clearing tokens, session data, and authentication state. Also clears any stored tokens and challenges from local storage to ensure a complete logout. After calling this method, the client will no longer be authenticated and will need to go through the login process again to obtain new tokens.
+   *
+   * **`Browser only`**
+   */
   logout() {
     this.token = null;
     this.refreshToken = null;
@@ -245,6 +293,7 @@ export class OpenAuthsterClient<
       public: {} as PublicSessionData,
       private: {} as PrivateSessionData,
     };
+    this.triggerUpdate();
   }
 
   async callback() {
@@ -286,6 +335,25 @@ export class OpenAuthsterClient<
     }
   }
 
+  /**
+   * Registers a listener callback that will be invoked whenever the client is initialized or updated. This allows components or parts of the application to react to changes in authentication state or session data by re-rendering or fetching new data as needed. The listener is identified by a unique key, which can be used to remove the listener later if needed.
+   *
+   * **`Browser Only`**
+   * @example
+   * ```ts
+   * // React example of a component listening for updates
+   * useEffect(() => {
+   *   const updateData = (client: OpenAuthsterClient) => {
+   *     // Fetch new data or trigger re-render
+   *   };
+   *   openAuthsterClient.addInitializationListener("myComponent", updateData);
+   *   return () => {
+   *     // Cleanup listener on unmount if needed
+   *     openAuthsterClient.removeInitializationListener("myComponent");
+   *   };
+   * }, []);
+   * ```
+   */
   addInitializationListener(key: string, callback: () => void) {
     this.initListeners.set(key, callback);
   }
@@ -315,6 +383,33 @@ export class OpenAuthsterClient<
    * Verify the token authenticity using the client's subject schema. If verification fails, the token will be rejected and an error will be logged in the console. This is a security measure to prevent unauthorized access with invalid tokens.
    *
    * **`Server side only`**
+   *
+   * ```ts
+   * // Example usage in a server-side context
+   * import { OpenAuthsterClient } from "openauthster-shared";
+   *
+   * const client = new OpenAuthsterClient({
+   *   issuerURI: "https://your-issuer.com",
+   *   clientID: "your-client-id",
+   *   secret: "your-client-secret",
+   *   redirectURI: "https://your-app.com/",
+   *   subject: yourCustomSubjectSchema, // Optional custom subject schema
+   * });
+   *
+   * async function handleRequest(request: Request) {
+   *   try {
+   *     await client.setTokenFromRequest(request);
+   *     if (client.isAuthenticated) {
+   *       // Proceed with authenticated actions
+   *     } else {
+   *       // Handle unauthenticated state
+   *     }
+   *   } catch (error) {
+   *     console.error("Error setting token from request:", error);
+   *     // Handle error appropriately
+   *   }
+   * }
+   * ```
    */
   setTokenFromRequest(request: Request): Promise<this> {
     const token = this.getTokenFromRequest(request);
