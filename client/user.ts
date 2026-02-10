@@ -546,12 +546,14 @@ export class OpenAuthsterClient<
   }
 
   private async _init() {
-    const error = new URLSearchParams(window.location.search).get("error");
-    const error_description = new URLSearchParams(window.location.search).get(
-      "error_description",
-    );
+    const url = new URLSearchParams(window.location.search);
+    const error = url.get("error");
+    const error_description = url.get("error_description");
+    const inviteFlow = url.get("invite_flow");
 
-    if (this.getCode()) {
+    if (inviteFlow) {
+      return this.login();
+    } else if (this.getCode()) {
       await this.callback();
     } else if (error) {
       console.error(`Error from authorization callback: `, {
