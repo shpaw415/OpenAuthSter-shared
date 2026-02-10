@@ -38,6 +38,7 @@ export const UserEndpointResponseValidation = v.object({
       private: v.any(),
       user_id: v.string(),
       user_identifier: v.string(),
+      userInfo: v.object({}),
     }),
   ),
   error: v.optional(v.string()),
@@ -92,6 +93,7 @@ export type USerMetaData = {
 export class OpenAuthsterClient<
   PublicSessionData = any,
   PrivateSessionData = any,
+  UserInfo = any,
 > {
   public openAuthClient: Client;
   public expiresIn?: number;
@@ -108,6 +110,7 @@ export class OpenAuthsterClient<
     user_id: null,
     user_identifier: null,
   };
+  public userInfo: UserInfo | null = null;
 
   private issuerURI: string;
   private clientID: string;
@@ -437,6 +440,7 @@ export class OpenAuthsterClient<
         user_id: data.data.user_id,
         user_identifier: data.data.user_identifier,
       };
+      this.userInfo = data.data.userInfo as UserInfo;
     } else {
       throw new Error(data.error || "Failed to parse response data.");
     }
@@ -561,9 +565,21 @@ export class OpenAuthsterClient<
   }
 }
 
+/**
+ * Factory function to create an instance of the OpenAuthsterClient with specified session data types.
+ *
+ * @typeParam PublicSessionData - The type of the public session data. Defaults to `any`.
+ * @typeParam PrivateSessionData - The type of the private session data. Defaults to `any`.
+ * @typeParam UserInfo - The type of the user info data returned by the provider depending on the scopes you setted. Defaults to `any`.
+ */
 export function createOpenAuthsterClient<
   PublicSessionData = any,
   PrivateSessionData = any,
+  UserInfo = any,
 >(props: ClientProps<PublicSessionData, PrivateSessionData>) {
-  return new OpenAuthsterClient<PublicSessionData, PrivateSessionData>(props);
+  return new OpenAuthsterClient<
+    PublicSessionData,
+    PrivateSessionData,
+    UserInfo
+  >(props);
 }
