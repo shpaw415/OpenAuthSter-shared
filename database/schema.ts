@@ -132,6 +132,14 @@ export const WebUiCopyTemplateTable = sqliteTable(
   },
 );
 
+export const WebUiInviteLinkTable = sqliteTable("openauth_webui_invite_links", {
+  id: text().primaryKey(),
+  clientID: text().notNull(),
+  link: text().notNull(),
+  expiresAt: text().notNull(),
+  created_at: text().notNull(),
+});
+
 export const LogsTable = sqliteTable("openauth_webui_logs", {
   id: text().primaryKey(),
   clientID: text().notNull(),
