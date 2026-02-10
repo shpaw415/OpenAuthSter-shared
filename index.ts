@@ -433,6 +433,7 @@ export interface Project {
   originURL?: string | null;
   authEndpointURL: string;
   cloudflareDomaineID: string;
+  registerOnInvite: boolean;
   secret: string;
 }
 
@@ -458,6 +459,8 @@ export function parseDBProject(
     originURL: data.originURL || null,
     authEndpointURL: String(data.authEndpointURL),
     cloudflareDomaineID: String(data.cloudflareDomaineID),
+    registerOnInvite: Boolean(data.registerOnInvite),
+    secret: String(data.secret),
   } satisfies Project;
 }
 
