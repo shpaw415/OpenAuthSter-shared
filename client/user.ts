@@ -324,6 +324,7 @@ export class OpenAuthsterClient<
     this.removeToken();
     this.removeRefreshToken();
     this.removeChallenge();
+    this.removeStoredExpiration();
     this.isAuthenticated = false;
     this.isLoaded = true;
     this.data = {
@@ -350,7 +351,7 @@ export class OpenAuthsterClient<
           });
         this.storeExpiration(tokens.tokens?.expiresIn || 3600);
         this.updateTokens(tokens);
-        this.createResetTimer(tokens);
+        this.createResetTimer(tokens.tokens?.expiresIn || null);
         this.isAuthenticated = true;
       })
       .finally(() => {
@@ -581,13 +582,8 @@ export class OpenAuthsterClient<
       }
       if (expiresIn) {
         this.expiresIn = expiresIn;
-        this.createResetTimer({
-          tokens: {
-            access: accessToken || undefined,
-            refresh: refreshToken || undefined,
-            expiresIn,
-          },
-        } as ExchangeSuccess);
+        this.storeExpiration(expiresIn);
+        this.createResetTimer(expiresIn);
       }
     }
     this.isLoaded = true;
@@ -614,31 +610,35 @@ export class OpenAuthsterClient<
     return data.data;
   }
 
-  private createResetTimer(tokens: ExchangeSuccess | RefreshSuccess) {
-    if (!tokens.tokens?.expiresIn) return;
-    this.refreshTimer = setTimeout(
-      () => {
-        const refreshToken = this.refreshToken ?? this.getStoredRefreshToken();
-        const token = this.token || this.getStoredToken() || undefined;
-        if (!refreshToken) return;
-        this.openAuthClient
-          .refresh(refreshToken, {
-            access: token,
-          })
-          .then((newTokens) => {
-            if (newTokens.err) {
-              throw new Error("No tokens received from refresh.", {
-                cause: newTokens.err,
-              });
-            }
-            this.updateTokens(newTokens);
-            this.createResetTimer(newTokens);
-          })
-          .catch(() => {
-            console.warn("Failed to refresh token");
+  private triggerRefresh() {
+    const refreshToken = this.refreshToken || this.getStoredRefreshToken();
+    const token = this.token || this.getStoredToken();
+    if (!refreshToken) return;
+    this.openAuthClient
+      .refresh(refreshToken, {
+        access: token || undefined,
+      })
+      .then((newTokens) => {
+        if (newTokens.err) {
+          throw new Error("No tokens received from refresh.", {
+            cause: newTokens.err,
           });
-      },
-      (tokens.tokens?.expiresIn - 60) * 1000,
+        }
+        if (newTokens.tokens?.expiresIn)
+          this.storeExpiration(newTokens.tokens.expiresIn);
+        this.updateTokens(newTokens);
+        this.createResetTimer(newTokens.tokens?.expiresIn || null);
+      })
+      .catch(() => {
+        console.warn("Failed to refresh token");
+      });
+  }
+
+  private createResetTimer(expiresIn: number | null) {
+    if (!expiresIn) return this.triggerRefresh(); // If no expiry info, attempt to refresh immediately when request fails
+    this.refreshTimer = setTimeout(
+      this.triggerRefresh.bind(this),
+      (expiresIn - 60) * 1000,
     ); // Refresh 1 minute before expiry
   }
 
@@ -708,18 +708,32 @@ export class OpenAuthsterClient<
     }
   }
 
+  /**
+   * @returns Expires In timestamp in milliseconds if valid and not expired, otherwise null
+   */
   private getStoredExpiration(): number | null {
-    const expiresIn = localStorage.getItem("oa_expires_in");
-    return expiresIn ? parseInt(expiresIn) : null;
+    const expiresAt = localStorage.getItem("oa_expires_at");
+    const now = new Date().getTime();
+    if (!expiresAt) return null;
+    const expiresAtNumber = parseInt(expiresAt);
+    return expiresAtNumber > now ? expiresAtNumber - now : null;
   }
+  /**
+   * Store the expiration time as a timestamp in milliseconds in local storage. The client will use this to determine when to attempt token refreshes. If the client is closed and reopened, it will check the stored expiration time to determine if the token is still valid or if it needs to be refreshed immediately.
+   *
+   * **Browser Only**
+   */
   private storeExpiration(expiresIn: number) {
     if (typeof window !== "undefined") {
-      localStorage.setItem("oa_expires_in", expiresIn.toString());
+      localStorage.setItem(
+        "oa_expires_at",
+        (new Date().getTime() + expiresIn * 1000).toString(),
+      );
     }
   }
-  private removeExpiration() {
+  private removeStoredExpiration() {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("oa_expires_in");
+      localStorage.removeItem("oa_expires_at");
     }
   }
 
