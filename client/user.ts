@@ -636,6 +636,7 @@ export class OpenAuthsterClient<
 
   private createResetTimer(expiresIn: number | null) {
     if (!expiresIn) return this.triggerRefresh(); // If no expiry info, attempt to refresh immediately when request fails
+    clearTimeout(this.refreshTimer);
     this.refreshTimer = setTimeout(
       this.triggerRefresh.bind(this),
       (expiresIn - 60) * 1000,
