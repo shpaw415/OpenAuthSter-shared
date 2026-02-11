@@ -348,6 +348,7 @@ export class OpenAuthsterClient<
           throw new Error("No tokens received from exchange.", {
             cause: tokens.err,
           });
+        this.storeExpiration(tokens.tokens?.expiresIn || 3600);
         this.updateTokens(tokens);
         this.createResetTimer(tokens);
         this.isAuthenticated = true;
@@ -570,12 +571,23 @@ export class OpenAuthsterClient<
     } else {
       const accessToken = this.token || this.getStoredToken();
       const refreshToken = this.refreshToken || this.getStoredRefreshToken();
+      const expiresIn = this.expiresIn || this.getStoredExpiration();
       if (accessToken) {
         this.token = accessToken;
         this.isAuthenticated = true;
       }
       if (refreshToken) {
         this.refreshToken = refreshToken;
+      }
+      if (expiresIn) {
+        this.expiresIn = expiresIn;
+        this.createResetTimer({
+          tokens: {
+            access: accessToken || undefined,
+            refresh: refreshToken || undefined,
+            expiresIn,
+          },
+        } as ExchangeSuccess);
       }
     }
     this.isLoaded = true;
@@ -693,6 +705,21 @@ export class OpenAuthsterClient<
   private removeRefreshToken() {
     if (typeof window !== "undefined") {
       localStorage.removeItem("oa_refresh_token");
+    }
+  }
+
+  private getStoredExpiration(): number | null {
+    const expiresIn = localStorage.getItem("oa_expires_in");
+    return expiresIn ? parseInt(expiresIn) : null;
+  }
+  private storeExpiration(expiresIn: number) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("oa_expires_in", expiresIn.toString());
+    }
+  }
+  private removeExpiration() {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("oa_expires_in");
     }
   }
 
