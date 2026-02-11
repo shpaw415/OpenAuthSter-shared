@@ -635,7 +635,7 @@ export class OpenAuthsterClient<
   }
 
   private createResetTimer(expiresIn: number | null) {
-    if (!expiresIn) return this.triggerRefresh(); // If no expiry info, attempt to refresh immediately when request fails
+    if (!expiresIn) return;
     clearTimeout(this.refreshTimer);
     this.refreshTimer = setTimeout(
       this.triggerRefresh.bind(this),
@@ -725,17 +725,15 @@ export class OpenAuthsterClient<
    * **Browser Only**
    */
   private storeExpiration(expiresIn: number) {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(
-        "oa_expires_at",
-        (new Date().getTime() + expiresIn * 1000).toString(),
-      );
-    }
+    if (typeof window === "undefined") return;
+    localStorage.setItem(
+      "oa_expires_at",
+      (new Date().getTime() + expiresIn * 1000).toString(),
+    );
   }
   private removeStoredExpiration() {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("oa_expires_at");
-    }
+    if (typeof window === "undefined") return;
+    localStorage.removeItem("oa_expires_at");
   }
 
   private createFormData(data: RequestData): FormData {
@@ -750,7 +748,10 @@ export class OpenAuthsterClient<
   }
 
   private createFetch(body?: RequestInit<RequestInitCfProperties>["body"]) {
-    return fetch(`${this.issuerURI}${userEndpointURI}`, {
+    const url = new URL(`${this.issuerURI}${userEndpointURI}`);
+    url.searchParams.set("client_id", this.clientID);
+
+    return fetch(url.toString(), {
       method: "POST",
       headers: {
         Authorization: this.token ? `Bearer ${this.token}` : "",
