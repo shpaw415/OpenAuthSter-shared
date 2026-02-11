@@ -148,6 +148,9 @@ export const LogsTable = sqliteTable("openauth_webui_logs", {
   clientID: text().notNull(),
   type: text().notNull(),
   message: text().notNull(),
+  context: text({
+    mode: "json",
+  }),
   timestamp: text().notNull(),
 });
 
@@ -157,12 +160,14 @@ export function insertLog({
   endpoint,
   message,
   database,
+  context,
 }: {
   type: "info" | "error" | "warning";
   clientID: string;
   endpoint?: string;
   message: string;
   database: D1Database;
+  context?: Record<string, any>;
 }): Promise<void> {
   const logEntry = {
     id: crypto.randomUUID(),
@@ -170,6 +175,7 @@ export function insertLog({
     type,
     message: endpoint ? `[${endpoint}] ${message}` : message,
     timestamp: new Date().toISOString(),
+    context: context ? JSON.stringify(context) : undefined,
   };
   return drizzle(database)
     .insert(LogsTable)
