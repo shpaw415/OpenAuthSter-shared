@@ -31,7 +31,7 @@ export const createClient = ({
   copyID: string | null;
 }) =>
   _createClient({
-    clientID: buildClientIDWithParams({ clientID, copyID }),
+    clientID,
     issuer,
     fetch: fetcher(clientID, copyID),
   });
@@ -45,27 +45,13 @@ export function createServerClient({
   issuer: string;
   request: Request;
 }) {
-  // [0]: clientID, [1]: copyID
-  const clientIdWithParams = new URL(request.url).searchParams
-    .get("client_id")
-    ?.split("::") as [string, string | undefined] | null;
+  const url = new URL(request.url);
+  const client_id = url.searchParams.get("client_id") || clientID;
+  const copy_id = url.searchParams.get("copy_id") || null;
 
   return _createClient({
-    clientID: buildClientIDWithParams({
-      clientID,
-      copyID: clientIdWithParams?.at(1) || null,
-    }),
+    clientID,
     issuer,
-    fetch: fetcher(clientID, clientIdWithParams?.at(1) || null),
+    fetch: fetcher(client_id, copy_id),
   });
-}
-
-function buildClientIDWithParams({
-  clientID,
-  copyID,
-}: {
-  clientID: string;
-  copyID: string | null;
-}) {
-  return `${clientID}${copyID ? `::${copyID}` : ""}`;
 }

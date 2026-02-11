@@ -555,7 +555,7 @@ export class OpenAuthsterClient<
     const url = new URLSearchParams(window.location.search);
     const error = url.get("error");
     const error_description = url.get("error_description");
-    const inviteFlow = url.get("invite_flow");
+    const inviteFlow = url.get("invite_id");
 
     if (inviteFlow) {
       return this.login();
