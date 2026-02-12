@@ -487,7 +487,6 @@ export class OpenAuthsterClient<
    * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
    */
   fetch(input: RequestInfo, init?: RequestInit) {
-    this.ensureReady();
     const authInit = {
       ...init,
       headers: {
@@ -546,6 +545,11 @@ export class OpenAuthsterClient<
       );
   }
 
+  /**
+   * Fetches a list of users from the issuer's user endpoint, with optional pagination filters. This method requires the client to be authenticated and have a valid token, as well as access to the user endpoint which may require a secret for private session data. The response is validated against the UserListSchemaValidation schema to ensure it conforms to the expected format.
+   *
+   * **`need secret to be set`**
+   */
   getUserById(user_id: string) {
     return this.fetch(`${this.issuerURI}/users/${user_id}`, {
       method: "GET",
@@ -554,11 +558,16 @@ export class OpenAuthsterClient<
       .then((_json) => v.parse(UserListSchemaValidation, _json))
       .catch((err) => new Error(`Failed to fetch user by ID: ${err.message}`));
   }
-  getUsers(filters: GetUserListFilters) {
-    const query = new URLSearchParams();
-    if (filters.page) query.set("page", filters.page.toString());
-    if (filters.limit) query.set("limit", filters.limit.toString());
-    return this.fetch(`${this.issuerURI}/users?${query.toString()}`, {
+  /**
+   * Fetches a list of users from the issuer's user endpoint, with optional pagination filters. This method requires the client to be authenticated and have a valid token, as well as access to the user endpoint. The response is validated against the UserListSchemaValidation schema to ensure it conforms to the expected format.
+   *
+   *  **`need secret to be set`**
+   */
+  getUsers(filters?: GetUserListFilters) {
+    const url = new URL(`${this.issuerURI}/users/${this.clientID}`);
+    if (filters?.page) url.searchParams.set("page", filters.page.toString());
+    if (filters?.limit) url.searchParams.set("limit", filters.limit.toString());
+    return this.fetch(url.toString(), {
       method: "GET",
     })
       .then((res) => res.json() as Promise<GetUserListResponse>)

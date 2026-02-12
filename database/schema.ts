@@ -1,5 +1,6 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { drizzle } from "./drizzle";
+import type { UserListItem } from "./endpoints";
 
 const reservedTableNames = [
   "openauth_webui_projects",
@@ -190,4 +191,19 @@ export function insertLog({
       console.error("Error inserting log entry:", err);
       throw err;
     });
+}
+
+export function parseDBUser(
+  user: Partial<ReturnType<typeof OTFusersTable>["$inferSelect"]>,
+) {
+  return {
+    ...user,
+    data: typeof user.data == "string" ? JSON.parse(user.data) : user.data,
+    session_private: user.session_private
+      ? JSON.parse(user.session_private)
+      : undefined,
+    session_public: user.session_public
+      ? JSON.parse(user.session_public)
+      : undefined,
+  };
 }
