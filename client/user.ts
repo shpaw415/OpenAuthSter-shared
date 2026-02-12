@@ -11,6 +11,11 @@ import {
   createSubjects,
   type SubjectSchema,
 } from "@openauthjs/openauth/subject";
+import {
+  UserListSchemaValidation,
+  type GetUserListFilters,
+  type GetUserListResponse,
+} from "../database/endpoints";
 
 export const userEndpointURI = "/session" as const;
 
@@ -545,11 +550,20 @@ export class OpenAuthsterClient<
     return this.fetch(`${this.issuerURI}/users/${user_id}`, {
       method: "GET",
     })
-      .then((res) => res.json() as Promise<ResponseData>)
-      .then((_json) =>
-        this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
-      )
+      .then((res) => res.json() as Promise<GetUserListResponse>)
+      .then((_json) => v.parse(UserListSchemaValidation, _json))
       .catch((err) => new Error(`Failed to fetch user by ID: ${err.message}`));
+  }
+  getUsers(filters: GetUserListFilters) {
+    const query = new URLSearchParams();
+    if (filters.page) query.set("page", filters.page.toString());
+    if (filters.limit) query.set("limit", filters.limit.toString());
+    return this.fetch(`${this.issuerURI}/users?${query.toString()}`, {
+      method: "GET",
+    })
+      .then((res) => res.json() as Promise<GetUserListResponse>)
+      .then((_json) => v.parse(UserListSchemaValidation, _json))
+      .catch((err) => new Error(`Failed to fetch users: ${err.message}`));
   }
 
   private verifyToken(token: string) {
