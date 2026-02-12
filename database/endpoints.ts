@@ -1,6 +1,11 @@
-type UserPageFilter = {
-  page: number;
-  limit: number;
-};
+type UserPageFilter =
+  | {
+      page: number;
+      limit: number;
+    }
+  | {
+      page?: number;
+      limit?: number;
+    };
 
-export type GetUserListFilters = UserPageFilter | {};
+export type GetUserListFilters = UserPageFilter;
