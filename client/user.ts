@@ -12,7 +12,7 @@ import {
   type SubjectSchema,
 } from "@openauthjs/openauth/subject";
 
-export const userEndpointURI = "/user-endpoint" as const;
+export const userEndpointURI = "/session" as const;
 
 export const UserEndpointValidation = v.object({
   type: v.union([v.literal("public"), v.literal("private")]),
@@ -65,6 +65,7 @@ export type ResponseData = InferOutput<typeof UserEndpointResponseValidation>;
 
 export type OpenAuthsterOptions = {
   copyID?: string | null;
+  secret?: string;
 };
 
 export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
@@ -236,13 +237,9 @@ export class OpenAuthsterClient<
    */
   getUserSession(type: RequestData["type"]) {
     this.ensureReady();
-    const body = this.createFormData({
-      action: "get",
-      type,
-      client_id: this.clientID,
-    });
-
-    const res = this.createFetch(body)
+    return this.fetch(`${this.issuerURI}/session/${type}/${this.clientID}`, {
+      method: "GET",
+    })
       .then(
         (res) =>
           res.json() as Promise<
@@ -256,8 +253,6 @@ export class OpenAuthsterClient<
         console.error(`Failed to fetch user session: ${err.message}`);
         return new Error(`Failed to fetch user session: ${err.message}`);
       });
-
-    return res;
   }
   /**
    * Updates the user's session data on the user endpoint. Requires the client to be authenticated and have a valid token.
@@ -271,14 +266,14 @@ export class OpenAuthsterClient<
     data: SessionData,
   ) {
     this.ensureReady();
-    const body = this.createFormData({
-      action: "update",
-      type,
-      client_id: this.clientID,
-      data,
-    });
 
-    return this.createFetch(body)
+    return this.fetch(`${this.issuerURI}/session/${type}/${this.clientID}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
       .then(
         (res) =>
           res.json() as Promise<
@@ -354,6 +349,10 @@ export class OpenAuthsterClient<
         this.createResetTimer(tokens.tokens?.expiresIn || null);
         this.isAuthenticated = true;
       })
+      .catch((err) => {
+        console.error("Error during callback exchange: ", err);
+        throw new Error(`Error during callback exchange: ${err.message}`);
+      })
       .finally(() => {
         this.removeChallenge();
         location.search = location.search
@@ -371,6 +370,9 @@ export class OpenAuthsterClient<
         issuer: this.issuerURI,
         copyID: options.copyID,
       });
+    }
+    if (options.secret) {
+      this.secret = options.secret;
     }
   }
 
@@ -484,9 +486,9 @@ export class OpenAuthsterClient<
     const authInit = {
       ...init,
       headers: {
-        ...init?.headers,
         Authorization: `Bearer ${this.token}`,
         ...(this.secret ? { "X-Client-Secret": this.secret } : {}),
+        ...init?.headers,
       },
     };
     return fetch(input, authInit);
@@ -497,14 +499,9 @@ export class OpenAuthsterClient<
    * **`Can be called both on client and server side.`**
    */
   clearPublicSession() {
-    return this.createFetch(
-      this.createFormData({
-        action: "delete",
-        type: "public",
-        client_id: this.clientID,
-        data: {},
-      }),
-    )
+    return this.fetch(`${this.issuerURI}/session/public/${this.clientID}`, {
+      method: "DELETE",
+    })
       .then(
         (res) =>
           res.json() as Promise<
@@ -527,14 +524,9 @@ export class OpenAuthsterClient<
    *
    */
   clearPrivateSession() {
-    return this.createFetch(
-      this.createFormData({
-        action: "delete",
-        type: "private",
-        client_id: this.clientID,
-        data: {},
-      }),
-    )
+    return this.fetch(`${this.issuerURI}/session/private/${this.clientID}`, {
+      method: "DELETE",
+    })
       .then(
         (res) =>
           res.json() as Promise<
@@ -547,6 +539,17 @@ export class OpenAuthsterClient<
       .catch(
         (err) => new Error(`Failed to clear private session: ${err.message}`),
       );
+  }
+
+  getUserById(user_id: string) {
+    return this.fetch(`${this.issuerURI}/users/${user_id}`, {
+      method: "GET",
+    })
+      .then((res) => res.json() as Promise<ResponseData>)
+      .then((_json) =>
+        this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
+      )
+      .catch((err) => new Error(`Failed to fetch user by ID: ${err.message}`));
   }
 
   private verifyToken(token: string) {
@@ -734,32 +737,6 @@ export class OpenAuthsterClient<
   private removeStoredExpiration() {
     if (typeof window === "undefined") return;
     localStorage.removeItem("oa_expires_at");
-  }
-
-  private createFormData(data: RequestData): FormData {
-    const formData = new FormData();
-    formData.append("action", data.action);
-    formData.append("type", data.type);
-    formData.append("client_id", data.client_id);
-    if (data.data) {
-      formData.append("data", JSON.stringify(data.data));
-    }
-    return formData;
-  }
-
-  private createFetch(body?: RequestInit<RequestInitCfProperties>["body"]) {
-    const url = new URL(`${this.issuerURI}${userEndpointURI}`);
-    url.searchParams.set("client_id", this.clientID);
-
-    return fetch(url.toString(), {
-      method: "POST",
-      headers: {
-        Authorization: this.token ? `Bearer ${this.token}` : "",
-        ...(this.secret ? { "X-Client-Secret": this.secret } : {}),
-      },
-      //credentials: "include",
-      body,
-    });
   }
 }
 
