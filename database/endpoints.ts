@@ -1,4 +1,6 @@
 import { OTFusersTable } from "./schema";
+import { array, boolean, looseObject, number, object, string } from "valibot";
+
 export type UserPageFilter =
   | {
       page: number;
@@ -23,3 +25,18 @@ export type GetUserListResponse = {
     total: number;
   };
 };
+
+export const UserListSchemaValidation = object({
+  success: boolean(),
+  data: object({
+    users: array(
+      object({
+        id: string(),
+        identifier: string(),
+        data: looseObject({}),
+        createAt: string(),
+      }),
+    ),
+    total: number(),
+  }),
+});
