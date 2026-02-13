@@ -35,6 +35,8 @@ export const UserListSchemaValidation = object({
         identifier: string(),
         data: looseObject({}),
         created_at: string(),
+        session_public: looseObject({}),
+        session_private: looseObject({}),
       }),
     ),
     total: number(),

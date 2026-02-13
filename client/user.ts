@@ -551,7 +551,7 @@ export class OpenAuthsterClient<
    * **`need secret to be set`**
    */
   getUserById(user_id: string) {
-    return this.fetch(`${this.issuerURI}/users/${user_id}`, {
+    return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
       method: "GET",
     })
       .then((res) => res.json() as Promise<GetUserListResponse>)
@@ -573,6 +573,27 @@ export class OpenAuthsterClient<
       .then((res) => res.json() as Promise<GetUserListResponse>)
       .then((_json) => v.parse(UserListSchemaValidation, _json))
       .catch((err) => new Error(`Failed to fetch users: ${err.message}`));
+  }
+
+  /**
+   * Deletes a user by their ID by sending a DELETE request to the issuer's user endpoint. This method requires the client to be authenticated and have a valid token, as well as access to the user endpoint which may require a secret. The response is expected to indicate success or failure of the deletion operation.
+   *
+   * **`need secret to be set`**
+   */
+  deleteUserById(user_id: string) {
+    return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
+      method: "DELETE",
+    })
+      .then(
+        (res) => res.json() as Promise<{ success: boolean; error?: string }>,
+      )
+      .then((json) => {
+        if (!json.success) {
+          throw new Error(json.error || "Failed to delete user.");
+        }
+        return json;
+      })
+      .catch((err) => new Error(`Failed to delete user by ID: ${err.message}`));
   }
 
   private verifyToken(token: string) {
