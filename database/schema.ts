@@ -201,9 +201,9 @@ export function parseDBUser(
     data: typeof user.data == "string" ? JSON.parse(user.data) : user.data,
     session_private: user.session_private
       ? JSON.parse(user.session_private)
-      : undefined,
+      : null,
     session_public: user.session_public
       ? JSON.parse(user.session_public)
-      : undefined,
+      : null,
   };
 }
