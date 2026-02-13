@@ -7,6 +7,7 @@ import {
   object,
   string,
   nullable,
+  undefinedable,
 } from "valibot";
 
 export type UserPageFilter =
@@ -43,8 +44,8 @@ export const UserListSchemaValidation = object({
         identifier: string(),
         data: looseObject({}),
         created_at: string(),
-        session_public: nullable(looseObject({})),
-        session_private: nullable(looseObject({})),
+        session_public: undefinedable(looseObject({})),
+        session_private: undefinedable(looseObject({})),
       }),
     ),
     total: number(),
