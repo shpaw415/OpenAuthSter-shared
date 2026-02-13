@@ -1,5 +1,13 @@
 import { OTFusersTable } from "./schema";
-import { array, boolean, looseObject, number, object, string } from "valibot";
+import {
+  array,
+  boolean,
+  looseObject,
+  number,
+  object,
+  string,
+  nullable,
+} from "valibot";
 
 export type UserPageFilter =
   | {
@@ -35,8 +43,8 @@ export const UserListSchemaValidation = object({
         identifier: string(),
         data: looseObject({}),
         created_at: string(),
-        session_public: looseObject({}),
-        session_private: looseObject({}),
+        session_public: nullable(looseObject({})),
+        session_private: nullable(looseObject({})),
       }),
     ),
     total: number(),
