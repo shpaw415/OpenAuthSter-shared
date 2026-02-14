@@ -28,13 +28,6 @@ export type ResponseBaseData<Data> = {
   data: Data;
 };
 
-export type GetUserListResponse = ResponseBaseData<{
-  users: OTFUsersParsedType[];
-  total: number;
-}>;
-
-export type UpdateUserFromIDResponseData = ResponseBaseData<OTFUsersParsedType>;
-
 export const UserListSchemaValidation = object({
   success: boolean(),
   data: nullable(

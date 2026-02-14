@@ -14,8 +14,7 @@ import {
 import {
   UserListSchemaValidation,
   type GetUserListFilters,
-  type GetUserListResponse,
-  type UpdateUserFromIDResponseData,
+  type UserResponseSchemaType,
 } from "../database/endpoints";
 import type { OTFUsersParsedType } from "../database/schema";
 
@@ -561,7 +560,7 @@ import { OTFusersTable } from '../database/schema';
     return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
       method: "GET",
     })
-      .then((res) => res.json() as Promise<GetUserListResponse>)
+      .then((res) => res.json() as Promise<UserResponseSchemaType>)
       .then((_json) => v.parse(UserListSchemaValidation, _json))
       .catch((err) => new Error(`Failed to fetch user by ID: ${err.message}`));
   }
@@ -577,7 +576,7 @@ import { OTFusersTable } from '../database/schema';
     return this.fetch(url.toString(), {
       method: "GET",
     })
-      .then((res) => res.json() as Promise<GetUserListResponse>)
+      .then((res) => res.json() as Promise<UserResponseSchemaType>)
       .then((_json) => v.parse(UserListSchemaValidation, _json))
       .catch((err) => new Error(`Failed to fetch users: ${err.message}`));
   }
@@ -586,20 +585,23 @@ import { OTFusersTable } from '../database/schema';
    *
    * **`need secret to be set`**
    */
-  deleteUserById(user_id: string) {
+  deleteUserById(
+    user_id: string,
+  ): Promise<{ success: boolean; error: null | string }> {
     return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
       method: "DELETE",
     })
-      .then(
-        (res) => res.json() as Promise<{ success: boolean; error?: string }>,
-      )
+      .then((res) => res.json() as Promise<UserResponseSchemaType>)
       .then((json) => {
         if (!json.success) {
           throw new Error(json.error || "Failed to delete user.");
         }
-        return json;
+        return { success: true, error: null };
       })
-      .catch((err) => new Error(`Failed to delete user by ID: ${err.message}`));
+      .catch((err) => ({
+        success: false,
+        error: `Failed to delete user by ID: ${err.message}`,
+      }));
   }
   /**
    * Update user by ID
@@ -607,7 +609,7 @@ import { OTFusersTable } from '../database/schema';
   updateUserById(
     user_id: string,
     data: UpdateUserByIdData,
-  ): Promise<UpdateUserFromIDResponseData | Error> {
+  ): Promise<UserResponseSchemaType["data"] | Error> {
     return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -615,12 +617,12 @@ import { OTFusersTable } from '../database/schema';
         "Content-Type": "application/json",
       },
     })
-      .then((res) => res.json() as Promise<UpdateUserFromIDResponseData>)
+      .then((res) => res.json() as Promise<UserResponseSchemaType>)
       .then((json) => {
         if (!json.success) {
           throw new Error(json.error || "Failed to update user.");
         }
-        return json;
+        return json.data;
       })
       .catch((err) => new Error(`Failed to update user by ID: ${err.message}`));
   }
