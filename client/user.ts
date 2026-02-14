@@ -596,7 +596,7 @@ import { OTFusersTable } from '../database/schema';
       .catch((err) => new Error(`Failed to fetch users: ${err.message}`));
   }
   /**
-   * Deletes a user by their ID by sending a DELETE request to the issuer's user endpoint. This method requires the client to be authenticated and have a valid token, as well as access to the user endpoint which may require a secret. The response is expected to indicate success or failure of the deletion operation.
+   * Deletes a user by their ID by sending a DELETE request to the issuer's user endpoint.
    *
    * **`need secret to be set`**
    */
