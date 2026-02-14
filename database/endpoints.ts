@@ -21,18 +21,26 @@ export type UserPageFilter =
 
 export type GetUserListFilters = UserPageFilter;
 
+export type ResponseBaseData<Data> = {
+  success: boolean;
+  error?: string;
+  data: Data;
+};
+
 export type UserListItem = Omit<
   ReturnType<typeof OTFusersTable>["$inferSelect"],
   "session_private" | "session_public"
->;
-
-export type GetUserListResponse = {
-  success: boolean;
-  data: {
-    users: UserListItem[];
-    total: number;
-  };
+> & {
+  session_public: Record<string, any> | null;
+  session_private: Record<string, any> | null;
 };
+
+export type GetUserListResponse = ResponseBaseData<{
+  users: UserListItem[];
+  total: number;
+}>;
+
+export type UpdateUserFromIDResponseData = ResponseBaseData<UserListItem>;
 
 export const UserListSchemaValidation = object({
   success: boolean(),

@@ -15,7 +15,10 @@ import {
   UserListSchemaValidation,
   type GetUserListFilters,
   type GetUserListResponse,
+  type UpdateUserFromIDResponseData,
+  type UserListItem,
 } from "../database/endpoints";
+import type { OTFusersTable } from "../database/schema";
 
 export const userEndpointURI = "/session" as const;
 
@@ -67,6 +70,10 @@ export type UserFetchResponse<
 };
 
 export type ResponseData = InferOutput<typeof UserEndpointResponseValidation>;
+
+export type UpdateUserByIdData = Partial<
+  Omit<UserListItem, "created_at" | "id" | "identifier">
+>;
 
 export type OpenAuthsterOptions = {
   copyID?: string | null;
@@ -436,6 +443,7 @@ export class OpenAuthsterClient<
    * ```ts
    * // Example usage in a server-side context
    * import { OpenAuthsterClient } from "openauthster-shared";
+import { OTFusersTable } from '../database/schema';
    *
    * const client = new OpenAuthsterClient({
    *   issuerURI: "https://your-issuer.com",
@@ -559,7 +567,7 @@ export class OpenAuthsterClient<
       .catch((err) => new Error(`Failed to fetch user by ID: ${err.message}`));
   }
   /**
-   * Fetches a list of users from the issuer's user endpoint, with optional pagination filters. This method requires the client to be authenticated and have a valid token, as well as access to the user endpoint. The response is validated against the UserListSchemaValidation schema to ensure it conforms to the expected format.
+   * Fetches a list of users from the issuer's user endpoint, with optional pagination filters. The response is validated against the UserListSchemaValidation schema to ensure it conforms to the expected format.
    *
    *  **`need secret to be set`**
    */
@@ -574,7 +582,6 @@ export class OpenAuthsterClient<
       .then((_json) => v.parse(UserListSchemaValidation, _json))
       .catch((err) => new Error(`Failed to fetch users: ${err.message}`));
   }
-
   /**
    * Deletes a user by their ID by sending a DELETE request to the issuer's user endpoint. This method requires the client to be authenticated and have a valid token, as well as access to the user endpoint which may require a secret. The response is expected to indicate success or failure of the deletion operation.
    *
@@ -594,6 +601,26 @@ export class OpenAuthsterClient<
         return json;
       })
       .catch((err) => new Error(`Failed to delete user by ID: ${err.message}`));
+  }
+  /**
+   * Update user by ID
+   */
+  updateUserById(user_id: string, data: UpdateUserByIdData) {
+    return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json() as Promise<UpdateUserFromIDResponseData>)
+      .then((json) => {
+        if (!json.success) {
+          throw new Error(json.error || "Failed to update user.");
+        }
+        return json;
+      })
+      .catch((err) => new Error(`Failed to update user by ID: ${err.message}`));
   }
 
   private verifyToken(token: string) {

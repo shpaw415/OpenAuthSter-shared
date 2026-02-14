@@ -73,6 +73,50 @@ export const OTFusersTable = (clientID: string) =>
     created_at: text().notNull(),
   });
 
+export type OTFUsersParsedType = ReturnType<
+  typeof OTFusersTable
+>["$inferSelect"] & {
+  data: Record<string, any>;
+  session_private: Record<string, any> | null;
+  session_public: Record<string, any> | null;
+};
+
+export function parseDBUser<
+  T extends Partial<ReturnType<typeof OTFusersTable>["$inferSelect"]>,
+>(
+  user: T,
+): Omit<T, "data" | "session_private" | "session_public"> & {
+  data?: Record<string, any>;
+  session_private?: Record<string, any> | null;
+  session_public?: Record<string, any> | null;
+} {
+  return {
+    ...user,
+    data: typeof user.data == "string" ? JSON.parse(user.data) : user.data,
+    session_private: user.session_private
+      ? JSON.parse(user.session_private)
+      : null,
+    session_public: user.session_public
+      ? JSON.parse(user.session_public)
+      : null,
+  };
+}
+
+export function serializeDBUser<T extends Partial<OTFUsersParsedType>>(
+  user: T,
+): Partial<ReturnType<typeof OTFusersTable>["$inferSelect"]> {
+  return {
+    ...user,
+    data: user.data ? JSON.stringify(user.data) : user.data,
+    session_private: user.session_private
+      ? JSON.stringify(user.session_private)
+      : user.session_private,
+    session_public: user.session_public
+      ? JSON.stringify(user.session_public)
+      : user.session_public,
+  };
+}
+
 export const projectTable = sqliteTable("openauth_webui_projects", {
   clientID: text().primaryKey(),
   created_at: text().notNull(),
@@ -191,19 +235,4 @@ export function insertLog({
       console.error("Error inserting log entry:", err);
       throw err;
     });
-}
-
-export function parseDBUser(
-  user: Partial<ReturnType<typeof OTFusersTable>["$inferSelect"]>,
-) {
-  return {
-    ...user,
-    data: typeof user.data == "string" ? JSON.parse(user.data) : user.data,
-    session_private: user.session_private
-      ? JSON.parse(user.session_private)
-      : null,
-    session_public: user.session_public
-      ? JSON.parse(user.session_public)
-      : null,
-  };
 }

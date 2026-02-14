@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "mustache": "^4.2.0",
+    "openauth-webui-shared-types": ".",
     "valibot": "^1.2.0"
   }
 }
