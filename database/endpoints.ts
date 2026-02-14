@@ -37,19 +37,22 @@ export type UpdateUserFromIDResponseData = ResponseBaseData<OTFUsersParsedType>;
 
 export const UserListSchemaValidation = object({
   success: boolean(),
-  data: object({
-    users: array(
-      object({
-        id: string(),
-        identifier: string(),
-        data: looseObject({}),
-        created_at: string(),
-        session_public: nullable(looseObject({})),
-        session_private: nullable(looseObject({})),
-      }),
-    ),
-    total: number(),
-  }),
+  data: nullable(
+    object({
+      users: array(
+        object({
+          id: string(),
+          identifier: string(),
+          data: looseObject({}),
+          created_at: string(),
+          session_public: nullable(looseObject({})),
+          session_private: nullable(looseObject({})),
+        }),
+      ),
+      total: number(),
+    }),
+  ),
+  error: nullable(string()),
 });
 
 export type UserResponseSchemaType = InferInput<
