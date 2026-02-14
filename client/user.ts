@@ -630,6 +630,31 @@ import { OTFusersTable } from '../database/schema';
   getToken() {
     return this.token || this.getStoredToken();
   }
+  /**
+   * - **Provide a token directly**: ensure it is valid
+   *
+   * - **No token provided**: verify the current client token and update authentication state accordingly. If verification fails, the token will be rejected and an error will be logged in the console. This is a security measure to prevent unauthorized access with invalid tokens.
+   *
+   * @returns A promise that resolves to `true` if the token is valid and the client is authenticated, or `false` if the token is invalid or verification fails.
+   *
+   * **`Client or Server Side`**
+   */
+  verify(token?: string) {
+    const tokenToVerify = token || this.token;
+    if (!tokenToVerify) {
+      return Promise.reject(new Error("No token available for verification."));
+    }
+    return this.verifyToken(tokenToVerify).then((res) => {
+      if (res.err) {
+        console.error("Failed to verify token.", res.err);
+        return false;
+      }
+      if (this.token) {
+        this.isAuthenticated = true;
+      }
+      return true;
+    });
+  }
 
   private verifyToken(token: string) {
     return this.openAuthClient.verify(this.subject, token);
