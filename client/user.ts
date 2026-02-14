@@ -431,6 +431,21 @@ export class OpenAuthsterClient<
 
     return tokenFromCookie || null;
   }
+  /**
+   * Stores the token in a cookie for persistence across page reloads. This method can be used to manually set the token after obtaining it from an external source, such as after a successful login or token refresh.
+   *
+   * API call will be authenticated after calling
+   *
+   * **`Browser side only`**
+   *
+   */
+  setTokenToCookie() {
+    if (typeof window === "undefined" || !this.token)
+      throw new Error(
+        "Cannot set token to cookie: document is undefined or token is null",
+      );
+    document.cookie = `access_token=${this.token}; path=/; secure; samesite=strict;`;
+  }
 
   /** Sets the client's token based on the Authorization header of a Request object. Also updates authentication state accordingly.
    *
