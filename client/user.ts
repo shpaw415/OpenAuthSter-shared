@@ -627,6 +627,10 @@ import { OTFusersTable } from '../database/schema';
       .catch((err) => new Error(`Failed to update user by ID: ${err.message}`));
   }
 
+  getToken() {
+    return this.token || this.getStoredToken();
+  }
+
   private verifyToken(token: string) {
     return this.openAuthClient.verify(this.subject, token);
   }
