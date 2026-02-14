@@ -336,7 +336,7 @@ export class OpenAuthsterClient<
       public: {} as PublicSessionData,
       private: {} as PrivateSessionData,
     };
-    this.triggerUpdate();
+    return this.triggerUpdate();
   }
 
   async callback() {
