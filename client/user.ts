@@ -604,7 +604,10 @@ import { OTFusersTable } from '../database/schema';
   /**
    * Update user by ID
    */
-  updateUserById(user_id: string, data: UpdateUserByIdData) {
+  updateUserById(
+    user_id: string,
+    data: UpdateUserByIdData,
+  ): Promise<UpdateUserFromIDResponseData | Error> {
     return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
       method: "PUT",
       body: JSON.stringify(data),

@@ -7,6 +7,7 @@ import {
   object,
   string,
   nullable,
+  type InferInput,
 } from "valibot";
 
 export type UserPageFilter =
@@ -50,3 +51,7 @@ export const UserListSchemaValidation = object({
     total: number(),
   }),
 });
+
+export type UserResponseSchemaType = InferInput<
+  typeof UserListSchemaValidation
+>;
