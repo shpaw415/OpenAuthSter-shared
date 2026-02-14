@@ -2,8 +2,6 @@
 
 Shared TypeScript types, database schemas, and client SDK used across the OpenAuthster stack.
 
-> **📦 Package Status:** This package is currently for local development use within the OpenAuthster mono-repo workspace. Public npm package publication is planned for future releases.
-
 ## What's Inside
 
 - **TypeScript types** – Shared domain types and endpoint contracts
