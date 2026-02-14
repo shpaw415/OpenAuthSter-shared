@@ -16,9 +16,8 @@ import {
   type GetUserListFilters,
   type GetUserListResponse,
   type UpdateUserFromIDResponseData,
-  type UserListItem,
 } from "../database/endpoints";
-import type { OTFusersTable } from "../database/schema";
+import type { OTFUsersParsedType } from "../database/schema";
 
 export const userEndpointURI = "/session" as const;
 
@@ -72,7 +71,7 @@ export type UserFetchResponse<
 export type ResponseData = InferOutput<typeof UserEndpointResponseValidation>;
 
 export type UpdateUserByIdData = Partial<
-  Omit<UserListItem, "created_at" | "id" | "identifier">
+  Omit<OTFUsersParsedType, "created_at" | "id" | "identifier">
 >;
 
 export type OpenAuthsterOptions = {

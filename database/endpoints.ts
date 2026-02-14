@@ -1,4 +1,4 @@
-import { OTFusersTable } from "./schema";
+import { type OTFUsersParsedType } from "./types";
 import {
   array,
   boolean,
@@ -27,20 +27,12 @@ export type ResponseBaseData<Data> = {
   data: Data;
 };
 
-export type UserListItem = Omit<
-  ReturnType<typeof OTFusersTable>["$inferSelect"],
-  "session_private" | "session_public"
-> & {
-  session_public: Record<string, any> | null;
-  session_private: Record<string, any> | null;
-};
-
 export type GetUserListResponse = ResponseBaseData<{
-  users: UserListItem[];
+  users: OTFUsersParsedType[];
   total: number;
 }>;
 
-export type UpdateUserFromIDResponseData = ResponseBaseData<UserListItem>;
+export type UpdateUserFromIDResponseData = ResponseBaseData<OTFUsersParsedType>;
 
 export const UserListSchemaValidation = object({
   success: boolean(),

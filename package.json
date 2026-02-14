@@ -16,6 +16,7 @@
   "exports": {
     ".": "./index.ts",
     "./database": "./database/schema.ts",
+    "./database/types": "./database/types.ts",
     "./drizzle": "./database/drizzle.ts",
     "./endpoints": "./database/endpoints.ts",
     "./client": "./client/index.ts",

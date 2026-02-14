@@ -1,8 +1,9 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { drizzle } from "./drizzle";
-import type { UserListItem } from "./endpoints";
+import type { OTFUsersType, OTFUsersParsedType } from "./types";
+export * from "./types";
 
-const reservedTableNames = [
+export const reservedTableNames = [
   "openauth_webui_projects",
   "openauth_webui_email_templates",
   "openauth_webui",
@@ -72,17 +73,6 @@ export const OTFusersTable = (clientID: string) =>
     session_public: text(),
     created_at: text().notNull(),
   });
-
-export type OTFUsersType = {
-  select: ReturnType<typeof OTFusersTable>["$inferSelect"];
-  insert: ReturnType<typeof OTFusersTable>["$inferInsert"];
-};
-
-export type OTFUsersParsedType = OTFUsersType["select"] & {
-  data: Record<string, any>;
-  session_private: Record<string, any> | null;
-  session_public: Record<string, any> | null;
-};
 
 export function parseDBUser(
   user: Partial<OTFUsersType["select"]>,
