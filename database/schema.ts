@@ -73,23 +73,20 @@ export const OTFusersTable = (clientID: string) =>
     created_at: text().notNull(),
   });
 
-export type OTFUsersParsedType = ReturnType<
-  typeof OTFusersTable
->["$inferSelect"] & {
+export type OTFUsersType = {
+  select: ReturnType<typeof OTFusersTable>["$inferSelect"];
+  insert: ReturnType<typeof OTFusersTable>["$inferInsert"];
+};
+
+export type OTFUsersParsedType = OTFUsersType["select"] & {
   data: Record<string, any>;
   session_private: Record<string, any> | null;
   session_public: Record<string, any> | null;
 };
 
-export function parseDBUser<
-  T extends Partial<ReturnType<typeof OTFusersTable>["$inferSelect"]>,
->(
-  user: T,
-): Omit<T, "data" | "session_private" | "session_public"> & {
-  data?: Record<string, any>;
-  session_private?: Record<string, any> | null;
-  session_public?: Record<string, any> | null;
-} {
+export function parseDBUser(
+  user: Partial<OTFUsersType["select"]>,
+): Partial<OTFUsersParsedType> {
   return {
     ...user,
     data: typeof user.data == "string" ? JSON.parse(user.data) : user.data,
@@ -102,9 +99,9 @@ export function parseDBUser<
   };
 }
 
-export function serializeDBUser<T extends Partial<OTFUsersParsedType>>(
-  user: T,
-): Partial<ReturnType<typeof OTFusersTable>["$inferSelect"]> {
+export function serializeDBUser(
+  user: Partial<OTFUsersParsedType>,
+): Partial<OTFUsersType["select"]> {
   return {
     ...user,
     data: user.data ? JSON.stringify(user.data) : user.data,
