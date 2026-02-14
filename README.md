@@ -69,6 +69,7 @@ const client = createOpenAuthsterClient({
 | `secret`       | `string`           | No       | Client secret – **server-side only**, needed for private session read/write |
 | `token`        | `string` \| `null` | No       | Pre-existing access token (server-side scenarios)                           |
 | `refreshToken` | `string` \| `null` | No       | Pre-existing refresh token                                                  |
+| `subject`      | `SubjectSchema`    | No       | Custom subject schema for token verification – **server-side only**         |
 
 ### Initialization (Browser)
 
@@ -92,6 +93,17 @@ client.logout();
 
 `login()` stores an OAuth PKCE challenge in `localStorage`, then sets `window.location.href` to the issuer. When the user comes back, `init()` picks up the `code` query parameter, exchanges it, and stores the tokens.
 
+#### Manual Callback Handling
+
+The `init()` method automatically handles OAuth callbacks, but you can manually trigger the callback exchange if needed:
+
+```typescript
+await client.callback();
+// Exchanges the authorization code for tokens
+// Cleans up the URL query parameters (code, state)
+// Sets isAuthenticated to true on success
+```
+
 ### Checking Auth State
 
 ```typescript
@@ -101,6 +113,14 @@ client.expiresIn; // number | undefined – seconds until the access token expir
 
 client.userMeta;
 // { user_id: string | null, user_identifier: string | null }
+
+client.userInfo;
+// User info data returned by the OAuth provider (e.g., { provider: "google" })
+// Available after successful authentication
+
+client.error;
+// { error: string, error_description: string | null } | null
+// Contains error information from the authorization callback if login failed
 ```
 
 ### Public & Private Sessions
@@ -153,22 +173,121 @@ const data = await response.json();
 
 This is useful for calling your own server-side API routes that need to verify the user's token.
 
+### Token Management
+
+#### Getting the Current Token
+
+```typescript
+const token = client.getToken();
+// Returns the current access token or retrieves it from localStorage
+```
+
+#### Setting Token to Cookie
+
+```typescript
+client.setTokenToCookie();
+// Stores the token in a cookie for persistence (browser-side only)
+// Cookie is set as: access_token=<token>; path=/; secure; samesite=strict;
+```
+
+#### Token Verification
+
+Verify a token's authenticity using the client's subject schema:
+
+```typescript
+// Verify the current client token
+const isValid = await client.verify();
+console.log(isValid); // true or false
+
+// Verify a specific token
+const isTokenValid = await client.verify("eyJhbGciOiJIUzI1NiIs...");
+```
+
+Token verification uses the subject schema provided during client initialization (or the default OpenAuthster schema). Failed verification logs an error and returns `false`.
+
+### User Management (Admin Features)
+
+These methods require the `secret` to be configured and are intended for server-side admin operations.
+
+#### Get User by ID
+
+```typescript
+const user = await client.getUserById("user_12345");
+if (user instanceof Error) {
+  console.error("Failed to fetch user:", user.message);
+} else {
+  console.log(user);
+}
+```
+
+#### Get Users List
+
+Fetch a paginated list of users:
+
+```typescript
+const users = await client.getUsers({
+  page: 1,
+  limit: 10,
+});
+
+if (users instanceof Error) {
+  console.error("Failed to fetch users:", users.message);
+} else {
+  console.log(users.data); // Array of users
+  console.log(users.pagination); // Page info
+}
+```
+
+#### Update User by ID
+
+> Note this will overwrite the field it modify and does not merge.
+
+```typescript
+const result = await client.updateUserById("user_12345", {
+  public_session: { theme: "dark" },
+  private_session: { role: "admin" },
+});
+
+if (result instanceof Error) {
+  console.error("Failed to update user:", result.message);
+} else {
+  console.log("User updated:", result);
+}
+```
+
+#### Delete User by ID
+
+```typescript
+const result = await client.deleteUserById("user_12345");
+if (!result.success) {
+  console.error("Failed to delete user:", result.error);
+} else {
+  console.log("User deleted successfully");
+}
+```
+
 ### Auto Token Refresh
 
 The client automatically schedules a token refresh 60 seconds before expiry. When tokens are refreshed, the new values are persisted to `localStorage`. No manual intervention is needed.
 
 ### Listening for State Changes
 
-Register a callback that fires whenever `init()` completes or `triggerUpdate()` is called:
+Register a callback that fires whenever `init()` completes or `triggerUpdate()` is called. The callback receives the client instance and an optional error object:
 
 ```typescript
-client.addInitializationListener("my-key", () => {
+client.addInitializationListener("my-key", (client, error) => {
+  if (error) {
+    console.error("Auth error:", error.error, error.error_description);
+    return;
+  }
   console.log("Auth state changed:", client.isAuthenticated);
 });
 
 // Manually trigger all listeners (e.g. after updating session data):
-client.triggerUpdate();
+await client.triggerUpdate();
 ```
+
+The error parameter is populated when the OAuth flow returns an error (e.g., user denied access, invalid request).
 
 ### Updating the Copy Template at Runtime
 
@@ -178,6 +297,36 @@ client.updateOptions({ copyID: "fr-fr" });
 
 This recreates the internal OpenAuth client with the new copy template.
 
+### Custom Subject Schema (Server-Side)
+
+For server-side token verification, you can provide a custom subject schema to validate incoming tokens. This is especially useful when using `setTokenFromRequest()` to ensure tokens conform to your expected format:
+
+```typescript
+import { createSubjects } from "@openauthjs/openauth/subject";
+import * as v from "valibot";
+
+const mySubjectSchema = createSubjects({
+  user: v.object({
+    id: v.string(),
+    email: v.string(),
+    role: v.union([v.literal("admin"), v.literal("user")]),
+  }),
+});
+
+const client = createOpenAuthsterClient({
+  clientID: "my_project_01",
+  issuerURI: "https://auth.yourdomain.com",
+  redirectURI: "https://myapp.com/",
+  secret: process.env.AUTH_SECRET,
+  subject: mySubjectSchema, // Custom schema for validation
+});
+
+// When setTokenFromRequest is called, the token will be verified against this schema
+await client.setTokenFromRequest(request);
+```
+
+If no subject schema is provided, the default OpenAuthster schema is used.
+
 ---
 
 ## Server-Side Usage
@@ -186,6 +335,18 @@ On the server (API routes, Cloudflare Workers, etc.), you can still use `createO
 
 ```typescript
 import { createOpenAuthsterClient } from "openauthster-shared/client/user";
+import { createSubjects } from "@openauthjs/openauth/subject";
+import * as v from "valibot";
+
+// Optional: Define a custom subject schema for token verification
+const mySubjectSchema = createSubjects({
+  user: v.object({
+    id: v.string(),
+    data: v.any(),
+    clientID: v.string(),
+    provider: v.string(),
+  }),
+});
 
 export async function handleRequest(request: Request) {
   const client = createOpenAuthsterClient({
@@ -194,10 +355,11 @@ export async function handleRequest(request: Request) {
     redirectURI: "https://myapp.com/",
     copyID: null,
     secret: process.env.AUTH_SECRET,
+    subject: mySubjectSchema, // Optional: for token verification
   });
 
-  // Extract the Bearer token from the incoming request
-  client.setTokenFromRequest(request);
+  // Extract and verify the Bearer token from the incoming request ( Headers or Cookies )
+  await client.setTokenFromRequest(request);
 
   if (!client.isAuthenticated) {
     return new Response("Unauthorized", { status: 401 });
@@ -214,10 +376,15 @@ export async function handleRequest(request: Request) {
 
 ### Server Helpers
 
-| Method                         | Description                                                    |
-| ------------------------------ | -------------------------------------------------------------- |
-| `setTokenFromRequest(request)` | Reads `Authorization: Bearer …` and sets the client's token    |
-| `getTokenFromRequest(request)` | Returns the bearer token string (or `null`) without setting it |
+| Method                          | Description                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| `setTokenFromRequest(request)`  | Reads `Authorization: Bearer …` (or cookie), verifies and sets the client's token |
+| `getTokenFromRequest(request)`  | Returns the bearer token string (or `null`) without setting it                    |
+| `verify(token?)`                | Verifies token authenticity using the subject schema; returns `true` if valid     |
+| `getUserById(user_id)`          | Fetches a user by ID (requires `secret`)                                          |
+| `getUsers(filters?)`            | Fetches paginated list of users (requires `secret`)                               |
+| `updateUserById(user_id, data)` | Updates a user by ID (requires `secret`)                                          |
+| `deleteUserById(user_id)`       | Deletes a user by ID (requires `secret`)                                          |
 
 ---
 
