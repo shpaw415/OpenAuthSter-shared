@@ -11,8 +11,14 @@ import {
   createSubjects,
   type SubjectSchema,
 } from "@openauthjs/openauth/subject";
+import {
+  UserListSchemaValidation,
+  type GetUserListFilters,
+  type UserResponseSchemaType,
+} from "../database/endpoints";
+import type { OTFUsersParsedType } from "../database/schema";
 
-export const userEndpointURI = "/user-endpoint" as const;
+export const userEndpointURI = "/session" as const;
 
 export const UserEndpointValidation = v.object({
   type: v.union([v.literal("public"), v.literal("private")]),
@@ -63,8 +69,13 @@ export type UserFetchResponse<
 
 export type ResponseData = InferOutput<typeof UserEndpointResponseValidation>;
 
+export type UpdateUserByIdData = Partial<
+  Omit<OTFUsersParsedType, "created_at" | "id" | "identifier">
+>;
+
 export type OpenAuthsterOptions = {
   copyID?: string | null;
+  secret?: string;
 };
 
 export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
@@ -236,13 +247,9 @@ export class OpenAuthsterClient<
    */
   getUserSession(type: RequestData["type"]) {
     this.ensureReady();
-    const body = this.createFormData({
-      action: "get",
-      type,
-      client_id: this.clientID,
-    });
-
-    const res = this.createFetch(body)
+    return this.fetch(`${this.issuerURI}/session/${type}/${this.clientID}`, {
+      method: "GET",
+    })
       .then(
         (res) =>
           res.json() as Promise<
@@ -256,8 +263,6 @@ export class OpenAuthsterClient<
         console.error(`Failed to fetch user session: ${err.message}`);
         return new Error(`Failed to fetch user session: ${err.message}`);
       });
-
-    return res;
   }
   /**
    * Updates the user's session data on the user endpoint. Requires the client to be authenticated and have a valid token.
@@ -271,14 +276,14 @@ export class OpenAuthsterClient<
     data: SessionData,
   ) {
     this.ensureReady();
-    const body = this.createFormData({
-      action: "update",
-      type,
-      client_id: this.clientID,
-      data,
-    });
 
-    return this.createFetch(body)
+    return this.fetch(`${this.issuerURI}/session/${type}/${this.clientID}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
       .then(
         (res) =>
           res.json() as Promise<
@@ -331,7 +336,7 @@ export class OpenAuthsterClient<
       public: {} as PublicSessionData,
       private: {} as PrivateSessionData,
     };
-    this.triggerUpdate();
+    return this.triggerUpdate();
   }
 
   async callback() {
@@ -354,6 +359,10 @@ export class OpenAuthsterClient<
         this.createResetTimer(tokens.tokens?.expiresIn || null);
         this.isAuthenticated = true;
       })
+      .catch((err) => {
+        console.error("Error during callback exchange: ", err);
+        throw new Error(`Error during callback exchange: ${err.message}`);
+      })
       .finally(() => {
         this.removeChallenge();
         location.search = location.search
@@ -371,6 +380,9 @@ export class OpenAuthsterClient<
         issuer: this.issuerURI,
         copyID: options.copyID,
       });
+    }
+    if (options.secret) {
+      this.secret = options.secret;
     }
   }
 
@@ -419,6 +431,21 @@ export class OpenAuthsterClient<
 
     return tokenFromCookie || null;
   }
+  /**
+   * Stores the token in a cookie for persistence across page reloads. This method can be used to manually set the token after obtaining it from an external source, such as after a successful login or token refresh.
+   *
+   * API call will be authenticated after calling
+   *
+   * **`Browser side only`**
+   *
+   */
+  setTokenToCookie() {
+    if (typeof window === "undefined" || !this.token)
+      throw new Error(
+        "Cannot set token to cookie: document is undefined or token is null",
+      );
+    document.cookie = `access_token=${this.token}; path=/; secure; samesite=strict;`;
+  }
 
   /** Sets the client's token based on the Authorization header of a Request object. Also updates authentication state accordingly.
    *
@@ -429,6 +456,7 @@ export class OpenAuthsterClient<
    * ```ts
    * // Example usage in a server-side context
    * import { OpenAuthsterClient } from "openauthster-shared";
+import { OTFusersTable } from '../database/schema';
    *
    * const client = new OpenAuthsterClient({
    *   issuerURI: "https://your-issuer.com",
@@ -480,13 +508,12 @@ export class OpenAuthsterClient<
    * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
    */
   fetch(input: RequestInfo, init?: RequestInit) {
-    this.ensureReady();
     const authInit = {
       ...init,
       headers: {
-        ...init?.headers,
         Authorization: `Bearer ${this.token}`,
         ...(this.secret ? { "X-Client-Secret": this.secret } : {}),
+        ...init?.headers,
       },
     };
     return fetch(input, authInit);
@@ -497,14 +524,9 @@ export class OpenAuthsterClient<
    * **`Can be called both on client and server side.`**
    */
   clearPublicSession() {
-    return this.createFetch(
-      this.createFormData({
-        action: "delete",
-        type: "public",
-        client_id: this.clientID,
-        data: {},
-      }),
-    )
+    return this.fetch(`${this.issuerURI}/session/public/${this.clientID}`, {
+      method: "DELETE",
+    })
       .then(
         (res) =>
           res.json() as Promise<
@@ -527,14 +549,9 @@ export class OpenAuthsterClient<
    *
    */
   clearPrivateSession() {
-    return this.createFetch(
-      this.createFormData({
-        action: "delete",
-        type: "private",
-        client_id: this.clientID,
-        data: {},
-      }),
-    )
+    return this.fetch(`${this.issuerURI}/session/private/${this.clientID}`, {
+      method: "DELETE",
+    })
       .then(
         (res) =>
           res.json() as Promise<
@@ -547,6 +564,111 @@ export class OpenAuthsterClient<
       .catch(
         (err) => new Error(`Failed to clear private session: ${err.message}`),
       );
+  }
+
+  /**
+   * Fetches a list of users from the issuer's user endpoint, with optional pagination filters. This method requires the client to be authenticated and have a valid token, as well as access to the user endpoint which may require a secret for private session data. The response is validated against the UserListSchemaValidation schema to ensure it conforms to the expected format.
+   *
+   * **`need secret to be set`**
+   */
+  getUserById(user_id: string) {
+    return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
+      method: "GET",
+    })
+      .then((res) => res.json() as Promise<UserResponseSchemaType>)
+      .then((_json) => v.parse(UserListSchemaValidation, _json))
+      .catch((err) => new Error(`Failed to fetch user by ID: ${err.message}`));
+  }
+  /**
+   * Fetches a list of users from the issuer's user endpoint, with optional pagination filters. The response is validated against the UserListSchemaValidation schema to ensure it conforms to the expected format.
+   *
+   *  **`need secret to be set`**
+   */
+  getUsers(filters?: GetUserListFilters) {
+    const url = new URL(`${this.issuerURI}/users/${this.clientID}`);
+    if (filters?.page) url.searchParams.set("page", filters.page.toString());
+    if (filters?.limit) url.searchParams.set("limit", filters.limit.toString());
+    return this.fetch(url.toString(), {
+      method: "GET",
+    })
+      .then((res) => res.json() as Promise<UserResponseSchemaType>)
+      .then((_json) => v.parse(UserListSchemaValidation, _json))
+      .catch((err) => new Error(`Failed to fetch users: ${err.message}`));
+  }
+  /**
+   * Deletes a user by their ID by sending a DELETE request to the issuer's user endpoint.
+   *
+   * **`need secret to be set`**
+   */
+  deleteUserById(
+    user_id: string,
+  ): Promise<{ success: boolean; error: null | string }> {
+    return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
+      method: "DELETE",
+    })
+      .then((res) => res.json() as Promise<UserResponseSchemaType>)
+      .then((json) => {
+        if (!json.success) {
+          throw new Error(json.error || "Failed to delete user.");
+        }
+        return { success: true, error: null };
+      })
+      .catch((err) => ({
+        success: false,
+        error: `Failed to delete user by ID: ${err.message}`,
+      }));
+  }
+  /**
+   * Update user by ID
+   */
+  updateUserById(
+    user_id: string,
+    data: UpdateUserByIdData,
+  ): Promise<UserResponseSchemaType["data"] | Error> {
+    return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json() as Promise<UserResponseSchemaType>)
+      .then((json) => {
+        if (!json.success) {
+          throw new Error(json.error || "Failed to update user.");
+        }
+        return json.data;
+      })
+      .catch((err) => new Error(`Failed to update user by ID: ${err.message}`));
+  }
+
+  getToken() {
+    return this.token || this.getStoredToken();
+  }
+  /**
+   * - **Provide a token directly**: ensure it is valid
+   *
+   * - **No token provided**: verify the current client token and update authentication state accordingly. If verification fails, the token will be rejected and an error will be logged in the console. This is a security measure to prevent unauthorized access with invalid tokens.
+   *
+   * @returns A promise that resolves to `true` if the token is valid and the client is authenticated, or `false` if the token is invalid or verification fails.
+   *
+   * **`Client or Server Side`**
+   */
+  verify(token?: string) {
+    const tokenToVerify = token || this.token;
+    if (!tokenToVerify) {
+      return Promise.reject(new Error("No token available for verification."));
+    }
+    return this.verifyToken(tokenToVerify).then((res) => {
+      if (res.err) {
+        console.error("Failed to verify token.", res.err);
+        return false;
+      }
+      if (this.token) {
+        this.isAuthenticated = true;
+      }
+      return true;
+    });
   }
 
   private verifyToken(token: string) {
@@ -734,32 +856,6 @@ export class OpenAuthsterClient<
   private removeStoredExpiration() {
     if (typeof window === "undefined") return;
     localStorage.removeItem("oa_expires_at");
-  }
-
-  private createFormData(data: RequestData): FormData {
-    const formData = new FormData();
-    formData.append("action", data.action);
-    formData.append("type", data.type);
-    formData.append("client_id", data.client_id);
-    if (data.data) {
-      formData.append("data", JSON.stringify(data.data));
-    }
-    return formData;
-  }
-
-  private createFetch(body?: RequestInit<RequestInitCfProperties>["body"]) {
-    const url = new URL(`${this.issuerURI}${userEndpointURI}`);
-    url.searchParams.set("client_id", this.clientID);
-
-    return fetch(url.toString(), {
-      method: "POST",
-      headers: {
-        Authorization: this.token ? `Bearer ${this.token}` : "",
-        ...(this.secret ? { "X-Client-Secret": this.secret } : {}),
-      },
-      //credentials: "include",
-      body,
-    });
   }
 }
 

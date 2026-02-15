@@ -1,7 +1,9 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { drizzle } from "./drizzle";
+import type { OTFUsersType, OTFUsersParsedType } from "./types";
+export * from "./types";
 
-const reservedTableNames = [
+export const reservedTableNames = [
   "openauth_webui_projects",
   "openauth_webui_email_templates",
   "openauth_webui",
@@ -71,6 +73,36 @@ export const OTFusersTable = (clientID: string) =>
     session_public: text(),
     created_at: text().notNull(),
   });
+
+export function parseDBUser(
+  user: Partial<OTFUsersType["select"]>,
+): Partial<OTFUsersParsedType> {
+  return {
+    ...user,
+    data: typeof user.data == "string" ? JSON.parse(user.data) : user.data,
+    session_private: user.session_private
+      ? JSON.parse(user.session_private)
+      : null,
+    session_public: user.session_public
+      ? JSON.parse(user.session_public)
+      : null,
+  };
+}
+
+export function serializeDBUser(
+  user: Partial<OTFUsersParsedType>,
+): Partial<OTFUsersType["select"]> {
+  return {
+    ...user,
+    data: user.data ? JSON.stringify(user.data) : user.data,
+    session_private: user.session_private
+      ? JSON.stringify(user.session_private)
+      : user.session_private,
+    session_public: user.session_public
+      ? JSON.stringify(user.session_public)
+      : user.session_public,
+  };
+}
 
 export const projectTable = sqliteTable("openauth_webui_projects", {
   clientID: text().primaryKey(),

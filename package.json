@@ -1,7 +1,7 @@
 {
   "name": "openauthster-shared",
   "module": "index.ts",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "private": false,
   "devDependencies": {
@@ -16,14 +16,16 @@
   "exports": {
     ".": "./index.ts",
     "./database": "./database/schema.ts",
+    "./database/types": "./database/types.ts",
     "./drizzle": "./database/drizzle.ts",
-    "./endpoints": "./endpoints/index.ts",
+    "./endpoints": "./database/endpoints.ts",
     "./client": "./client/index.ts",
     "./client/user": "./client/user.ts",
     "./utils": "./utils.ts"
   },
   "dependencies": {
     "mustache": "^4.2.0",
+    "openauth-webui-shared-types": ".",
     "valibot": "^1.2.0"
   }
 }
