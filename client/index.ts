@@ -6,6 +6,10 @@ const fetcher = (clientID: string, copyID: string | null) => {
   return async (input: RequestInfo, init?: RequestInit) => {
     const headers = new Headers(init?.headers || {});
 
+    const url = new URL(input.toString());
+    url.searchParams.set("client_id", clientID);
+    if (copyID) url.searchParams.set("copy_id", copyID);
+
     headers.append(
       "Cookie",
       createCookieContent(COOKIE_NAME, clientID, { path: "/" }),
@@ -17,7 +21,11 @@ const fetcher = (clientID: string, copyID: string | null) => {
       );
     }
 
-    return await fetch(input, { ...init, headers, credentials: "include" });
+    return await fetch(url.toString(), {
+      ...init,
+      headers,
+      credentials: "include",
+    });
   };
 };
 

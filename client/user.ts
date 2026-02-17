@@ -15,6 +15,7 @@ import {
   UserListSchemaValidation,
   type GetUserListFilters,
   type UserResponseSchemaType,
+  type UserResponseSchemaInferdType,
 } from "../database/endpoints";
 import type { OTFUsersParsedType } from "../database/schema";
 
@@ -273,7 +274,7 @@ export class OpenAuthsterClient<
    */
   updateUserSession<SessionData extends PublicSessionData | PrivateSessionData>(
     type: RequestData["type"],
-    data: SessionData,
+    data: Partial<SessionData>,
   ) {
     this.ensureReady();
 
@@ -457,6 +458,7 @@ export class OpenAuthsterClient<
    * // Example usage in a server-side context
    * import { OpenAuthsterClient } from "openauthster-shared";
 import { OTFusersTable } from '../database/schema';
+import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../database/endpoints';
    *
    * const client = new OpenAuthsterClient({
    *   issuerURI: "https://your-issuer.com",
@@ -575,7 +577,16 @@ import { OTFusersTable } from '../database/schema';
     return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
       method: "GET",
     })
-      .then((res) => res.json() as Promise<UserResponseSchemaType>)
+      .then(
+        (res) =>
+          res.json() as Promise<
+            UserResponseSchemaInferdType<
+              PublicSessionData,
+              PrivateSessionData,
+              UserInfo
+            >
+          >,
+      )
       .then((_json) => v.parse(UserListSchemaValidation, _json))
       .catch((err) => new Error(`Failed to fetch user by ID: ${err.message}`));
   }
@@ -717,7 +728,13 @@ import { OTFusersTable } from '../database/schema';
     }
   }
 
-  private parseResponseData(data: ResponseData) {
+  private parseResponseData(data: ResponseData): {
+    public: PublicSessionData;
+    private: PrivateSessionData;
+    user_id: string;
+    user_identifier: string;
+    userInfo: UserInfo;
+  } {
     if (!data.success || !data.data)
       throw new Error(data.error || "Failed to fetch user session data.");
 
@@ -729,7 +746,13 @@ import { OTFusersTable } from '../database/schema';
     if (data.data.user_identifier)
       this.userMeta.user_identifier = data.data.user_identifier;
     if (data.data.userInfo) this.userInfo = data.data.userInfo as UserInfo;
-    return data.data;
+    return data.data as {
+      public: PublicSessionData;
+      private: PrivateSessionData;
+      user_id: string;
+      user_identifier: string;
+      userInfo: UserInfo;
+    };
   }
 
   private triggerRefresh() {
