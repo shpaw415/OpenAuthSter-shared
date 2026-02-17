@@ -510,15 +510,70 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
    * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
    */
   fetch(input: RequestInfo, init?: RequestInit) {
-    const authInit = {
+    const isRequest = typeof input !== "string";
+    const inputUrl = isRequest ? input.url : input;
+
+    // Only use a base for relative URLs; absolute URLs are left as-is
+    const isAbsolute =
+      inputUrl.startsWith("http://") || inputUrl.startsWith("https://");
+    const base = isAbsolute
+      ? undefined
+      : typeof globalThis.window !== "undefined"
+        ? globalThis.window.location.origin
+        : this.issuerURI;
+
+    const url = new URL(inputUrl, base);
+    url.searchParams.set("client_id", this.clientID);
+
+    // Build merged headers with proper priority:
+    // Request headers (lowest) → auth headers → init headers (highest)
+    const mergedHeaders = new Headers();
+
+    // 1. Preserve headers from original Request object
+    if (isRequest && input.headers) {
+      new Headers(input.headers).forEach((value, key) => {
+        mergedHeaders.set(key, value);
+      });
+    }
+
+    // 2. Set authentication headers
+    if (this.token) {
+      mergedHeaders.set("Authorization", `Bearer ${this.token}`);
+    }
+    if (this.secret) {
+      mergedHeaders.set("X-Client-Secret", this.secret);
+    }
+
+    // 3. Apply caller-provided headers (highest priority)
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, key) => {
+        mergedHeaders.set(key, value);
+      });
+    }
+
+    // When input is a Request, preserve its properties (method, body, etc.)
+    // unless explicitly overridden by init
+    const requestDefaults: RequestInit = isRequest
+      ? {
+          method: input.method,
+          body: input.body,
+          credentials: input.credentials,
+          cache: input.cache,
+          redirect: input.redirect,
+          referrer: input.referrer,
+          integrity: input.integrity,
+          keepalive: input.keepalive,
+          signal: input.signal,
+        }
+      : {};
+
+    const authInit: RequestInit = {
+      ...requestDefaults,
       ...init,
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        ...(this.secret ? { "X-Client-Secret": this.secret } : {}),
-        ...init?.headers,
-      },
+      headers: mergedHeaders,
     };
-    return fetch(input, authInit);
+
+    return fetch(url.toString(), authInit);
   }
   /**
    * Clears the user's public session data by sending a request to the user endpoint with an empty data object. This will not merge with existing data, but will replace it entirely with an empty object.
