@@ -54,11 +54,23 @@ export class WebHook {
       .then((c) => this.parseWebHookConfig(c[0]!));
   }
 
-  async getWebHooks(clientID: string) {
+  async getWebHooks(
+    clientID: string,
+    filters?: Partial<{ event: WebHookEvents; id: string }>,
+  ) {
     return this.db
       .select()
       .from(WebHookTable)
-      .where(eq(WebHookTable.clientID, clientID))
+      .where(
+        filters?.id
+          ? eq(WebHookTable.id, filters.id)
+          : filters?.event
+            ? and(
+                eq(WebHookTable.event, filters.event),
+                eq(WebHookTable.clientID, clientID),
+              )
+            : eq(WebHookTable.clientID, clientID),
+      )
       .all()
       .then((res) => res.map((r) => this.parseWebHookConfig(r)));
   }
