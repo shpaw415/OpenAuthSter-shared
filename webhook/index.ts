@@ -23,7 +23,7 @@ export class WebHook {
     config: WebHookConfig;
     clientID: string;
   }) {
-    this.db
+    return this.db
       .insert(WebHookTable)
       .values({
         id: crypto.randomUUID(),
@@ -34,7 +34,8 @@ export class WebHook {
         headers: config.headers ? JSON.stringify(config.headers) : undefined,
         created_at: new Date().toISOString(),
       })
-      .run();
+      .returning()
+      .then((c) => this.parseWebHookConfig(c[0]!));
   }
   async update({
     webHookID,
@@ -43,13 +44,14 @@ export class WebHook {
     webHookID: string;
     config: Partial<WebHookConfig>;
   }) {
-    this.db
+    return this.db
       .update(WebHookTable)
       .set({
         ...this.stringifyWebHookConfig(config),
       })
       .where(and(eq(WebHookTable.id, webHookID)))
-      .run();
+      .returning()
+      .then((c) => this.parseWebHookConfig(c[0]!));
   }
 
   async getWebHooks(clientID: string) {
@@ -57,14 +59,15 @@ export class WebHook {
       .select()
       .from(WebHookTable)
       .where(eq(WebHookTable.clientID, clientID))
-      .all();
+      .all()
+      .then((res) => res.map((r) => this.parseWebHookConfig(r)));
   }
 
   async deleteWebHook(webHookID: string) {
     return this.db
       .delete(WebHookTable)
       .where(and(eq(WebHookTable.id, webHookID)))
-      .run();
+      .run() as unknown as Promise<void>;
   }
   /**
    * Triggers all webhooks for a specific event with the given payload. It handles both POST and GET requests and logs any errors that occur during the process.
@@ -118,6 +121,16 @@ export class WebHook {
       }),
     );
   }
+  /**
+   * Extracts the webhook payload from an incoming request after verifying its authenticity. It checks for a secret value in the request headers to ensure that the request is legitimate before parsing and returning the JSON payload. This method is intended to be used internally when handling incoming webhook requests.
+   */
+  async getWebHookPayloadFromRequest(
+    request: Request,
+    appSecret: string,
+  ): Promise<WebHookPayLoad> {
+    this.ensureAuthenticity(request, appSecret);
+    return request.json() as Promise<WebHookPayLoad>;
+  }
 
   parseWebHookConfig(
     raw: typeof WebHookTable.$inferSelect,
@@ -139,16 +152,6 @@ export class WebHook {
       ...config,
       headers: config.headers ? JSON.stringify(config.headers) : undefined,
     };
-  }
-  /**
-   * Extracts the webhook payload from an incoming request after verifying its authenticity. It checks for a secret value in the request headers to ensure that the request is legitimate before parsing and returning the JSON payload. This method is intended to be used internally when handling incoming webhook requests.
-   */
-  async getWebHookPayloadFromRequest(
-    request: Request,
-    appSecret: string,
-  ): Promise<WebHookPayLoad> {
-    this.ensureAuthenticity(request, appSecret);
-    return request.json() as Promise<WebHookPayLoad>;
   }
 
   /**
