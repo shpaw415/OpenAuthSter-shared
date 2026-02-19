@@ -21,7 +21,8 @@
     "./endpoints": "./database/endpoints.ts",
     "./client": "./client/index.ts",
     "./client/user": "./client/user.ts",
-    "./utils": "./utils.ts"
+    "./utils": "./utils.ts",
+    "./providers": "./providers/index.ts"
   },
   "dependencies": {
     "mustache": "^4.2.0",
