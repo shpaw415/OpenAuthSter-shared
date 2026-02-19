@@ -36,6 +36,21 @@ export class WebHook {
       })
       .run();
   }
+  async update({
+    webHookID,
+    config,
+  }: {
+    webHookID: string;
+    config: Partial<WebHookConfig>;
+  }) {
+    this.db
+      .update(WebHookTable)
+      .set({
+        ...this.stringifyWebHookConfig(config),
+      })
+      .where(and(eq(WebHookTable.id, webHookID)))
+      .run();
+  }
 
   async getWebHooks(clientID: string) {
     return this.db
@@ -60,6 +75,7 @@ export class WebHook {
     clientID: string,
     event: WebHookEvents,
     payload: WebHookPayLoad,
+    secret: string,
   ) {
     const webhooks = await this.db
       .select()
@@ -76,6 +92,7 @@ export class WebHook {
             method: webhook.method,
             headers: {
               "Content-Type": "application/json",
+              "x-secret": secret,
               ...webhook.headers,
             },
             body: JSON.stringify(payload),
@@ -116,36 +133,12 @@ export class WebHook {
     };
   }
   stringifyWebHookConfig(
-    config: WebHookConfig,
+    config: Partial<WebHookConfig>,
   ): Partial<typeof WebHookTable.$inferInsert> {
     return {
       ...config,
       headers: config.headers ? JSON.stringify(config.headers) : undefined,
     };
-  }
-  retriveWebHookFromIssuer({
-    clientID,
-    webHookID,
-    issuerURI,
-    secret,
-  }: {
-    clientID: string;
-    webHookID: string;
-    issuerURI: string;
-    secret: string;
-  }) {
-    return fetch(`${issuerURI}/webhook/${clientID}/${webHookID}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "x-secret": secret,
-      },
-    }).then((res) => {
-      if (!res.ok) {
-        throw new Error(`Failed to retrieve webhook: ${res.statusText}`);
-      }
-      return res.json() as unknown as WebHookPayLoad;
-    });
   }
 
   static create(config: { db: D1Database }) {
