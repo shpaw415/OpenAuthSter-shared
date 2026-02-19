@@ -158,12 +158,27 @@ export class WebHook {
   /**
    * Extracts the webhook payload from an incoming request after verifying its authenticity. It checks for a secret value in the request headers to ensure that the request is legitimate before parsing and returning the JSON payload. This method is intended to be used internally when handling incoming webhook requests.
    */
-  static async getWebHookPayloadFromRequest(
+  static async getWebHookPayloadFromRequest<
+    AwaitedEvent extends WebHookEvents = WebHookEvents,
+    AwaitedData extends Record<string, any> = Record<string, any>,
+  >(
     request: Request,
     appSecret: string,
-  ): Promise<WebHookPayLoad> {
+  ): Promise<WebHookPayLoad<AwaitedData> & { event: AwaitedEvent }> {
     this.ensureAuthenticity(request, appSecret);
-    return request.json() as Promise<WebHookPayLoad>;
+    if (request.method === "GET") {
+      const url = new URL(request.url);
+      const payload = url.searchParams.get("payload");
+      if (!payload) {
+        throw new Error("Missing payload in webhook request");
+      }
+      return JSON.parse(payload) as WebHookPayLoad<AwaitedData> & {
+        event: AwaitedEvent;
+      };
+    }
+    return request.json() as Promise<
+      WebHookPayLoad<AwaitedData> & { event: AwaitedEvent }
+    >;
   }
 
   parseWebHookConfig(

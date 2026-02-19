@@ -29,3 +29,16 @@ export type WebHookPayloadCodeSent = WebHookPayLoad<{
   claim: Record<string, any>;
   code: string;
 }>;
+
+export type WebHookPayloadLoginSuccess = WebHookPayLoad<{
+  claim: Record<string, any>;
+}>;
+
+export type WebHookPayloadRegistrationSuccess = WebHookPayLoad<{
+  claim: Record<string, any>;
+}>;
+
+// not implemented yet, but can be used in the future to send additional data related to password reset events
+export type WebHookPayloadPasswordReset = WebHookPayLoad<{
+  claim: Record<string, any>;
+}>;
