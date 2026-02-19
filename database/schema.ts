@@ -1,6 +1,7 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { drizzle } from "./drizzle";
 import type { OTFUsersType, OTFUsersParsedType } from "./types";
+import type { Project, CopyData } from "..";
 export * from "./types";
 
 export const reservedTableNames = [
@@ -62,18 +63,6 @@ export async function DeleteOTFusersTable(
   }
 }
 
-export const OTFusersTable = (clientID: string) =>
-  sqliteTable(clientID + "_users", {
-    id: text().primaryKey(),
-    identifier: text().unique().notNull(),
-    data: text({
-      mode: "json",
-    }).notNull(),
-    session_private: text(),
-    session_public: text(),
-    created_at: text().notNull(),
-  });
-
 export function parseDBUser(
   user: Partial<OTFUsersType["select"]>,
 ): Partial<OTFUsersParsedType> {
@@ -89,6 +78,18 @@ export function parseDBUser(
   };
 }
 
+export const OTFusersTable = (clientID: string) =>
+  sqliteTable(clientID + "_users", {
+    id: text().primaryKey(),
+    identifier: text().unique().notNull(),
+    data: text({
+      mode: "json",
+    }).notNull(),
+    session_private: text(),
+    session_public: text(),
+    created_at: text().notNull(),
+  });
+
 export function serializeDBUser(
   user: Partial<OTFUsersParsedType>,
 ): Partial<OTFUsersType["select"]> {
@@ -102,6 +103,33 @@ export function serializeDBUser(
       ? JSON.stringify(user.session_public)
       : user.session_public,
   };
+}
+
+export function parseDBProject(
+  data: typeof projectTable.$inferSelect,
+): Project {
+  return {
+    ...data,
+    clientID: String(data.clientID),
+    created_at: String(data.created_at),
+    active: Boolean(data.active),
+    providers_data:
+      typeof data.providers_data === "string"
+        ? JSON.parse(data.providers_data)
+        : data.providers_data,
+    themeId: data.themeId || null,
+    emailTemplateId: data.emailTemplateId || null,
+    codeMode: String(data.codeMode) === "phone" ? "phone" : "email",
+    projectData:
+      typeof data.projectData === "string"
+        ? JSON.parse(data.projectData)
+        : data.projectData || {},
+    originURL: data.originURL || null,
+    authEndpointURL: String(data.authEndpointURL),
+    cloudflareDomaineID: String(data.cloudflareDomaineID),
+    registerOnInvite: Boolean(data.registerOnInvite),
+    secret: String(data.secret),
+  } satisfies Project;
 }
 
 export const projectTable = sqliteTable("openauth_webui_projects", {
@@ -126,6 +154,18 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
   secret: text().notNull(),
   authEndpointURL: text().notNull(),
   cloudflareDomaineID: text().notNull(),
+});
+
+export const WebHookTable = sqliteTable("openauth_webui_webhooks", {
+  id: text().primaryKey(),
+  clientID: text().notNull(),
+  event: text().notNull(),
+  url: text().notNull(),
+  method: text().notNull(),
+  headers: text({
+    mode: "json",
+  }),
+  created_at: text().notNull(),
 });
 
 export const emailTemplatesTable = sqliteTable(
@@ -153,6 +193,18 @@ export const webuiProjectTable = sqliteTable("openauth_webui", {
 });
 
 export const WebUiProjectUserTable = OTFusersTable("openauth_webui");
+
+export function parseDBCopyTemplate<T extends CopyData>(data: any) {
+  return {
+    name: String(data.name),
+    providerType: String(data.providerType),
+    copyData: (typeof data.copyData === "string"
+      ? JSON.parse(data.copyData)
+      : data.copyData) as T,
+    created_at: String(data.created_at),
+    updated_at: String(data.updated_at),
+  };
+}
 
 export const WebUiCopyTemplateTable = sqliteTable(
   "openauth_webui_copy_templates",

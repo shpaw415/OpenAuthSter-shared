@@ -22,7 +22,9 @@
     "./client": "./client/index.ts",
     "./client/user": "./client/user.ts",
     "./utils": "./utils.ts",
-    "./providers": "./providers/index.ts"
+    "./providers": "./providers/index.ts",
+    "./webhook/types": "./webhook/types.ts",
+    "./webhook": "./webhook/index.ts"
   },
   "dependencies": {
     "mustache": "^4.2.0",

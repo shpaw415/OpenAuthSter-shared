@@ -14,6 +14,10 @@ import type { GoogleConfig } from "@openauthjs/openauth/provider/google";
 import type { SlackConfig } from "@openauthjs/openauth/provider/slack";
 import type { OidcConfig } from "@openauthjs/openauth/provider/oidc";
 import type { Oauth2Config } from "@openauthjs/openauth/provider/oauth2";
+import type { WebHookConfig } from "./webhook/types";
+import { keyof } from "valibot";
+
+export * from "./database/schema";
 
 // All available provider types
 export type ProviderType =
@@ -420,68 +424,34 @@ export interface ProjectData {
   [key: string]: string | undefined;
 }
 
+type EnsureKeys<T, K extends keyof T> = T & { [P in K]-?: T[P] };
+
 // Project type
-export interface Project {
-  clientID: string;
-  created_at: string;
-  active: boolean;
-  providers_data: ProviderConfig[];
-  themeId?: string | null;
-  emailTemplateId?: string | null;
-  codeMode: "email" | "phone";
-  projectData?: ProjectData;
-  originURL?: string | null;
-  authEndpointURL: string;
-  cloudflareDomaineID: string;
-  registerOnInvite: boolean;
-  secret: string;
-}
+export type Project = EnsureKeys<
+  {
+    clientID: string;
+    created_at: string;
+    active: boolean;
+    providers_data: ProviderConfig[];
+    themeId?: string | null;
+    emailTemplateId?: string | null;
+    codeMode: "email" | "phone";
+    projectData?: ProjectData;
+    originURL?: string | null;
+    authEndpointURL: string;
+    cloudflareDomaineID: string;
+    registerOnInvite: boolean;
+    secret: string;
+  },
+  keyof typeof projectTable.$inferSelect
+>;
 
-export function parseDBProject(
-  data: typeof projectTable.$inferSelect,
-): Project {
-  return {
-    ...data,
-    clientID: String(data.clientID),
-    created_at: String(data.created_at),
-    active: Boolean(data.active),
-    providers_data:
-      typeof data.providers_data === "string"
-        ? JSON.parse(data.providers_data)
-        : data.providers_data,
-    themeId: data.themeId || null,
-    emailTemplateId: data.emailTemplateId || null,
-    codeMode: String(data.codeMode) === "phone" ? "phone" : "email",
-    projectData:
-      typeof data.projectData === "string"
-        ? JSON.parse(data.projectData)
-        : data.projectData || {},
-    originURL: data.originURL || null,
-    authEndpointURL: String(data.authEndpointURL),
-    cloudflareDomaineID: String(data.cloudflareDomaineID),
-    registerOnInvite: Boolean(data.registerOnInvite),
-    secret: String(data.secret),
-  } satisfies Project;
-}
-
-type CopyData = CodeUICopy | PasswordUIOptions["copy"];
+export type CopyData = CodeUICopy | PasswordUIOptions["copy"];
 
 export type CopyDataSelection = {
   password: PasswordUIOptions["copy"];
   code: CodeUICopy;
 };
-
-export function parseDBCopyTemplate<T extends CopyData>(data: any) {
-  return {
-    name: String(data.name),
-    providerType: String(data.providerType),
-    copyData: (typeof data.copyData === "string"
-      ? JSON.parse(data.copyData)
-      : data.copyData) as T,
-    created_at: String(data.created_at),
-    updated_at: String(data.updated_at),
-  };
-}
 
 // Global configuration for external integrations
 export type ExternalGlobalProjectConfig<CTXProperties = any> = {
