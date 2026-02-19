@@ -1,7 +1,7 @@
 {
   "name": "openauthster-shared",
   "module": "index.ts",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "private": false,
   "devDependencies": {
@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "mustache": "^4.2.0",
-    "openauth-webui-shared-types": ".",
+    "@openauthjs/openauth": "^0.4.3",
     "valibot": "^1.2.0"
   }
 }
