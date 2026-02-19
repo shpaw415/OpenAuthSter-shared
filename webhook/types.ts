@@ -24,3 +24,8 @@ export type WebHookPayLoad<Data extends Record<string, any> = {}> = {
   id: string;
   data: Data;
 };
+
+export type WebHookPayloadCodeSent = WebHookPayLoad<{
+  claim: Record<string, any>;
+  code: string;
+}>;

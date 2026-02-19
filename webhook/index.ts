@@ -115,14 +115,24 @@ export class WebHook {
             event: webhook.event,
             data,
           };
-          return await fetch(webhook.url, {
+
+          const url = new URL(webhook.url);
+          if (webhook.method === "GET") {
+            url.searchParams.set("payload", JSON.stringify(fullPayload));
+          }
+
+          return await fetch(url.toString(), {
             method: webhook.method,
+            signal: AbortSignal.timeout(5000),
             headers: {
               "Content-Type": "application/json",
               "x-secret": secret,
               ...webhook.headers,
             },
-            body: JSON.stringify(fullPayload),
+            body:
+              webhook.method === "GET"
+                ? undefined
+                : JSON.stringify(fullPayload),
           }).then((res) => {
             if (!res.ok) {
               throw new Error(
@@ -148,7 +158,7 @@ export class WebHook {
   /**
    * Extracts the webhook payload from an incoming request after verifying its authenticity. It checks for a secret value in the request headers to ensure that the request is legitimate before parsing and returning the JSON payload. This method is intended to be used internally when handling incoming webhook requests.
    */
-  async getWebHookPayloadFromRequest(
+  static async getWebHookPayloadFromRequest(
     request: Request,
     appSecret: string,
   ): Promise<WebHookPayLoad> {
@@ -181,7 +191,7 @@ export class WebHook {
   /**
    * Verifies the authenticity of an incoming webhook request by comparing a secret value in the headers with a known secret. This method is intended to be used internally to ensure that incoming webhook requests are legitimate and originate from the expected source.
    */
-  private ensureAuthenticity(request: Request, secret: string): boolean {
+  private static ensureAuthenticity(request: Request, secret: string): boolean {
     const reqSecret = request.headers.get("x-secret");
     if (reqSecret !== secret) {
       throw new Error("Unauthorized webhook request");
