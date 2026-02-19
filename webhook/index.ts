@@ -86,7 +86,17 @@ export class WebHook {
    *
    * **Internal use only**
    */
-  async trigger(clientID: string, event: WebHookEvents, secret: string) {
+  async trigger({
+    clientID,
+    event,
+    secret,
+    data,
+  }: {
+    clientID: string;
+    event: WebHookEvents;
+    secret: string;
+    data: Record<string, any>;
+  }) {
     const webhooks = await this.db
       .select()
       .from(WebHookTable)
@@ -103,6 +113,7 @@ export class WebHook {
             timestamp: new Date().toISOString(),
             clientID: webhook.clientID,
             event: webhook.event,
+            data,
           };
           return await fetch(webhook.url, {
             method: webhook.method,

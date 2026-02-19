@@ -17,9 +17,10 @@ export type ExtendedWebHookConfig = WebHookConfig & {
   created_at: string;
 };
 
-export type WebHookPayLoad = {
+export type WebHookPayLoad<Data extends Record<string, any> = {}> = {
   event: WebHookEvents;
   clientID: string;
   timestamp: string;
   id: string;
+  data: Data;
 };
