@@ -53,6 +53,8 @@ export class WebHook {
   }
   /**
    * Triggers all webhooks for a specific event with the given payload. It handles both POST and GET requests and logs any errors that occur during the process.
+   *
+   * **Internal use only**
    */
   async trigger(
     clientID: string,
@@ -144,5 +146,9 @@ export class WebHook {
       }
       return res.json() as unknown as WebHookPayLoad;
     });
+  }
+
+  static create(config: { db: D1Database }) {
+    return new WebHook(config);
   }
 }
