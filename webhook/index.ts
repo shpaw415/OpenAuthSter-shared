@@ -86,12 +86,7 @@ export class WebHook {
    *
    * **Internal use only**
    */
-  async trigger(
-    clientID: string,
-    event: WebHookEvents,
-    payload: WebHookPayLoad,
-    secret: string,
-  ) {
+  async trigger(clientID: string, event: WebHookEvents, secret: string) {
     const webhooks = await this.db
       .select()
       .from(WebHookTable)
@@ -103,6 +98,12 @@ export class WebHook {
     return Promise.all(
       webhooks.map(this.parseWebHookConfig).map(async (webhook) => {
         try {
+          const fullPayload: WebHookPayLoad = {
+            id: webhook.id,
+            timestamp: new Date().toISOString(),
+            clientID: webhook.clientID,
+            event: webhook.event,
+          };
           return await fetch(webhook.url, {
             method: webhook.method,
             headers: {
@@ -110,7 +111,7 @@ export class WebHook {
               "x-secret": secret,
               ...webhook.headers,
             },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(fullPayload),
           }).then((res) => {
             if (!res.ok) {
               throw new Error(
