@@ -140,8 +140,38 @@ export class WebHook {
       headers: config.headers ? JSON.stringify(config.headers) : undefined,
     };
   }
+  /**
+   * Extracts the webhook payload from an incoming request after verifying its authenticity. It checks for a secret value in the request headers to ensure that the request is legitimate before parsing and returning the JSON payload. This method is intended to be used internally when handling incoming webhook requests.
+   */
+  async getWebHookPayloadFromRequest(
+    request: Request,
+    appSecret: string,
+  ): Promise<WebHookPayLoad> {
+    this.ensureAuthenticity(request, appSecret);
+    return request.json() as Promise<WebHookPayLoad>;
+  }
+
+  /**
+   * Verifies the authenticity of an incoming webhook request by comparing a secret value in the headers with a known secret. This method is intended to be used internally to ensure that incoming webhook requests are legitimate and originate from the expected source.
+   */
+  private ensureAuthenticity(request: Request, secret: string): boolean {
+    const reqSecret = request.headers.get("x-secret");
+    if (reqSecret !== secret) {
+      throw new Error("Unauthorized webhook request");
+    }
+    return true;
+  }
 
   static create(config: { db: D1Database }) {
-    return new WebHook(config);
+    return new WebHook(config) as Omit<
+      WebHook,
+      | "trigger"
+      | "register"
+      | "update"
+      | "deleteWebHook"
+      | "getWebHooks"
+      | "stringifyWebHookConfig"
+      | "parseWebHookConfig"
+    >;
   }
 }
