@@ -25,6 +25,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
-    "types": ["./database/worker-configuration.d.ts"]
+    "types": ["./database/worker-configuration.d.ts", "@types/bun"]
   }
 }

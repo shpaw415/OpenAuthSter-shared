@@ -5,8 +5,7 @@
   "type": "module",
   "private": false,
   "devDependencies": {
-    "@openauthjs/openauth": "^0.4.3",
-    "@types/bun": "latest",
+    "@types/bun": "^1.3.9",
     "@types/mustache": "^4.2.6"
   },
   "peerDependencies": {

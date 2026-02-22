@@ -14,9 +14,6 @@ import type { GoogleConfig } from "@openauthjs/openauth/provider/google";
 import type { SlackConfig } from "@openauthjs/openauth/provider/slack";
 import type { OidcConfig } from "@openauthjs/openauth/provider/oidc";
 import type { Oauth2Config } from "@openauthjs/openauth/provider/oauth2";
-import type { WebHookConfig } from "./webhook/types";
-import { keyof } from "valibot";
-
 export * from "./database/schema";
 
 // All available provider types
