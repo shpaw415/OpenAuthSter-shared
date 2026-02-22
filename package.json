@@ -24,7 +24,8 @@
     "./utils": "./utils.ts",
     "./providers": "./providers/index.ts",
     "./webhook/types": "./webhook/types.ts",
-    "./webhook": "./webhook/index.ts"
+    "./webhook": "./webhook/index.ts",
+    "./security": "./security/index.ts"
   },
   "dependencies": {
     "mustache": "^4.2.0",

@@ -6,6 +6,7 @@ import type {
 } from "./types";
 import { drizzle, eq, and } from "../database/drizzle";
 import { WebHookTable } from "../database/schema";
+import { hashWithSecretKey, verifySignature } from "../security/encryption";
 
 export class WebHook {
   private db: ReturnType<typeof drizzle>;
@@ -126,7 +127,10 @@ export class WebHook {
             signal: AbortSignal.timeout(5000),
             headers: {
               "Content-Type": "application/json",
-              "x-secret": secret,
+              "x-secret": await hashWithSecretKey(
+                JSON.stringify(fullPayload),
+                secret,
+              ),
               ...webhook.headers,
             },
             body:
@@ -165,20 +169,27 @@ export class WebHook {
     request: Request,
     appSecret: string,
   ): Promise<WebHookPayLoad<AwaitedData> & { event: AwaitedEvent }> {
-    this.ensureAuthenticity(request, appSecret);
+    const payload = await this.getPayLoadFromRequest(request);
+    await this.ensureAuthenticity({
+      request,
+      secret: appSecret,
+      data: payload,
+    });
+    return JSON.parse(payload) as WebHookPayLoad<AwaitedData> & {
+      event: AwaitedEvent;
+    };
+  }
+
+  private static getPayLoadFromRequest(request: Request): Promise<string> {
     if (request.method === "GET") {
       const url = new URL(request.url);
       const payload = url.searchParams.get("payload");
       if (!payload) {
         throw new Error("Missing payload in webhook request");
       }
-      return JSON.parse(payload) as WebHookPayLoad<AwaitedData> & {
-        event: AwaitedEvent;
-      };
+      return Promise.resolve(payload);
     }
-    return request.json() as Promise<
-      WebHookPayLoad<AwaitedData> & { event: AwaitedEvent }
-    >;
+    return request.text();
   }
 
   parseWebHookConfig(
@@ -204,14 +215,30 @@ export class WebHook {
   }
 
   /**
-   * Verifies the authenticity of an incoming webhook request by comparing a secret value in the headers with a known secret. This method is intended to be used internally to ensure that incoming webhook requests are legitimate and originate from the expected source.
+   * Verifies the authenticity of an incoming webhook request by comparing
+   * the provided signature in the request headers with the expected secret.
+   * Throws an error if the verification fails.
    */
-  private static ensureAuthenticity(request: Request, secret: string): boolean {
-    const reqSecret = request.headers.get("x-secret");
-    if (reqSecret !== secret) {
+  private static async ensureAuthenticity({
+    request,
+    secret,
+    data,
+  }: {
+    request: Request;
+    secret: string;
+    data: string;
+  }): Promise<void> {
+    const reqSignature = request.headers.get("x-secret");
+    if (
+      !reqSignature ||
+      !(await verifySignature({
+        data,
+        signatureHex: reqSignature,
+        secretKey: secret,
+      }))
+    ) {
       throw new Error("Unauthorized webhook request");
     }
-    return true;
   }
 
   static create(config: { db: D1Database }) {
