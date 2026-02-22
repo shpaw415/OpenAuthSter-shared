@@ -41,7 +41,7 @@ function buildChain(): any {
   return chain;
 }
 
-import { WebHook } from "../../webhook/index";
+import { WebHook, WebHookUnAuthorizedError } from "../../webhook/index";
 import { hashWithSecretKey } from "../../security/encryption";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -390,16 +390,17 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
     });
   }
 
-  const samplePayload = {
+  // Use a fresh timestamp so the 5-minute replay-protection check always passes
+  const makeSamplePayload = () => ({
     id: "wh-001",
     clientID: CLIENT_ID,
     event: "login_success" as WebHookEvents,
-    timestamp: "2026-02-22T00:00:00.000Z",
+    timestamp: new Date().toISOString(),
     data: { claim: { sub: "user-1" } },
-  };
+  });
 
   it("parses a valid POST request and returns the payload", async () => {
-    const req = await makeSignedPostRequest(samplePayload, SECRET);
+    const req = await makeSignedPostRequest(makeSamplePayload(), SECRET);
     const result = await WebHook.getWebHookPayloadFromRequest(req, SECRET);
     expect(result.event).toBe("login_success");
     expect(result.clientID).toBe(CLIENT_ID);
@@ -407,20 +408,20 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
   });
 
   it("parses a valid GET request and returns the payload", async () => {
-    const req = await makeSignedGetRequest(samplePayload, SECRET);
+    const req = await makeSignedGetRequest(makeSamplePayload(), SECRET);
     const result = await WebHook.getWebHookPayloadFromRequest(req, SECRET);
     expect(result.event).toBe("login_success");
   });
 
   it("throws when POST request has invalid signature", async () => {
-    const req = await makeSignedPostRequest(samplePayload, SECRET, true);
+    const req = await makeSignedPostRequest(makeSamplePayload(), SECRET, true);
     await expect(
       WebHook.getWebHookPayloadFromRequest(req, SECRET),
     ).rejects.toThrow("Unauthorized webhook request");
   });
 
   it("throws when GET request has invalid signature", async () => {
-    const req = await makeSignedGetRequest(samplePayload, SECRET, true);
+    const req = await makeSignedGetRequest(makeSamplePayload(), SECRET, true);
     await expect(
       WebHook.getWebHookPayloadFromRequest(req, SECRET),
     ).rejects.toThrow("Unauthorized webhook request");
@@ -437,7 +438,7 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
   });
 
   it("throws when x-secret header is missing", async () => {
-    const body = JSON.stringify(samplePayload);
+    const body = JSON.stringify(makeSamplePayload());
     const req = new Request("https://example.com/hook", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -446,6 +447,41 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
     await expect(
       WebHook.getWebHookPayloadFromRequest(req, SECRET),
     ).rejects.toThrow("Unauthorized webhook request");
+  });
+
+  // ── timestamp verification ──────────────────────────────────────────────
+
+  it("throws when timestamp is older than 5 minutes (replay attack)", async () => {
+    const stalePayload = {
+      ...makeSamplePayload(),
+      timestamp: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
+    };
+    const req = await makeSignedPostRequest(stalePayload, SECRET);
+    expect(WebHook.getWebHookPayloadFromRequest(req, SECRET)).rejects.toThrow(
+      WebHookUnAuthorizedError,
+    );
+  });
+
+  it("throws when timestamp is more than 5 minutes in the future", async () => {
+    const futurePayload = {
+      ...makeSamplePayload(),
+      timestamp: new Date(Date.now() + 6 * 60 * 1000).toISOString(),
+    };
+    const req = await makeSignedPostRequest(futurePayload, SECRET);
+    expect(WebHook.getWebHookPayloadFromRequest(req, SECRET)).rejects.toThrow(
+      WebHookUnAuthorizedError,
+    );
+  });
+
+  it("accepts a timestamp within the 5-minute window", async () => {
+    const recentPayload = {
+      ...makeSamplePayload(),
+      timestamp: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
+    };
+    const req = await makeSignedPostRequest(recentPayload, SECRET);
+    await expect(
+      WebHook.getWebHookPayloadFromRequest(req, SECRET),
+    ).resolves.toMatchObject({ event: "login_success" });
   });
 });
 

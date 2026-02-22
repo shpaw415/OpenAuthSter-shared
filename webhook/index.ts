@@ -8,6 +8,13 @@ import { drizzle, eq, and } from "../database/drizzle";
 import { WebHookTable } from "../database/schema";
 import { hashWithSecretKey, verifySignature } from "../security/encryption";
 
+export class WebHookUnAuthorizedError extends Error {
+  constructor(message?: string) {
+    super(message || "Unauthorized webhook request");
+    this.name = "WebHookUnAuthorizedError";
+  }
+}
+
 export class WebHook {
   private db: ReturnType<typeof drizzle>;
 
@@ -152,7 +159,10 @@ export class WebHook {
           console.error(`Failed to trigger webhook ${webhook.id}:`, error);
           return {
             success: false,
-            error: error,
+            error:
+              error instanceof WebHookUnAuthorizedError
+                ? error
+                : new Error(String(error)),
             id: webhook.id,
           };
         }
@@ -175,9 +185,13 @@ export class WebHook {
       secret: appSecret,
       data: payload,
     });
-    return JSON.parse(payload) as WebHookPayLoad<AwaitedData> & {
+
+    const parsedPayload = JSON.parse(payload) as WebHookPayLoad<AwaitedData> & {
       event: AwaitedEvent;
     };
+
+    this.ensureTimeStamp(parsedPayload);
+    return parsedPayload;
   }
 
   private static getPayLoadFromRequest(request: Request): Promise<string> {
@@ -237,7 +251,19 @@ export class WebHook {
         secretKey: secret,
       }))
     ) {
-      throw new Error("Unauthorized webhook request");
+      throw new WebHookUnAuthorizedError("Unauthorized webhook request");
+    }
+  }
+
+  private static ensureTimeStamp(payload: WebHookPayLoad) {
+    const payloadTime = new Date(payload.timestamp).getTime();
+    const now = Date.now();
+    const diff = Math.abs(now - payloadTime);
+    // Allow a maximum of 5 minutes difference to prevent replay attacks
+    if (diff > 5 * 60 * 1000) {
+      throw new WebHookUnAuthorizedError(
+        "Webhook request timestamp is too old",
+      );
     }
   }
 

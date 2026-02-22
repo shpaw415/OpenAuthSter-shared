@@ -37,7 +37,8 @@ export type ProviderType =
   | "keycloak"
   | "password"
   | "microsoft"
-  | "jumpcloud";
+  | "jumpcloud"
+  | "qr";
 
 // Provider category for UI organization
 export type ProviderCategory = "social" | "enterprise" | "custom" | "form";
@@ -144,6 +145,12 @@ export interface PasswordProviderConfig extends BaseProviderConfig {
   };
 }
 
+// QR Code provider configuration
+export interface QRProviderConfig extends BaseProviderConfig {
+  type: "qr";
+  data: {};
+}
+
 // Union type for all provider configurations
 export type ProviderConfig =
   | OAuth2ProviderConfig
@@ -157,7 +164,8 @@ export type ProviderConfig =
   | MicrosoftProviderConfig
   | AppleOIDCProviderConfig
   | AppleOAuthProviderConfig
-  | SlackProviderConfig;
+  | SlackProviderConfig
+  | QRProviderConfig;
 
 // Provider metadata for UI
 export interface ProviderMeta {
@@ -312,6 +320,14 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     category: "form",
     icon: "🔒",
     description: "Traditional email and password",
+  },
+  {
+    type: "qr",
+    name: "QR Code",
+    category: "custom",
+    icon: "📱",
+    description:
+      "Authenticate by scanning a QR code with your authenticated mobile device",
   },
 ];
 
