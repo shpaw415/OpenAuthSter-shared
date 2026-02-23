@@ -16,7 +16,8 @@
   "dependencies": {
     "mustache": "^4.2.0",
     "@openauthjs/openauth": "^0.4.3",
-    "valibot": "^1.2.0"
+    "valibot": "^1.2.0",
+    "react": "^19.2.4"
   },
   "exports": {
     ".": "./index.ts",
