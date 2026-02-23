@@ -1,7 +1,6 @@
 import type { Provider } from "@openauthjs/openauth/provider/provider";
 import { DurableObject } from "cloudflare:workers";
 import type { JSXNode } from "hono/jsx";
-import { jsxRenderer } from "hono/jsx-renderer";
 
 export const DEFAULT_COPY = {
   title: "Connexion par QR Code",
