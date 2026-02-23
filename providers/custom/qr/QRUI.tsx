@@ -1,7 +1,7 @@
 import { Layout } from "@openauthjs/openauth/ui/base";
 import { DEFAULT_COPY, type QRProviderConfig } from ".";
 import CSS from "./index.css" assert { type: "text" };
-import React from "react";
+
 type QrUIConfig = Omit<QRProviderConfig, "UI">;
 
 const InsertedScript = ({
@@ -43,6 +43,7 @@ const qrUI: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
     ...DEFAULT_COPY,
     ...copy,
   };
+
   return (
     <Layout>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />

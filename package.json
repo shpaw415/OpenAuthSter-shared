@@ -6,9 +6,7 @@
   "private": false,
   "devDependencies": {
     "@types/bun": "^1.3.9",
-    "@types/mustache": "^4.2.6",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3"
+    "@types/mustache": "^4.2.6"
   },
   "peerDependencies": {
     "typescript": "^5",
@@ -19,8 +17,7 @@
     "mustache": "^4.2.0",
     "@openauthjs/openauth": "^0.4.3",
     "valibot": "^1.2.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "cloudflare": "^5.2.0"
   },
   "exports": {
     ".": "./index.ts",
@@ -36,5 +33,8 @@
     "./webhook/types": "./webhook/types.ts",
     "./webhook": "./webhook/index.ts",
     "./security": "./security/index.ts"
+  },
+  "scripts": {
+    "build:ui": "bun bin/build_ui.ts"
   }
 }
