@@ -7,7 +7,8 @@
   "devDependencies": {
     "@types/bun": "^1.3.9",
     "@types/mustache": "^4.2.6",
-    "@types/react": "^19.2.14"
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3"
   },
   "peerDependencies": {
     "typescript": "^5",
@@ -18,7 +19,8 @@
     "mustache": "^4.2.0",
     "@openauthjs/openauth": "^0.4.3",
     "valibot": "^1.2.0",
-    "react": "^19.2.4"
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "exports": {
     ".": "./index.ts",

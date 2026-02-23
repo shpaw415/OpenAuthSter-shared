@@ -1,6 +1,7 @@
 import type { Provider } from "@openauthjs/openauth/provider/provider";
 import { DurableObject } from "cloudflare:workers";
-import type { JSXNode } from "hono/jsx";
+import type { JSX } from "react";
+import { renderToString } from "react-dom/server";
 
 export const DEFAULT_COPY = {
   title: "Connexion par QR Code",
@@ -24,7 +25,7 @@ export interface QRProviderConfig {
     copy?: Partial<typeof DEFAULT_COPY>;
     qrUrl: string;
     wsUrl: string;
-  }) => JSXNode;
+  }) => JSX.Element;
 }
 
 /**
@@ -59,7 +60,9 @@ export function QRProvider(config: QRProviderConfig): Provider {
         const qrUrl = `${config.baseUrl}/qr/validate?id=${handshakeId}`;
         const wsUrl = `${config.baseUrl.replace(/^http/, "ws")}/qr/ws?id=${handshakeId}`;
 
-        return c.render(config.UI({ copy: config.copy, qrUrl, wsUrl }) as any);
+        return c.html(
+          renderToString(config.UI({ copy: config.copy, qrUrl, wsUrl })),
+        );
       });
 
       // Gestion de la connexion WebSocket (Côté PC)
