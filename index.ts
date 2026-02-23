@@ -14,6 +14,10 @@ import type { GoogleConfig } from "@openauthjs/openauth/provider/google";
 import type { SlackConfig } from "@openauthjs/openauth/provider/slack";
 import type { OidcConfig } from "@openauthjs/openauth/provider/oidc";
 import type { Oauth2Config } from "@openauthjs/openauth/provider/oauth2";
+
+// custom Provider types
+import type { DEFAULT_COPY as QR_DEFAULT_COPY } from "./providers/custom/qr";
+
 export * from "./database/schema";
 
 // All available provider types
@@ -464,6 +468,7 @@ export type CopyData = CodeUICopy | PasswordUIOptions["copy"];
 export type CopyDataSelection = {
   password: PasswordUIOptions["copy"];
   code: CodeUICopy;
+  qr: typeof QR_DEFAULT_COPY;
 };
 
 // Global configuration for external integrations
