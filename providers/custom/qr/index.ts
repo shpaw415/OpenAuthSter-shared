@@ -60,9 +60,7 @@ export function QRProvider(config: QRProviderConfig): Provider {
         const qrUrl = `${config.baseUrl}/qr/validate?id=${handshakeId}`;
         const wsUrl = `${config.baseUrl.replace(/^http/, "ws")}/qr/ws?id=${handshakeId}`;
 
-        return c.html(
-          renderToString(config.UI({ copy: config.copy, qrUrl, wsUrl })),
-        );
+        return c.render(config.UI({ copy: config.copy, qrUrl, wsUrl }));
       });
 
       // Gestion de la connexion WebSocket (Côté PC)
