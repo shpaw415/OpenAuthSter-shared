@@ -18,7 +18,14 @@ export interface QRProviderConfig {
   /**
    * L'URL de base de l'issuer (ex: https://auth.example.com)
    */
-  baseUrl: string;
+  issuerURI: string;
+  /**
+   * Application URI (ex: https://app.example.com) used to generate the QR code start the authentication flow.
+   * This URI should point to a route in your application that can handle the validation logic and interact with OpenAuth.
+   *
+   * **Openauthster** already provides a verification when `client.init` is triggerd in your application.
+   */
+  appURI: string;
 
   copy?: Partial<typeof DEFAULT_COPY>;
 
@@ -61,15 +68,23 @@ export function QRProvider(config: QRProviderConfig): Provider {
 
         // Stocke l'état d'autorisation dans le DO pour que le mobile puisse le récupérer
         await stub.init(authData);
-        console.log({
-          options,
-          config,
-        });
-        // Renvoie une page HTML/UI qui affiche le QR Code et ouvre la WebSocket
-        const qrUrl = `${config.baseUrl}/qr/validate?id=${handshakeId}`;
-        const wsUrl = `${config.baseUrl.replace(/^http/, "ws")}/qr/ws?id=${handshakeId}`;
 
-        return c.render(config.UI({ copy: config.copy, qrUrl, wsUrl }));
+        // Renvoie une page HTML/UI qui affiche le QR Code et ouvre la WebSocket
+        const qrURL = new URL(config.appURI);
+        qrURL.searchParams.set("id", handshakeId);
+        qrURL.searchParams.set("flow", "qr");
+
+        const wsURL = new URL(`${config.issuerURI}/qr/ws`);
+        wsURL.searchParams.set("id", handshakeId);
+        wsURL.protocol = wsURL.protocol === "https:" ? "wss:" : "ws:";
+
+        return c.render(
+          config.UI({
+            copy: config.copy,
+            qrUrl: qrURL.toString(),
+            wsUrl: wsURL.toString(),
+          }),
+        );
       });
 
       // Gestion de la connexion WebSocket (Côté PC)

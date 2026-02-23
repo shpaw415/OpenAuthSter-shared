@@ -3104,13 +3104,17 @@ function QRProvider(config) {
         const id = config.binding.idFromName(handshakeId);
         const stub = config.binding.get(id);
         await stub.init(authData);
-        console.log({
-          options,
-          config
-        });
-        const qrUrl = `${config.baseUrl}/qr/validate?id=${handshakeId}`;
-        const wsUrl = `${config.baseUrl.replace(/^http/, "ws")}/qr/ws?id=${handshakeId}`;
-        return c.render(config.UI({ copy: config.copy, qrUrl, wsUrl }));
+        const qrURL = new URL(config.appURI);
+        qrURL.searchParams.set("id", handshakeId);
+        qrURL.searchParams.set("flow", "qr");
+        const wsURL = new URL(`${config.issuerURI}/qr/ws`);
+        wsURL.searchParams.set("id", handshakeId);
+        wsURL.protocol = wsURL.protocol === "https:" ? "wss:" : "ws:";
+        return c.render(config.UI({
+          copy: config.copy,
+          qrUrl: qrURL.toString(),
+          wsUrl: wsURL.toString()
+        }));
       });
       route.get("/ws", async (c) => {
         const handshakeId = c.req.query("id");
