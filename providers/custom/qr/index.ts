@@ -1,6 +1,7 @@
 import type { Provider } from "@openauthjs/openauth/provider/provider";
 import { DurableObject } from "cloudflare:workers";
 import type { JSXNode } from "hono/jsx";
+import { jsxRenderer } from "hono/jsx-renderer";
 
 export const DEFAULT_COPY = {
   title: "Connexion par QR Code",
@@ -59,9 +60,7 @@ export function QRProvider(config: QRProviderConfig): Provider {
         const qrUrl = `${config.baseUrl}/qr/validate?id=${handshakeId}`;
         const wsUrl = `${config.baseUrl.replace(/^http/, "ws")}/qr/ws?id=${handshakeId}`;
 
-        return c.html(
-          config.UI({ copy: config.copy, qrUrl, wsUrl }).toString(),
-        );
+        return c.render(config.UI({ copy: config.copy, qrUrl, wsUrl }) as any);
       });
 
       // Gestion de la connexion WebSocket (Côté PC)
