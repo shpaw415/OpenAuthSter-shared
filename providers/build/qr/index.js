@@ -2377,14 +2377,14 @@ var qr_default = `.qr-container {
 }
 
 .qr-title {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 600;
   color: var(--color-high);
   margin: 0;
 }
 
 .qr-description {
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   color: color-mix(in oklch, var(--color-high) 70%, transparent);
   margin: 0;
   line-height: 1.5;
@@ -3104,6 +3104,10 @@ function QRProvider(config) {
         const id = config.binding.idFromName(handshakeId);
         const stub = config.binding.get(id);
         await stub.init(authData);
+        console.log({
+          options,
+          config
+        });
         const qrUrl = `${config.baseUrl}/qr/validate?id=${handshakeId}`;
         const wsUrl = `${config.baseUrl.replace(/^http/, "ws")}/qr/ws?id=${handshakeId}`;
         return c.render(config.UI({ copy: config.copy, qrUrl, wsUrl }));

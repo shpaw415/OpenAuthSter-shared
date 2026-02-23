@@ -61,7 +61,10 @@ export function QRProvider(config: QRProviderConfig): Provider {
 
         // Stocke l'état d'autorisation dans le DO pour que le mobile puisse le récupérer
         await stub.init(authData);
-
+        console.log({
+          options,
+          config,
+        });
         // Renvoie une page HTML/UI qui affiche le QR Code et ouvre la WebSocket
         const qrUrl = `${config.baseUrl}/qr/validate?id=${handshakeId}`;
         const wsUrl = `${config.baseUrl.replace(/^http/, "ws")}/qr/ws?id=${handshakeId}`;
