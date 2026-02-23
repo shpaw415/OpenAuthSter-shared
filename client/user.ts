@@ -21,6 +21,8 @@ import type { OTFUsersParsedType } from "../database/schema";
 
 export const userEndpointURI = "/session" as const;
 
+export type FlowTypes = "invite" | "qr";
+
 export const UserEndpointValidation = v.object({
   type: v.union([v.literal("public"), v.literal("private")]),
   action: v.union([v.literal("get"), v.literal("update"), v.literal("delete")]),
@@ -79,6 +81,14 @@ export type OpenAuthsterOptions = {
   secret?: string;
 };
 
+type AuthFlowCallbacks = {
+  /**
+   * Event triggered when the QR authentication flow is initiated. This can be used to perform a security mesure to verify that the user ia aware of the login attempt, for example by displaying a notification or requiring a confirmation before proceeding with the authentication process.
+   * @returns true for prceeding with the authentication flow, false to abort. Can also return a Promise resolving to true or false for asynchronous operations.
+   */
+  onQRAuthFlowStart: () => boolean | Promise<boolean>;
+};
+
 export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
   issuerURI: string;
   clientID: string;
@@ -99,6 +109,7 @@ export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
    * **Server side only.**
    */
   subject?: SubjectSchema;
+  authFlowCallbacks?: Partial<AuthFlowCallbacks>;
 } & OpenAuthsterOptions;
 
 export type USerMetaData = {
@@ -159,12 +170,13 @@ export class OpenAuthsterClient<
   private token: string | null = null;
   private refreshToken: string | null = null;
   private redirectURI: string;
-  private refreshTimer: number | undefined;
+  private refreshTimer: Timer | undefined;
   private initListeners: Map<
     string,
     CallbackType<PublicSessionData, PrivateSessionData, UserInfo>
   > = new Map();
   private subject: SubjectSchema = defaultSubjectSchema;
+  private authFlowCallbacks: Partial<AuthFlowCallbacks>;
 
   constructor(props: ClientProps) {
     this.issuerURI = props.issuerURI;
@@ -181,6 +193,7 @@ export class OpenAuthsterClient<
     if (props.subject) {
       this.subject = props.subject;
     }
+    this.authFlowCallbacks = props.authFlowCallbacks ?? {};
   }
   /**
    * Trigger client initialization. Must be called after the first page load, for SSR compatibility.
@@ -746,17 +759,20 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
     const error = url.get("error");
     const error_description = url.get("error_description");
     const inviteFlow = url.get("invite_id");
+    const flow = url.get("flow") as FlowTypes | null;
 
-    if (inviteFlow) {
-      return this.login();
-    } else if (this.getCode()) {
-      await this.callback();
-    } else if (error) {
+    if (flow == "qr") await this.authFlowCallback(url.get("id"));
+
+    if (error) {
       console.error(`Error from authorization callback: `, {
         error,
         error_description,
       });
       this.error = { error, error_description: error_description || null };
+    } else if (inviteFlow) {
+      return this.login();
+    } else if (this.getCode()) {
+      await this.callback();
     } else {
       const accessToken = this.token || this.getStoredToken();
       const refreshToken = this.refreshToken || this.getStoredRefreshToken();
@@ -775,6 +791,25 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
       }
     }
     this.isLoaded = true;
+  }
+
+  private async authFlowCallback(id: string | null) {
+    if (!(await this.authFlowCallbacks.onQRAuthFlowStart?.())) return;
+
+    if (!this.getStoredToken()) return this.login();
+    if (!id) {
+      this.error = {
+        error: "No QR validation ID provided in URL.",
+        error_description: null,
+      };
+      return this.triggerRefresh();
+    }
+    const _url = new URL(`${this.issuerURI}/qr/validate`);
+    _url.searchParams.set("id", id);
+
+    return this.fetch(_url.toString(), {
+      method: "POST",
+    });
   }
 
   private ensureReady() {

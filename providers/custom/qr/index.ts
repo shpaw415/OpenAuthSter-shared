@@ -29,6 +29,8 @@ export interface QRProviderConfig {
 
   copy?: Partial<typeof DEFAULT_COPY>;
 
+  client_id: string;
+
   UI: (props: {
     copy?: Partial<typeof DEFAULT_COPY>;
     qrUrl: string;
@@ -76,6 +78,7 @@ export function QRProvider(config: QRProviderConfig): Provider {
 
         const wsURL = new URL(`${config.issuerURI}/qr/ws`);
         wsURL.searchParams.set("id", handshakeId);
+        wsURL.searchParams.set("client_id", config.client_id);
         wsURL.protocol = wsURL.protocol === "https:" ? "wss:" : "ws:";
 
         return c.render(
@@ -106,9 +109,13 @@ export function QRProvider(config: QRProviderConfig): Provider {
         const handshakeId = c.req.query("id");
         if (!handshakeId) return c.text("ID manquant", 400);
 
-        // Récupère les propriétés de l'utilisateur identifié (ex: { email: "user@example.com" })
-        // En production, ces propriétés doivent provenir du token/session du mobile, pas du body non vérifié.
-        const properties = await c.req.json();
+        const authorization = await options.get(c, "authorization");
+
+        console.log(
+          "Validation request received for handshake ID:",
+          handshakeId,
+        );
+        console.log("Authorization data from mobile:", authorization);
 
         const id = config.binding.idFromName(handshakeId);
         const stub = config.binding.get(id);
@@ -126,7 +133,9 @@ export function QRProvider(config: QRProviderConfig): Provider {
 
         // Génère manuellement l'Authorization Code OAuth2 (standard OpenAuth) pour cet utilisateur
         // options.success va générer le code et renvoyer une réponse de redirection (302)
-        const response = await options.success(c, properties);
+        const response = await options.success(c, {
+          clientID: authData.clientID,
+        });
 
         if (response.status !== 302) {
           return c.text(

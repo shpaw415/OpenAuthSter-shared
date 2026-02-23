@@ -39,7 +39,11 @@ const QrUIBody: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <script dangerouslySetInnerHTML={{ __html: InsertedScript({ wsUrl }) }} />
+      <script
+        dangerouslySetInnerHTML={{
+          __html: InsertedScript({ wsUrl }),
+        }}
+      />
       <div className="qr-container">
         <div className="qr-header">
           <h1 className="qr-title">{mergedCopy.title}</h1>

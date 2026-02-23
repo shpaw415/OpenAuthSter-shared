@@ -3041,7 +3041,9 @@ var QrUIBody = ({ wsUrl, qrUrl, copy }) => {
         dangerouslySetInnerHTML: { __html: qr_default }
       }, undefined, false, undefined, this),
       /* @__PURE__ */ jsxDEV2("script", {
-        dangerouslySetInnerHTML: { __html: InsertedScript({ wsUrl }) }
+        dangerouslySetInnerHTML: {
+          __html: InsertedScript({ wsUrl })
+        }
       }, undefined, false, undefined, this),
       /* @__PURE__ */ jsxDEV2("div", {
         className: "qr-container",
@@ -3109,6 +3111,7 @@ function QRProvider(config) {
         qrURL.searchParams.set("flow", "qr");
         const wsURL = new URL(`${config.issuerURI}/qr/ws`);
         wsURL.searchParams.set("id", handshakeId);
+        wsURL.searchParams.set("client_id", config.client_id);
         wsURL.protocol = wsURL.protocol === "https:" ? "wss:" : "ws:";
         return c.render(config.UI({
           copy: config.copy,
@@ -3128,7 +3131,9 @@ function QRProvider(config) {
         const handshakeId = c.req.query("id");
         if (!handshakeId)
           return c.text("ID manquant", 400);
-        const properties = await c.req.json();
+        const authorization = await options.get(c, "authorization");
+        console.log("Validation request received for handshake ID:", handshakeId);
+        console.log("Authorization data from mobile:", authorization);
         const id = config.binding.idFromName(handshakeId);
         const stub = config.binding.get(id);
         const authData = await stub.getAuthData();
@@ -3136,7 +3141,9 @@ function QRProvider(config) {
           return c.text("Handshake expiré ou invalide", 400);
         }
         c.set("authorization", authData);
-        const response = await options.success(c, properties);
+        const response = await options.success(c, {
+          clientID: authData.clientID
+        });
         if (response.status !== 302) {
           return c.text("Erreur lors de la génération du code d'autorisation", 500);
         }
