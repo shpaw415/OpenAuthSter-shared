@@ -1,5 +1,6 @@
 import { DEFAULT_COPY, type QRProviderConfig } from ".";
 import CSS from "./index.css" assert { type: "text" };
+import { QRCodeSVG } from "qrcode.react";
 
 type QrUIConfig = Omit<QRProviderConfig, "UI">;
 
@@ -55,7 +56,7 @@ const QrUIBody: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
         </div>
 
         <div className="qr-canvas-wrapper">
-          <canvas id="qrcode" className="qr-canvas" />
+          <QRCodeSVG value={qrUrl} size={250} className="qr-canvas" level="H" />
         </div>
       </div>
     </>

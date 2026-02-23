@@ -14,10 +14,11 @@
     "hono": "^4.12.2"
   },
   "dependencies": {
-    "mustache": "^4.2.0",
     "@openauthjs/openauth": "^0.4.3",
-    "valibot": "^1.2.0",
-    "cloudflare": "^5.2.0"
+    "cloudflare": "^5.2.0",
+    "mustache": "^4.2.0",
+    "qrcode.react": "^4.2.0",
+    "valibot": "^1.2.0"
   },
   "exports": {
     ".": "./index.ts",
