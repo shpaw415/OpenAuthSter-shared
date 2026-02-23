@@ -463,7 +463,10 @@ export type Project = EnsureKeys<
   keyof typeof projectTable.$inferSelect
 >;
 
-export type CopyData = CodeUICopy | PasswordUIOptions["copy"];
+export type CopyData =
+  | CodeUICopy
+  | PasswordUIOptions["copy"]
+  | typeof QR_DEFAULT_COPY;
 
 export type CopyDataSelection = {
   password: PasswordUIOptions["copy"];
