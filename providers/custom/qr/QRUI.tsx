@@ -1,8 +1,13 @@
 import { DEFAULT_COPY, type QRProviderConfig } from ".";
 import CSS from "./index.css" assert { type: "text" };
-import { QRCodeSVG } from "qrcode.react";
+import { encode } from "uqr";
 
 type QrUIConfig = Omit<QRProviderConfig, "UI">;
+
+export function renderQrCode(data: string) {
+  const { data: matrix } = encode(data);
+  return matrix; // Retourne un tableau de tableaux (boolean[][])
+}
 
 const InsertedScript = ({
   qrUrl,
@@ -43,6 +48,9 @@ const QrUIBody: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
     ...copy,
   };
 
+  const qrMatrix = renderQrCode(qrUrl);
+  const size = qrMatrix.length;
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -56,7 +64,22 @@ const QrUIBody: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
         </div>
 
         <div className="qr-canvas-wrapper">
-          <QRCodeSVG value={qrUrl} size={250} className="qr-canvas" level="H" />
+          <svg viewBox={`0 0 ${size} ${size}`} className="w-64 h-64">
+            {qrMatrix.map((row, y) =>
+              row.map((active, x) =>
+                active ? (
+                  <rect
+                    key={`${x}-${y}`}
+                    x={x}
+                    y={y}
+                    width="1.1"
+                    height="1.1"
+                    className="qr-pixel"
+                  />
+                ) : null,
+              ),
+            )}
+          </svg>
         </div>
       </div>
     </>
