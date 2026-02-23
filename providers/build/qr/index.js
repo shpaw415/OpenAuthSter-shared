@@ -1,4 +1,20 @@
+var __create = Object.create;
+var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __toESM = (mod, isNodeMode, target) => {
+  target = mod != null ? __create(__getProtoOf(mod)) : {};
+  const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
+  for (let key of __getOwnPropNames(mod))
+    if (!__hasOwnProp.call(to, key))
+      __defProp(to, key, {
+        get: () => mod[key],
+        enumerable: true
+      });
+  return to;
+};
+var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
@@ -8,6 +24,837 @@ var __export = (target, all) => {
       set: (newValue) => all[name] = () => newValue
     });
 };
+
+// node_modules/react/cjs/react.development.js
+var require_react_development = __commonJS((exports, module) => {
+  (function() {
+    function defineDeprecationWarning(methodName, info) {
+      Object.defineProperty(Component.prototype, methodName, {
+        get: function() {
+          console.warn("%s(...) is deprecated in plain JavaScript React classes. %s", info[0], info[1]);
+        }
+      });
+    }
+    function getIteratorFn(maybeIterable) {
+      if (maybeIterable === null || typeof maybeIterable !== "object")
+        return null;
+      maybeIterable = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable["@@iterator"];
+      return typeof maybeIterable === "function" ? maybeIterable : null;
+    }
+    function warnNoop(publicInstance, callerName) {
+      publicInstance = (publicInstance = publicInstance.constructor) && (publicInstance.displayName || publicInstance.name) || "ReactClass";
+      var warningKey = publicInstance + "." + callerName;
+      didWarnStateUpdateForUnmountedComponent[warningKey] || (console.error("Can't call %s on a component that is not yet mounted. This is a no-op, but it might indicate a bug in your application. Instead, assign to `this.state` directly or define a `state = {};` class property with the desired state in the %s component.", callerName, publicInstance), didWarnStateUpdateForUnmountedComponent[warningKey] = true);
+    }
+    function Component(props, context, updater) {
+      this.props = props;
+      this.context = context;
+      this.refs = emptyObject;
+      this.updater = updater || ReactNoopUpdateQueue;
+    }
+    function ComponentDummy() {}
+    function PureComponent(props, context, updater) {
+      this.props = props;
+      this.context = context;
+      this.refs = emptyObject;
+      this.updater = updater || ReactNoopUpdateQueue;
+    }
+    function noop() {}
+    function testStringCoercion(value) {
+      return "" + value;
+    }
+    function checkKeyStringCoercion(value) {
+      try {
+        testStringCoercion(value);
+        var JSCompiler_inline_result = false;
+      } catch (e) {
+        JSCompiler_inline_result = true;
+      }
+      if (JSCompiler_inline_result) {
+        JSCompiler_inline_result = console;
+        var JSCompiler_temp_const = JSCompiler_inline_result.error;
+        var JSCompiler_inline_result$jscomp$0 = typeof Symbol === "function" && Symbol.toStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
+        JSCompiler_temp_const.call(JSCompiler_inline_result, "The provided key is an unsupported type %s. This value must be coerced to a string before using it here.", JSCompiler_inline_result$jscomp$0);
+        return testStringCoercion(value);
+      }
+    }
+    function getComponentNameFromType(type) {
+      if (type == null)
+        return null;
+      if (typeof type === "function")
+        return type.$$typeof === REACT_CLIENT_REFERENCE ? null : type.displayName || type.name || null;
+      if (typeof type === "string")
+        return type;
+      switch (type) {
+        case REACT_FRAGMENT_TYPE:
+          return "Fragment";
+        case REACT_PROFILER_TYPE:
+          return "Profiler";
+        case REACT_STRICT_MODE_TYPE:
+          return "StrictMode";
+        case REACT_SUSPENSE_TYPE:
+          return "Suspense";
+        case REACT_SUSPENSE_LIST_TYPE:
+          return "SuspenseList";
+        case REACT_ACTIVITY_TYPE:
+          return "Activity";
+      }
+      if (typeof type === "object")
+        switch (typeof type.tag === "number" && console.error("Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue."), type.$$typeof) {
+          case REACT_PORTAL_TYPE:
+            return "Portal";
+          case REACT_CONTEXT_TYPE:
+            return type.displayName || "Context";
+          case REACT_CONSUMER_TYPE:
+            return (type._context.displayName || "Context") + ".Consumer";
+          case REACT_FORWARD_REF_TYPE:
+            var innerType = type.render;
+            type = type.displayName;
+            type || (type = innerType.displayName || innerType.name || "", type = type !== "" ? "ForwardRef(" + type + ")" : "ForwardRef");
+            return type;
+          case REACT_MEMO_TYPE:
+            return innerType = type.displayName || null, innerType !== null ? innerType : getComponentNameFromType(type.type) || "Memo";
+          case REACT_LAZY_TYPE:
+            innerType = type._payload;
+            type = type._init;
+            try {
+              return getComponentNameFromType(type(innerType));
+            } catch (x) {}
+        }
+      return null;
+    }
+    function getTaskName(type) {
+      if (type === REACT_FRAGMENT_TYPE)
+        return "<>";
+      if (typeof type === "object" && type !== null && type.$$typeof === REACT_LAZY_TYPE)
+        return "<...>";
+      try {
+        var name = getComponentNameFromType(type);
+        return name ? "<" + name + ">" : "<...>";
+      } catch (x) {
+        return "<...>";
+      }
+    }
+    function getOwner() {
+      var dispatcher = ReactSharedInternals.A;
+      return dispatcher === null ? null : dispatcher.getOwner();
+    }
+    function UnknownOwner() {
+      return Error("react-stack-top-frame");
+    }
+    function hasValidKey(config) {
+      if (hasOwnProperty.call(config, "key")) {
+        var getter = Object.getOwnPropertyDescriptor(config, "key").get;
+        if (getter && getter.isReactWarning)
+          return false;
+      }
+      return config.key !== undefined;
+    }
+    function defineKeyPropWarningGetter(props, displayName) {
+      function warnAboutAccessingKey() {
+        specialPropKeyWarningShown || (specialPropKeyWarningShown = true, console.error("%s: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://react.dev/link/special-props)", displayName));
+      }
+      warnAboutAccessingKey.isReactWarning = true;
+      Object.defineProperty(props, "key", {
+        get: warnAboutAccessingKey,
+        configurable: true
+      });
+    }
+    function elementRefGetterWithDeprecationWarning() {
+      var componentName = getComponentNameFromType(this.type);
+      didWarnAboutElementRef[componentName] || (didWarnAboutElementRef[componentName] = true, console.error("Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release."));
+      componentName = this.props.ref;
+      return componentName !== undefined ? componentName : null;
+    }
+    function ReactElement(type, key, props, owner, debugStack, debugTask) {
+      var refProp = props.ref;
+      type = {
+        $$typeof: REACT_ELEMENT_TYPE,
+        type,
+        key,
+        props,
+        _owner: owner
+      };
+      (refProp !== undefined ? refProp : null) !== null ? Object.defineProperty(type, "ref", {
+        enumerable: false,
+        get: elementRefGetterWithDeprecationWarning
+      }) : Object.defineProperty(type, "ref", { enumerable: false, value: null });
+      type._store = {};
+      Object.defineProperty(type._store, "validated", {
+        configurable: false,
+        enumerable: false,
+        writable: true,
+        value: 0
+      });
+      Object.defineProperty(type, "_debugInfo", {
+        configurable: false,
+        enumerable: false,
+        writable: true,
+        value: null
+      });
+      Object.defineProperty(type, "_debugStack", {
+        configurable: false,
+        enumerable: false,
+        writable: true,
+        value: debugStack
+      });
+      Object.defineProperty(type, "_debugTask", {
+        configurable: false,
+        enumerable: false,
+        writable: true,
+        value: debugTask
+      });
+      Object.freeze && (Object.freeze(type.props), Object.freeze(type));
+      return type;
+    }
+    function cloneAndReplaceKey(oldElement, newKey) {
+      newKey = ReactElement(oldElement.type, newKey, oldElement.props, oldElement._owner, oldElement._debugStack, oldElement._debugTask);
+      oldElement._store && (newKey._store.validated = oldElement._store.validated);
+      return newKey;
+    }
+    function validateChildKeys(node) {
+      isValidElement2(node) ? node._store && (node._store.validated = 1) : typeof node === "object" && node !== null && node.$$typeof === REACT_LAZY_TYPE && (node._payload.status === "fulfilled" ? isValidElement2(node._payload.value) && node._payload.value._store && (node._payload.value._store.validated = 1) : node._store && (node._store.validated = 1));
+    }
+    function isValidElement2(object) {
+      return typeof object === "object" && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
+    }
+    function escape(key) {
+      var escaperLookup = { "=": "=0", ":": "=2" };
+      return "$" + key.replace(/[=:]/g, function(match) {
+        return escaperLookup[match];
+      });
+    }
+    function getElementKey(element, index) {
+      return typeof element === "object" && element !== null && element.key != null ? (checkKeyStringCoercion(element.key), escape("" + element.key)) : index.toString(36);
+    }
+    function resolveThenable(thenable) {
+      switch (thenable.status) {
+        case "fulfilled":
+          return thenable.value;
+        case "rejected":
+          throw thenable.reason;
+        default:
+          switch (typeof thenable.status === "string" ? thenable.then(noop, noop) : (thenable.status = "pending", thenable.then(function(fulfilledValue) {
+            thenable.status === "pending" && (thenable.status = "fulfilled", thenable.value = fulfilledValue);
+          }, function(error) {
+            thenable.status === "pending" && (thenable.status = "rejected", thenable.reason = error);
+          })), thenable.status) {
+            case "fulfilled":
+              return thenable.value;
+            case "rejected":
+              throw thenable.reason;
+          }
+      }
+      throw thenable;
+    }
+    function mapIntoArray(children, array, escapedPrefix, nameSoFar, callback) {
+      var type = typeof children;
+      if (type === "undefined" || type === "boolean")
+        children = null;
+      var invokeCallback = false;
+      if (children === null)
+        invokeCallback = true;
+      else
+        switch (type) {
+          case "bigint":
+          case "string":
+          case "number":
+            invokeCallback = true;
+            break;
+          case "object":
+            switch (children.$$typeof) {
+              case REACT_ELEMENT_TYPE:
+              case REACT_PORTAL_TYPE:
+                invokeCallback = true;
+                break;
+              case REACT_LAZY_TYPE:
+                return invokeCallback = children._init, mapIntoArray(invokeCallback(children._payload), array, escapedPrefix, nameSoFar, callback);
+            }
+        }
+      if (invokeCallback) {
+        invokeCallback = children;
+        callback = callback(invokeCallback);
+        var childKey = nameSoFar === "" ? "." + getElementKey(invokeCallback, 0) : nameSoFar;
+        isArrayImpl(callback) ? (escapedPrefix = "", childKey != null && (escapedPrefix = childKey.replace(userProvidedKeyEscapeRegex, "$&/") + "/"), mapIntoArray(callback, array, escapedPrefix, "", function(c) {
+          return c;
+        })) : callback != null && (isValidElement2(callback) && (callback.key != null && (invokeCallback && invokeCallback.key === callback.key || checkKeyStringCoercion(callback.key)), escapedPrefix = cloneAndReplaceKey(callback, escapedPrefix + (callback.key == null || invokeCallback && invokeCallback.key === callback.key ? "" : ("" + callback.key).replace(userProvidedKeyEscapeRegex, "$&/") + "/") + childKey), nameSoFar !== "" && invokeCallback != null && isValidElement2(invokeCallback) && invokeCallback.key == null && invokeCallback._store && !invokeCallback._store.validated && (escapedPrefix._store.validated = 2), callback = escapedPrefix), array.push(callback));
+        return 1;
+      }
+      invokeCallback = 0;
+      childKey = nameSoFar === "" ? "." : nameSoFar + ":";
+      if (isArrayImpl(children))
+        for (var i = 0;i < children.length; i++)
+          nameSoFar = children[i], type = childKey + getElementKey(nameSoFar, i), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
+      else if (i = getIteratorFn(children), typeof i === "function")
+        for (i === children.entries && (didWarnAboutMaps || console.warn("Using Maps as children is not supported. Use an array of keyed ReactElements instead."), didWarnAboutMaps = true), children = i.call(children), i = 0;!(nameSoFar = children.next()).done; )
+          nameSoFar = nameSoFar.value, type = childKey + getElementKey(nameSoFar, i++), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
+      else if (type === "object") {
+        if (typeof children.then === "function")
+          return mapIntoArray(resolveThenable(children), array, escapedPrefix, nameSoFar, callback);
+        array = String(children);
+        throw Error("Objects are not valid as a React child (found: " + (array === "[object Object]" ? "object with keys {" + Object.keys(children).join(", ") + "}" : array) + "). If you meant to render a collection of children, use an array instead.");
+      }
+      return invokeCallback;
+    }
+    function mapChildren(children, func, context) {
+      if (children == null)
+        return children;
+      var result = [], count = 0;
+      mapIntoArray(children, result, "", "", function(child) {
+        return func.call(context, child, count++);
+      });
+      return result;
+    }
+    function lazyInitializer(payload) {
+      if (payload._status === -1) {
+        var ioInfo = payload._ioInfo;
+        ioInfo != null && (ioInfo.start = ioInfo.end = performance.now());
+        ioInfo = payload._result;
+        var thenable = ioInfo();
+        thenable.then(function(moduleObject) {
+          if (payload._status === 0 || payload._status === -1) {
+            payload._status = 1;
+            payload._result = moduleObject;
+            var _ioInfo = payload._ioInfo;
+            _ioInfo != null && (_ioInfo.end = performance.now());
+            thenable.status === undefined && (thenable.status = "fulfilled", thenable.value = moduleObject);
+          }
+        }, function(error) {
+          if (payload._status === 0 || payload._status === -1) {
+            payload._status = 2;
+            payload._result = error;
+            var _ioInfo2 = payload._ioInfo;
+            _ioInfo2 != null && (_ioInfo2.end = performance.now());
+            thenable.status === undefined && (thenable.status = "rejected", thenable.reason = error);
+          }
+        });
+        ioInfo = payload._ioInfo;
+        if (ioInfo != null) {
+          ioInfo.value = thenable;
+          var displayName = thenable.displayName;
+          typeof displayName === "string" && (ioInfo.name = displayName);
+        }
+        payload._status === -1 && (payload._status = 0, payload._result = thenable);
+      }
+      if (payload._status === 1)
+        return ioInfo = payload._result, ioInfo === undefined && console.error(`lazy: Expected the result of a dynamic import() call. Instead received: %s
+
+Your code should look like: 
+  const MyComponent = lazy(() => import('./MyComponent'))
+
+Did you accidentally put curly braces around the import?`, ioInfo), "default" in ioInfo || console.error(`lazy: Expected the result of a dynamic import() call. Instead received: %s
+
+Your code should look like: 
+  const MyComponent = lazy(() => import('./MyComponent'))`, ioInfo), ioInfo.default;
+      throw payload._result;
+    }
+    function resolveDispatcher() {
+      var dispatcher = ReactSharedInternals.H;
+      dispatcher === null && console.error(`Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem.`);
+      return dispatcher;
+    }
+    function releaseAsyncTransition() {
+      ReactSharedInternals.asyncTransitions--;
+    }
+    function enqueueTask(task) {
+      if (enqueueTaskImpl === null)
+        try {
+          var requireString = ("require" + Math.random()).slice(0, 7);
+          enqueueTaskImpl = (module && module[requireString]).call(module, "timers").setImmediate;
+        } catch (_err) {
+          enqueueTaskImpl = function(callback) {
+            didWarnAboutMessageChannel === false && (didWarnAboutMessageChannel = true, typeof MessageChannel === "undefined" && console.error("This browser does not have a MessageChannel implementation, so enqueuing tasks via await act(async () => ...) will fail. Please file an issue at https://github.com/facebook/react/issues if you encounter this warning."));
+            var channel = new MessageChannel;
+            channel.port1.onmessage = callback;
+            channel.port2.postMessage(undefined);
+          };
+        }
+      return enqueueTaskImpl(task);
+    }
+    function aggregateErrors(errors) {
+      return 1 < errors.length && typeof AggregateError === "function" ? new AggregateError(errors) : errors[0];
+    }
+    function popActScope(prevActQueue, prevActScopeDepth) {
+      prevActScopeDepth !== actScopeDepth - 1 && console.error("You seem to have overlapping act() calls, this is not supported. Be sure to await previous act() calls before making a new one. ");
+      actScopeDepth = prevActScopeDepth;
+    }
+    function recursivelyFlushAsyncActWork(returnValue, resolve, reject) {
+      var queue = ReactSharedInternals.actQueue;
+      if (queue !== null)
+        if (queue.length !== 0)
+          try {
+            flushActQueue(queue);
+            enqueueTask(function() {
+              return recursivelyFlushAsyncActWork(returnValue, resolve, reject);
+            });
+            return;
+          } catch (error) {
+            ReactSharedInternals.thrownErrors.push(error);
+          }
+        else
+          ReactSharedInternals.actQueue = null;
+      0 < ReactSharedInternals.thrownErrors.length ? (queue = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, reject(queue)) : resolve(returnValue);
+    }
+    function flushActQueue(queue) {
+      if (!isFlushing) {
+        isFlushing = true;
+        var i = 0;
+        try {
+          for (;i < queue.length; i++) {
+            var callback = queue[i];
+            do {
+              ReactSharedInternals.didUsePromise = false;
+              var continuation = callback(false);
+              if (continuation !== null) {
+                if (ReactSharedInternals.didUsePromise) {
+                  queue[i] = callback;
+                  queue.splice(0, i);
+                  return;
+                }
+                callback = continuation;
+              } else
+                break;
+            } while (1);
+          }
+          queue.length = 0;
+        } catch (error) {
+          queue.splice(0, i + 1), ReactSharedInternals.thrownErrors.push(error);
+        } finally {
+          isFlushing = false;
+        }
+      }
+    }
+    typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function" && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
+    var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"), REACT_PORTAL_TYPE = Symbol.for("react.portal"), REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"), REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"), REACT_PROFILER_TYPE = Symbol.for("react.profiler"), REACT_CONSUMER_TYPE = Symbol.for("react.consumer"), REACT_CONTEXT_TYPE = Symbol.for("react.context"), REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"), REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"), REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list"), REACT_MEMO_TYPE = Symbol.for("react.memo"), REACT_LAZY_TYPE = Symbol.for("react.lazy"), REACT_ACTIVITY_TYPE = Symbol.for("react.activity"), MAYBE_ITERATOR_SYMBOL = Symbol.iterator, didWarnStateUpdateForUnmountedComponent = {}, ReactNoopUpdateQueue = {
+      isMounted: function() {
+        return false;
+      },
+      enqueueForceUpdate: function(publicInstance) {
+        warnNoop(publicInstance, "forceUpdate");
+      },
+      enqueueReplaceState: function(publicInstance) {
+        warnNoop(publicInstance, "replaceState");
+      },
+      enqueueSetState: function(publicInstance) {
+        warnNoop(publicInstance, "setState");
+      }
+    }, assign = Object.assign, emptyObject = {};
+    Object.freeze(emptyObject);
+    Component.prototype.isReactComponent = {};
+    Component.prototype.setState = function(partialState, callback) {
+      if (typeof partialState !== "object" && typeof partialState !== "function" && partialState != null)
+        throw Error("takes an object of state variables to update or a function which returns an object of state variables.");
+      this.updater.enqueueSetState(this, partialState, callback, "setState");
+    };
+    Component.prototype.forceUpdate = function(callback) {
+      this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
+    };
+    var deprecatedAPIs = {
+      isMounted: [
+        "isMounted",
+        "Instead, make sure to clean up subscriptions and pending requests in componentWillUnmount to prevent memory leaks."
+      ],
+      replaceState: [
+        "replaceState",
+        "Refactor your code to use setState instead (see https://github.com/facebook/react/issues/3236)."
+      ]
+    };
+    for (fnName in deprecatedAPIs)
+      deprecatedAPIs.hasOwnProperty(fnName) && defineDeprecationWarning(fnName, deprecatedAPIs[fnName]);
+    ComponentDummy.prototype = Component.prototype;
+    deprecatedAPIs = PureComponent.prototype = new ComponentDummy;
+    deprecatedAPIs.constructor = PureComponent;
+    assign(deprecatedAPIs, Component.prototype);
+    deprecatedAPIs.isPureReactComponent = true;
+    var isArrayImpl = Array.isArray, REACT_CLIENT_REFERENCE = Symbol.for("react.client.reference"), ReactSharedInternals = {
+      H: null,
+      A: null,
+      T: null,
+      S: null,
+      actQueue: null,
+      asyncTransitions: 0,
+      isBatchingLegacy: false,
+      didScheduleLegacyUpdate: false,
+      didUsePromise: false,
+      thrownErrors: [],
+      getCurrentStack: null,
+      recentlyCreatedOwnerStacks: 0
+    }, hasOwnProperty = Object.prototype.hasOwnProperty, createTask = console.createTask ? console.createTask : function() {
+      return null;
+    };
+    deprecatedAPIs = {
+      react_stack_bottom_frame: function(callStackForError) {
+        return callStackForError();
+      }
+    };
+    var specialPropKeyWarningShown, didWarnAboutOldJSXRuntime;
+    var didWarnAboutElementRef = {};
+    var unknownOwnerDebugStack = deprecatedAPIs.react_stack_bottom_frame.bind(deprecatedAPIs, UnknownOwner)();
+    var unknownOwnerDebugTask = createTask(getTaskName(UnknownOwner));
+    var didWarnAboutMaps = false, userProvidedKeyEscapeRegex = /\/+/g, reportGlobalError = typeof reportError === "function" ? reportError : function(error) {
+      if (typeof window === "object" && typeof window.ErrorEvent === "function") {
+        var event = new window.ErrorEvent("error", {
+          bubbles: true,
+          cancelable: true,
+          message: typeof error === "object" && error !== null && typeof error.message === "string" ? String(error.message) : String(error),
+          error
+        });
+        if (!window.dispatchEvent(event))
+          return;
+      } else if (typeof process === "object" && typeof process.emit === "function") {
+        process.emit("uncaughtException", error);
+        return;
+      }
+      console.error(error);
+    }, didWarnAboutMessageChannel = false, enqueueTaskImpl = null, actScopeDepth = 0, didWarnNoAwaitAct = false, isFlushing = false, queueSeveralMicrotasks = typeof queueMicrotask === "function" ? function(callback) {
+      queueMicrotask(function() {
+        return queueMicrotask(callback);
+      });
+    } : enqueueTask;
+    deprecatedAPIs = Object.freeze({
+      __proto__: null,
+      c: function(size) {
+        return resolveDispatcher().useMemoCache(size);
+      }
+    });
+    var fnName = {
+      map: mapChildren,
+      forEach: function(children, forEachFunc, forEachContext) {
+        mapChildren(children, function() {
+          forEachFunc.apply(this, arguments);
+        }, forEachContext);
+      },
+      count: function(children) {
+        var n = 0;
+        mapChildren(children, function() {
+          n++;
+        });
+        return n;
+      },
+      toArray: function(children) {
+        return mapChildren(children, function(child) {
+          return child;
+        }) || [];
+      },
+      only: function(children) {
+        if (!isValidElement2(children))
+          throw Error("React.Children.only expected to receive a single React element child.");
+        return children;
+      }
+    };
+    exports.Activity = REACT_ACTIVITY_TYPE;
+    exports.Children = fnName;
+    exports.Component = Component;
+    exports.Fragment = REACT_FRAGMENT_TYPE;
+    exports.Profiler = REACT_PROFILER_TYPE;
+    exports.PureComponent = PureComponent;
+    exports.StrictMode = REACT_STRICT_MODE_TYPE;
+    exports.Suspense = REACT_SUSPENSE_TYPE;
+    exports.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = ReactSharedInternals;
+    exports.__COMPILER_RUNTIME = deprecatedAPIs;
+    exports.act = function(callback) {
+      var prevActQueue = ReactSharedInternals.actQueue, prevActScopeDepth = actScopeDepth;
+      actScopeDepth++;
+      var queue = ReactSharedInternals.actQueue = prevActQueue !== null ? prevActQueue : [], didAwaitActCall = false;
+      try {
+        var result = callback();
+      } catch (error) {
+        ReactSharedInternals.thrownErrors.push(error);
+      }
+      if (0 < ReactSharedInternals.thrownErrors.length)
+        throw popActScope(prevActQueue, prevActScopeDepth), callback = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, callback;
+      if (result !== null && typeof result === "object" && typeof result.then === "function") {
+        var thenable = result;
+        queueSeveralMicrotasks(function() {
+          didAwaitActCall || didWarnNoAwaitAct || (didWarnNoAwaitAct = true, console.error("You called act(async () => ...) without await. This could lead to unexpected testing behaviour, interleaving multiple act calls and mixing their scopes. You should - await act(async () => ...);"));
+        });
+        return {
+          then: function(resolve, reject) {
+            didAwaitActCall = true;
+            thenable.then(function(returnValue) {
+              popActScope(prevActQueue, prevActScopeDepth);
+              if (prevActScopeDepth === 0) {
+                try {
+                  flushActQueue(queue), enqueueTask(function() {
+                    return recursivelyFlushAsyncActWork(returnValue, resolve, reject);
+                  });
+                } catch (error$0) {
+                  ReactSharedInternals.thrownErrors.push(error$0);
+                }
+                if (0 < ReactSharedInternals.thrownErrors.length) {
+                  var _thrownError = aggregateErrors(ReactSharedInternals.thrownErrors);
+                  ReactSharedInternals.thrownErrors.length = 0;
+                  reject(_thrownError);
+                }
+              } else
+                resolve(returnValue);
+            }, function(error) {
+              popActScope(prevActQueue, prevActScopeDepth);
+              0 < ReactSharedInternals.thrownErrors.length ? (error = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, reject(error)) : reject(error);
+            });
+          }
+        };
+      }
+      var returnValue$jscomp$0 = result;
+      popActScope(prevActQueue, prevActScopeDepth);
+      prevActScopeDepth === 0 && (flushActQueue(queue), queue.length !== 0 && queueSeveralMicrotasks(function() {
+        didAwaitActCall || didWarnNoAwaitAct || (didWarnNoAwaitAct = true, console.error("A component suspended inside an `act` scope, but the `act` call was not awaited. When testing React components that depend on asynchronous data, you must await the result:\n\nawait act(() => ...)"));
+      }), ReactSharedInternals.actQueue = null);
+      if (0 < ReactSharedInternals.thrownErrors.length)
+        throw callback = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, callback;
+      return {
+        then: function(resolve, reject) {
+          didAwaitActCall = true;
+          prevActScopeDepth === 0 ? (ReactSharedInternals.actQueue = queue, enqueueTask(function() {
+            return recursivelyFlushAsyncActWork(returnValue$jscomp$0, resolve, reject);
+          })) : resolve(returnValue$jscomp$0);
+        }
+      };
+    };
+    exports.cache = function(fn) {
+      return function() {
+        return fn.apply(null, arguments);
+      };
+    };
+    exports.cacheSignal = function() {
+      return null;
+    };
+    exports.captureOwnerStack = function() {
+      var getCurrentStack = ReactSharedInternals.getCurrentStack;
+      return getCurrentStack === null ? null : getCurrentStack();
+    };
+    exports.cloneElement = function(element, config, children) {
+      if (element === null || element === undefined)
+        throw Error("The argument must be a React element, but you passed " + element + ".");
+      var props = assign({}, element.props), key = element.key, owner = element._owner;
+      if (config != null) {
+        var JSCompiler_inline_result;
+        a: {
+          if (hasOwnProperty.call(config, "ref") && (JSCompiler_inline_result = Object.getOwnPropertyDescriptor(config, "ref").get) && JSCompiler_inline_result.isReactWarning) {
+            JSCompiler_inline_result = false;
+            break a;
+          }
+          JSCompiler_inline_result = config.ref !== undefined;
+        }
+        JSCompiler_inline_result && (owner = getOwner());
+        hasValidKey(config) && (checkKeyStringCoercion(config.key), key = "" + config.key);
+        for (propName in config)
+          !hasOwnProperty.call(config, propName) || propName === "key" || propName === "__self" || propName === "__source" || propName === "ref" && config.ref === undefined || (props[propName] = config[propName]);
+      }
+      var propName = arguments.length - 2;
+      if (propName === 1)
+        props.children = children;
+      else if (1 < propName) {
+        JSCompiler_inline_result = Array(propName);
+        for (var i = 0;i < propName; i++)
+          JSCompiler_inline_result[i] = arguments[i + 2];
+        props.children = JSCompiler_inline_result;
+      }
+      props = ReactElement(element.type, key, props, owner, element._debugStack, element._debugTask);
+      for (key = 2;key < arguments.length; key++)
+        validateChildKeys(arguments[key]);
+      return props;
+    };
+    exports.createContext = function(defaultValue) {
+      defaultValue = {
+        $$typeof: REACT_CONTEXT_TYPE,
+        _currentValue: defaultValue,
+        _currentValue2: defaultValue,
+        _threadCount: 0,
+        Provider: null,
+        Consumer: null
+      };
+      defaultValue.Provider = defaultValue;
+      defaultValue.Consumer = {
+        $$typeof: REACT_CONSUMER_TYPE,
+        _context: defaultValue
+      };
+      defaultValue._currentRenderer = null;
+      defaultValue._currentRenderer2 = null;
+      return defaultValue;
+    };
+    exports.createElement = function(type, config, children) {
+      for (var i = 2;i < arguments.length; i++)
+        validateChildKeys(arguments[i]);
+      i = {};
+      var key = null;
+      if (config != null)
+        for (propName in didWarnAboutOldJSXRuntime || !("__self" in config) || "key" in config || (didWarnAboutOldJSXRuntime = true, console.warn("Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform")), hasValidKey(config) && (checkKeyStringCoercion(config.key), key = "" + config.key), config)
+          hasOwnProperty.call(config, propName) && propName !== "key" && propName !== "__self" && propName !== "__source" && (i[propName] = config[propName]);
+      var childrenLength = arguments.length - 2;
+      if (childrenLength === 1)
+        i.children = children;
+      else if (1 < childrenLength) {
+        for (var childArray = Array(childrenLength), _i = 0;_i < childrenLength; _i++)
+          childArray[_i] = arguments[_i + 2];
+        Object.freeze && Object.freeze(childArray);
+        i.children = childArray;
+      }
+      if (type && type.defaultProps)
+        for (propName in childrenLength = type.defaultProps, childrenLength)
+          i[propName] === undefined && (i[propName] = childrenLength[propName]);
+      key && defineKeyPropWarningGetter(i, typeof type === "function" ? type.displayName || type.name || "Unknown" : type);
+      var propName = 1e4 > ReactSharedInternals.recentlyCreatedOwnerStacks++;
+      return ReactElement(type, key, i, getOwner(), propName ? Error("react-stack-top-frame") : unknownOwnerDebugStack, propName ? createTask(getTaskName(type)) : unknownOwnerDebugTask);
+    };
+    exports.createRef = function() {
+      var refObject = { current: null };
+      Object.seal(refObject);
+      return refObject;
+    };
+    exports.forwardRef = function(render) {
+      render != null && render.$$typeof === REACT_MEMO_TYPE ? console.error("forwardRef requires a render function but received a `memo` component. Instead of forwardRef(memo(...)), use memo(forwardRef(...)).") : typeof render !== "function" ? console.error("forwardRef requires a render function but was given %s.", render === null ? "null" : typeof render) : render.length !== 0 && render.length !== 2 && console.error("forwardRef render functions accept exactly two parameters: props and ref. %s", render.length === 1 ? "Did you forget to use the ref parameter?" : "Any additional parameter will be undefined.");
+      render != null && render.defaultProps != null && console.error("forwardRef render functions do not support defaultProps. Did you accidentally pass a React component?");
+      var elementType = { $$typeof: REACT_FORWARD_REF_TYPE, render }, ownName;
+      Object.defineProperty(elementType, "displayName", {
+        enumerable: false,
+        configurable: true,
+        get: function() {
+          return ownName;
+        },
+        set: function(name) {
+          ownName = name;
+          render.name || render.displayName || (Object.defineProperty(render, "name", { value: name }), render.displayName = name);
+        }
+      });
+      return elementType;
+    };
+    exports.isValidElement = isValidElement2;
+    exports.lazy = function(ctor) {
+      ctor = { _status: -1, _result: ctor };
+      var lazyType = {
+        $$typeof: REACT_LAZY_TYPE,
+        _payload: ctor,
+        _init: lazyInitializer
+      }, ioInfo = {
+        name: "lazy",
+        start: -1,
+        end: -1,
+        value: null,
+        owner: null,
+        debugStack: Error("react-stack-top-frame"),
+        debugTask: console.createTask ? console.createTask("lazy()") : null
+      };
+      ctor._ioInfo = ioInfo;
+      lazyType._debugInfo = [{ awaited: ioInfo }];
+      return lazyType;
+    };
+    exports.memo = function(type, compare) {
+      type == null && console.error("memo: The first argument must be a component. Instead received: %s", type === null ? "null" : typeof type);
+      compare = {
+        $$typeof: REACT_MEMO_TYPE,
+        type,
+        compare: compare === undefined ? null : compare
+      };
+      var ownName;
+      Object.defineProperty(compare, "displayName", {
+        enumerable: false,
+        configurable: true,
+        get: function() {
+          return ownName;
+        },
+        set: function(name) {
+          ownName = name;
+          type.name || type.displayName || (Object.defineProperty(type, "name", { value: name }), type.displayName = name);
+        }
+      });
+      return compare;
+    };
+    exports.startTransition = function(scope) {
+      var prevTransition = ReactSharedInternals.T, currentTransition = {};
+      currentTransition._updatedFibers = new Set;
+      ReactSharedInternals.T = currentTransition;
+      try {
+        var returnValue = scope(), onStartTransitionFinish = ReactSharedInternals.S;
+        onStartTransitionFinish !== null && onStartTransitionFinish(currentTransition, returnValue);
+        typeof returnValue === "object" && returnValue !== null && typeof returnValue.then === "function" && (ReactSharedInternals.asyncTransitions++, returnValue.then(releaseAsyncTransition, releaseAsyncTransition), returnValue.then(noop, reportGlobalError));
+      } catch (error) {
+        reportGlobalError(error);
+      } finally {
+        prevTransition === null && currentTransition._updatedFibers && (scope = currentTransition._updatedFibers.size, currentTransition._updatedFibers.clear(), 10 < scope && console.warn("Detected a large number of updates inside startTransition. If this is due to a subscription please re-write it to use React provided hooks. Otherwise concurrent mode guarantees are off the table.")), prevTransition !== null && currentTransition.types !== null && (prevTransition.types !== null && prevTransition.types !== currentTransition.types && console.error("We expected inner Transitions to have transferred the outer types set and that you cannot add to the outer Transition while inside the inner.This is a bug in React."), prevTransition.types = currentTransition.types), ReactSharedInternals.T = prevTransition;
+      }
+    };
+    exports.unstable_useCacheRefresh = function() {
+      return resolveDispatcher().useCacheRefresh();
+    };
+    exports.use = function(usable) {
+      return resolveDispatcher().use(usable);
+    };
+    exports.useActionState = function(action, initialState, permalink) {
+      return resolveDispatcher().useActionState(action, initialState, permalink);
+    };
+    exports.useCallback = function(callback, deps) {
+      return resolveDispatcher().useCallback(callback, deps);
+    };
+    exports.useContext = function(Context) {
+      var dispatcher = resolveDispatcher();
+      Context.$$typeof === REACT_CONSUMER_TYPE && console.error("Calling useContext(Context.Consumer) is not supported and will cause bugs. Did you mean to call useContext(Context) instead?");
+      return dispatcher.useContext(Context);
+    };
+    exports.useDebugValue = function(value, formatterFn) {
+      return resolveDispatcher().useDebugValue(value, formatterFn);
+    };
+    exports.useDeferredValue = function(value, initialValue) {
+      return resolveDispatcher().useDeferredValue(value, initialValue);
+    };
+    exports.useEffect = function(create, deps) {
+      create == null && console.warn("React Hook useEffect requires an effect callback. Did you forget to pass a callback to the hook?");
+      return resolveDispatcher().useEffect(create, deps);
+    };
+    exports.useEffectEvent = function(callback) {
+      return resolveDispatcher().useEffectEvent(callback);
+    };
+    exports.useId = function() {
+      return resolveDispatcher().useId();
+    };
+    exports.useImperativeHandle = function(ref, create, deps) {
+      return resolveDispatcher().useImperativeHandle(ref, create, deps);
+    };
+    exports.useInsertionEffect = function(create, deps) {
+      create == null && console.warn("React Hook useInsertionEffect requires an effect callback. Did you forget to pass a callback to the hook?");
+      return resolveDispatcher().useInsertionEffect(create, deps);
+    };
+    exports.useLayoutEffect = function(create, deps) {
+      create == null && console.warn("React Hook useLayoutEffect requires an effect callback. Did you forget to pass a callback to the hook?");
+      return resolveDispatcher().useLayoutEffect(create, deps);
+    };
+    exports.useMemo = function(create, deps) {
+      return resolveDispatcher().useMemo(create, deps);
+    };
+    exports.useOptimistic = function(passthrough, reducer) {
+      return resolveDispatcher().useOptimistic(passthrough, reducer);
+    };
+    exports.useReducer = function(reducer, initialArg, init) {
+      return resolveDispatcher().useReducer(reducer, initialArg, init);
+    };
+    exports.useRef = function(initialValue) {
+      return resolveDispatcher().useRef(initialValue);
+    };
+    exports.useState = function(initialState) {
+      return resolveDispatcher().useState(initialState);
+    };
+    exports.useSyncExternalStore = function(subscribe, getSnapshot, getServerSnapshot) {
+      return resolveDispatcher().useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+    };
+    exports.useTransition = function() {
+      return resolveDispatcher().useTransition();
+    };
+    exports.version = "19.2.4";
+    typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop === "function" && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
+  })();
+});
+
+// node_modules/react/index.js
+var require_react = __commonJS((exports, module) => {
+  var react_development = __toESM(require_react_development());
+  if (false) {} else {
+    module.exports = react_development;
+  }
+});
 
 // node_modules/hono/dist/utils/html.js
 var HtmlEscapedCallbackPhase = {
@@ -2417,6 +3264,937 @@ var qr_default = `.qr-container {
 }
 `;
 
+// node_modules/qrcode.react/lib/esm/index.js
+var import_react = __toESM(require_react(), 1);
+var __defProp2 = Object.defineProperty;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => (key in obj) ? __defProp2(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp2.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __objRest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp2.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
+var qrcodegen;
+((qrcodegen2) => {
+  const _QrCode = class _QrCode2 {
+    constructor(version, errorCorrectionLevel, dataCodewords, msk) {
+      this.version = version;
+      this.errorCorrectionLevel = errorCorrectionLevel;
+      this.modules = [];
+      this.isFunction = [];
+      if (version < _QrCode2.MIN_VERSION || version > _QrCode2.MAX_VERSION)
+        throw new RangeError("Version value out of range");
+      if (msk < -1 || msk > 7)
+        throw new RangeError("Mask value out of range");
+      this.size = version * 4 + 17;
+      let row = [];
+      for (let i = 0;i < this.size; i++)
+        row.push(false);
+      for (let i = 0;i < this.size; i++) {
+        this.modules.push(row.slice());
+        this.isFunction.push(row.slice());
+      }
+      this.drawFunctionPatterns();
+      const allCodewords = this.addEccAndInterleave(dataCodewords);
+      this.drawCodewords(allCodewords);
+      if (msk == -1) {
+        let minPenalty = 1e9;
+        for (let i = 0;i < 8; i++) {
+          this.applyMask(i);
+          this.drawFormatBits(i);
+          const penalty = this.getPenaltyScore();
+          if (penalty < minPenalty) {
+            msk = i;
+            minPenalty = penalty;
+          }
+          this.applyMask(i);
+        }
+      }
+      assert(0 <= msk && msk <= 7);
+      this.mask = msk;
+      this.applyMask(msk);
+      this.drawFormatBits(msk);
+      this.isFunction = [];
+    }
+    static encodeText(text, ecl) {
+      const segs = qrcodegen2.QrSegment.makeSegments(text);
+      return _QrCode2.encodeSegments(segs, ecl);
+    }
+    static encodeBinary(data, ecl) {
+      const seg = qrcodegen2.QrSegment.makeBytes(data);
+      return _QrCode2.encodeSegments([seg], ecl);
+    }
+    static encodeSegments(segs, ecl, minVersion = 1, maxVersion = 40, mask = -1, boostEcl = true) {
+      if (!(_QrCode2.MIN_VERSION <= minVersion && minVersion <= maxVersion && maxVersion <= _QrCode2.MAX_VERSION) || mask < -1 || mask > 7)
+        throw new RangeError("Invalid value");
+      let version;
+      let dataUsedBits;
+      for (version = minVersion;; version++) {
+        const dataCapacityBits2 = _QrCode2.getNumDataCodewords(version, ecl) * 8;
+        const usedBits = QrSegment.getTotalBits(segs, version);
+        if (usedBits <= dataCapacityBits2) {
+          dataUsedBits = usedBits;
+          break;
+        }
+        if (version >= maxVersion)
+          throw new RangeError("Data too long");
+      }
+      for (const newEcl of [_QrCode2.Ecc.MEDIUM, _QrCode2.Ecc.QUARTILE, _QrCode2.Ecc.HIGH]) {
+        if (boostEcl && dataUsedBits <= _QrCode2.getNumDataCodewords(version, newEcl) * 8)
+          ecl = newEcl;
+      }
+      let bb = [];
+      for (const seg of segs) {
+        appendBits(seg.mode.modeBits, 4, bb);
+        appendBits(seg.numChars, seg.mode.numCharCountBits(version), bb);
+        for (const b of seg.getData())
+          bb.push(b);
+      }
+      assert(bb.length == dataUsedBits);
+      const dataCapacityBits = _QrCode2.getNumDataCodewords(version, ecl) * 8;
+      assert(bb.length <= dataCapacityBits);
+      appendBits(0, Math.min(4, dataCapacityBits - bb.length), bb);
+      appendBits(0, (8 - bb.length % 8) % 8, bb);
+      assert(bb.length % 8 == 0);
+      for (let padByte = 236;bb.length < dataCapacityBits; padByte ^= 236 ^ 17)
+        appendBits(padByte, 8, bb);
+      let dataCodewords = [];
+      while (dataCodewords.length * 8 < bb.length)
+        dataCodewords.push(0);
+      bb.forEach((b, i) => dataCodewords[i >>> 3] |= b << 7 - (i & 7));
+      return new _QrCode2(version, ecl, dataCodewords, mask);
+    }
+    getModule(x, y) {
+      return 0 <= x && x < this.size && 0 <= y && y < this.size && this.modules[y][x];
+    }
+    getModules() {
+      return this.modules;
+    }
+    drawFunctionPatterns() {
+      for (let i = 0;i < this.size; i++) {
+        this.setFunctionModule(6, i, i % 2 == 0);
+        this.setFunctionModule(i, 6, i % 2 == 0);
+      }
+      this.drawFinderPattern(3, 3);
+      this.drawFinderPattern(this.size - 4, 3);
+      this.drawFinderPattern(3, this.size - 4);
+      const alignPatPos = this.getAlignmentPatternPositions();
+      const numAlign = alignPatPos.length;
+      for (let i = 0;i < numAlign; i++) {
+        for (let j = 0;j < numAlign; j++) {
+          if (!(i == 0 && j == 0 || i == 0 && j == numAlign - 1 || i == numAlign - 1 && j == 0))
+            this.drawAlignmentPattern(alignPatPos[i], alignPatPos[j]);
+        }
+      }
+      this.drawFormatBits(0);
+      this.drawVersion();
+    }
+    drawFormatBits(mask) {
+      const data = this.errorCorrectionLevel.formatBits << 3 | mask;
+      let rem = data;
+      for (let i = 0;i < 10; i++)
+        rem = rem << 1 ^ (rem >>> 9) * 1335;
+      const bits = (data << 10 | rem) ^ 21522;
+      assert(bits >>> 15 == 0);
+      for (let i = 0;i <= 5; i++)
+        this.setFunctionModule(8, i, getBit(bits, i));
+      this.setFunctionModule(8, 7, getBit(bits, 6));
+      this.setFunctionModule(8, 8, getBit(bits, 7));
+      this.setFunctionModule(7, 8, getBit(bits, 8));
+      for (let i = 9;i < 15; i++)
+        this.setFunctionModule(14 - i, 8, getBit(bits, i));
+      for (let i = 0;i < 8; i++)
+        this.setFunctionModule(this.size - 1 - i, 8, getBit(bits, i));
+      for (let i = 8;i < 15; i++)
+        this.setFunctionModule(8, this.size - 15 + i, getBit(bits, i));
+      this.setFunctionModule(8, this.size - 8, true);
+    }
+    drawVersion() {
+      if (this.version < 7)
+        return;
+      let rem = this.version;
+      for (let i = 0;i < 12; i++)
+        rem = rem << 1 ^ (rem >>> 11) * 7973;
+      const bits = this.version << 12 | rem;
+      assert(bits >>> 18 == 0);
+      for (let i = 0;i < 18; i++) {
+        const color = getBit(bits, i);
+        const a = this.size - 11 + i % 3;
+        const b = Math.floor(i / 3);
+        this.setFunctionModule(a, b, color);
+        this.setFunctionModule(b, a, color);
+      }
+    }
+    drawFinderPattern(x, y) {
+      for (let dy = -4;dy <= 4; dy++) {
+        for (let dx = -4;dx <= 4; dx++) {
+          const dist = Math.max(Math.abs(dx), Math.abs(dy));
+          const xx = x + dx;
+          const yy = y + dy;
+          if (0 <= xx && xx < this.size && 0 <= yy && yy < this.size)
+            this.setFunctionModule(xx, yy, dist != 2 && dist != 4);
+        }
+      }
+    }
+    drawAlignmentPattern(x, y) {
+      for (let dy = -2;dy <= 2; dy++) {
+        for (let dx = -2;dx <= 2; dx++)
+          this.setFunctionModule(x + dx, y + dy, Math.max(Math.abs(dx), Math.abs(dy)) != 1);
+      }
+    }
+    setFunctionModule(x, y, isDark) {
+      this.modules[y][x] = isDark;
+      this.isFunction[y][x] = true;
+    }
+    addEccAndInterleave(data) {
+      const ver = this.version;
+      const ecl = this.errorCorrectionLevel;
+      if (data.length != _QrCode2.getNumDataCodewords(ver, ecl))
+        throw new RangeError("Invalid argument");
+      const numBlocks = _QrCode2.NUM_ERROR_CORRECTION_BLOCKS[ecl.ordinal][ver];
+      const blockEccLen = _QrCode2.ECC_CODEWORDS_PER_BLOCK[ecl.ordinal][ver];
+      const rawCodewords = Math.floor(_QrCode2.getNumRawDataModules(ver) / 8);
+      const numShortBlocks = numBlocks - rawCodewords % numBlocks;
+      const shortBlockLen = Math.floor(rawCodewords / numBlocks);
+      let blocks = [];
+      const rsDiv = _QrCode2.reedSolomonComputeDivisor(blockEccLen);
+      for (let i = 0, k = 0;i < numBlocks; i++) {
+        let dat = data.slice(k, k + shortBlockLen - blockEccLen + (i < numShortBlocks ? 0 : 1));
+        k += dat.length;
+        const ecc = _QrCode2.reedSolomonComputeRemainder(dat, rsDiv);
+        if (i < numShortBlocks)
+          dat.push(0);
+        blocks.push(dat.concat(ecc));
+      }
+      let result = [];
+      for (let i = 0;i < blocks[0].length; i++) {
+        blocks.forEach((block, j) => {
+          if (i != shortBlockLen - blockEccLen || j >= numShortBlocks)
+            result.push(block[i]);
+        });
+      }
+      assert(result.length == rawCodewords);
+      return result;
+    }
+    drawCodewords(data) {
+      if (data.length != Math.floor(_QrCode2.getNumRawDataModules(this.version) / 8))
+        throw new RangeError("Invalid argument");
+      let i = 0;
+      for (let right = this.size - 1;right >= 1; right -= 2) {
+        if (right == 6)
+          right = 5;
+        for (let vert = 0;vert < this.size; vert++) {
+          for (let j = 0;j < 2; j++) {
+            const x = right - j;
+            const upward = (right + 1 & 2) == 0;
+            const y = upward ? this.size - 1 - vert : vert;
+            if (!this.isFunction[y][x] && i < data.length * 8) {
+              this.modules[y][x] = getBit(data[i >>> 3], 7 - (i & 7));
+              i++;
+            }
+          }
+        }
+      }
+      assert(i == data.length * 8);
+    }
+    applyMask(mask) {
+      if (mask < 0 || mask > 7)
+        throw new RangeError("Mask value out of range");
+      for (let y = 0;y < this.size; y++) {
+        for (let x = 0;x < this.size; x++) {
+          let invert;
+          switch (mask) {
+            case 0:
+              invert = (x + y) % 2 == 0;
+              break;
+            case 1:
+              invert = y % 2 == 0;
+              break;
+            case 2:
+              invert = x % 3 == 0;
+              break;
+            case 3:
+              invert = (x + y) % 3 == 0;
+              break;
+            case 4:
+              invert = (Math.floor(x / 3) + Math.floor(y / 2)) % 2 == 0;
+              break;
+            case 5:
+              invert = x * y % 2 + x * y % 3 == 0;
+              break;
+            case 6:
+              invert = (x * y % 2 + x * y % 3) % 2 == 0;
+              break;
+            case 7:
+              invert = ((x + y) % 2 + x * y % 3) % 2 == 0;
+              break;
+            default:
+              throw new Error("Unreachable");
+          }
+          if (!this.isFunction[y][x] && invert)
+            this.modules[y][x] = !this.modules[y][x];
+        }
+      }
+    }
+    getPenaltyScore() {
+      let result = 0;
+      for (let y = 0;y < this.size; y++) {
+        let runColor = false;
+        let runX = 0;
+        let runHistory = [0, 0, 0, 0, 0, 0, 0];
+        for (let x = 0;x < this.size; x++) {
+          if (this.modules[y][x] == runColor) {
+            runX++;
+            if (runX == 5)
+              result += _QrCode2.PENALTY_N1;
+            else if (runX > 5)
+              result++;
+          } else {
+            this.finderPenaltyAddHistory(runX, runHistory);
+            if (!runColor)
+              result += this.finderPenaltyCountPatterns(runHistory) * _QrCode2.PENALTY_N3;
+            runColor = this.modules[y][x];
+            runX = 1;
+          }
+        }
+        result += this.finderPenaltyTerminateAndCount(runColor, runX, runHistory) * _QrCode2.PENALTY_N3;
+      }
+      for (let x = 0;x < this.size; x++) {
+        let runColor = false;
+        let runY = 0;
+        let runHistory = [0, 0, 0, 0, 0, 0, 0];
+        for (let y = 0;y < this.size; y++) {
+          if (this.modules[y][x] == runColor) {
+            runY++;
+            if (runY == 5)
+              result += _QrCode2.PENALTY_N1;
+            else if (runY > 5)
+              result++;
+          } else {
+            this.finderPenaltyAddHistory(runY, runHistory);
+            if (!runColor)
+              result += this.finderPenaltyCountPatterns(runHistory) * _QrCode2.PENALTY_N3;
+            runColor = this.modules[y][x];
+            runY = 1;
+          }
+        }
+        result += this.finderPenaltyTerminateAndCount(runColor, runY, runHistory) * _QrCode2.PENALTY_N3;
+      }
+      for (let y = 0;y < this.size - 1; y++) {
+        for (let x = 0;x < this.size - 1; x++) {
+          const color = this.modules[y][x];
+          if (color == this.modules[y][x + 1] && color == this.modules[y + 1][x] && color == this.modules[y + 1][x + 1])
+            result += _QrCode2.PENALTY_N2;
+        }
+      }
+      let dark = 0;
+      for (const row of this.modules)
+        dark = row.reduce((sum, color) => sum + (color ? 1 : 0), dark);
+      const total = this.size * this.size;
+      const k = Math.ceil(Math.abs(dark * 20 - total * 10) / total) - 1;
+      assert(0 <= k && k <= 9);
+      result += k * _QrCode2.PENALTY_N4;
+      assert(0 <= result && result <= 2568888);
+      return result;
+    }
+    getAlignmentPatternPositions() {
+      if (this.version == 1)
+        return [];
+      else {
+        const numAlign = Math.floor(this.version / 7) + 2;
+        const step = this.version == 32 ? 26 : Math.ceil((this.version * 4 + 4) / (numAlign * 2 - 2)) * 2;
+        let result = [6];
+        for (let pos = this.size - 7;result.length < numAlign; pos -= step)
+          result.splice(1, 0, pos);
+        return result;
+      }
+    }
+    static getNumRawDataModules(ver) {
+      if (ver < _QrCode2.MIN_VERSION || ver > _QrCode2.MAX_VERSION)
+        throw new RangeError("Version number out of range");
+      let result = (16 * ver + 128) * ver + 64;
+      if (ver >= 2) {
+        const numAlign = Math.floor(ver / 7) + 2;
+        result -= (25 * numAlign - 10) * numAlign - 55;
+        if (ver >= 7)
+          result -= 36;
+      }
+      assert(208 <= result && result <= 29648);
+      return result;
+    }
+    static getNumDataCodewords(ver, ecl) {
+      return Math.floor(_QrCode2.getNumRawDataModules(ver) / 8) - _QrCode2.ECC_CODEWORDS_PER_BLOCK[ecl.ordinal][ver] * _QrCode2.NUM_ERROR_CORRECTION_BLOCKS[ecl.ordinal][ver];
+    }
+    static reedSolomonComputeDivisor(degree) {
+      if (degree < 1 || degree > 255)
+        throw new RangeError("Degree out of range");
+      let result = [];
+      for (let i = 0;i < degree - 1; i++)
+        result.push(0);
+      result.push(1);
+      let root = 1;
+      for (let i = 0;i < degree; i++) {
+        for (let j = 0;j < result.length; j++) {
+          result[j] = _QrCode2.reedSolomonMultiply(result[j], root);
+          if (j + 1 < result.length)
+            result[j] ^= result[j + 1];
+        }
+        root = _QrCode2.reedSolomonMultiply(root, 2);
+      }
+      return result;
+    }
+    static reedSolomonComputeRemainder(data, divisor) {
+      let result = divisor.map((_) => 0);
+      for (const b of data) {
+        const factor = b ^ result.shift();
+        result.push(0);
+        divisor.forEach((coef, i) => result[i] ^= _QrCode2.reedSolomonMultiply(coef, factor));
+      }
+      return result;
+    }
+    static reedSolomonMultiply(x, y) {
+      if (x >>> 8 != 0 || y >>> 8 != 0)
+        throw new RangeError("Byte out of range");
+      let z = 0;
+      for (let i = 7;i >= 0; i--) {
+        z = z << 1 ^ (z >>> 7) * 285;
+        z ^= (y >>> i & 1) * x;
+      }
+      assert(z >>> 8 == 0);
+      return z;
+    }
+    finderPenaltyCountPatterns(runHistory) {
+      const n = runHistory[1];
+      assert(n <= this.size * 3);
+      const core = n > 0 && runHistory[2] == n && runHistory[3] == n * 3 && runHistory[4] == n && runHistory[5] == n;
+      return (core && runHistory[0] >= n * 4 && runHistory[6] >= n ? 1 : 0) + (core && runHistory[6] >= n * 4 && runHistory[0] >= n ? 1 : 0);
+    }
+    finderPenaltyTerminateAndCount(currentRunColor, currentRunLength, runHistory) {
+      if (currentRunColor) {
+        this.finderPenaltyAddHistory(currentRunLength, runHistory);
+        currentRunLength = 0;
+      }
+      currentRunLength += this.size;
+      this.finderPenaltyAddHistory(currentRunLength, runHistory);
+      return this.finderPenaltyCountPatterns(runHistory);
+    }
+    finderPenaltyAddHistory(currentRunLength, runHistory) {
+      if (runHistory[0] == 0)
+        currentRunLength += this.size;
+      runHistory.pop();
+      runHistory.unshift(currentRunLength);
+    }
+  };
+  _QrCode.MIN_VERSION = 1;
+  _QrCode.MAX_VERSION = 40;
+  _QrCode.PENALTY_N1 = 3;
+  _QrCode.PENALTY_N2 = 3;
+  _QrCode.PENALTY_N3 = 40;
+  _QrCode.PENALTY_N4 = 10;
+  _QrCode.ECC_CODEWORDS_PER_BLOCK = [
+    [-1, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28, 28, 28, 30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+    [-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28],
+    [-1, 13, 22, 18, 26, 18, 24, 18, 22, 20, 24, 28, 26, 24, 20, 30, 24, 28, 28, 26, 30, 28, 30, 30, 30, 30, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+    [-1, 17, 28, 22, 16, 22, 28, 26, 26, 24, 28, 24, 28, 22, 24, 24, 30, 28, 28, 26, 28, 30, 24, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30]
+  ];
+  _QrCode.NUM_ERROR_CORRECTION_BLOCKS = [
+    [-1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8, 8, 9, 9, 10, 12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25],
+    [-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16, 17, 17, 18, 20, 21, 23, 25, 26, 28, 29, 31, 33, 35, 37, 38, 40, 43, 45, 47, 49],
+    [-1, 1, 1, 2, 2, 4, 4, 6, 6, 8, 8, 8, 10, 12, 16, 12, 17, 16, 18, 21, 20, 23, 23, 25, 27, 29, 34, 34, 35, 38, 40, 43, 45, 48, 51, 53, 56, 59, 62, 65, 68],
+    [-1, 1, 1, 2, 4, 4, 4, 5, 6, 8, 8, 11, 11, 16, 16, 18, 16, 19, 21, 25, 25, 25, 34, 30, 32, 35, 37, 40, 42, 45, 48, 51, 54, 57, 60, 63, 66, 70, 74, 77, 81]
+  ];
+  let QrCode = _QrCode;
+  qrcodegen2.QrCode = _QrCode;
+  function appendBits(val, len, bb) {
+    if (len < 0 || len > 31 || val >>> len != 0)
+      throw new RangeError("Value out of range");
+    for (let i = len - 1;i >= 0; i--)
+      bb.push(val >>> i & 1);
+  }
+  function getBit(x, i) {
+    return (x >>> i & 1) != 0;
+  }
+  function assert(cond) {
+    if (!cond)
+      throw new Error("Assertion error");
+  }
+  const _QrSegment = class _QrSegment2 {
+    constructor(mode, numChars, bitData) {
+      this.mode = mode;
+      this.numChars = numChars;
+      this.bitData = bitData;
+      if (numChars < 0)
+        throw new RangeError("Invalid argument");
+      this.bitData = bitData.slice();
+    }
+    static makeBytes(data) {
+      let bb = [];
+      for (const b of data)
+        appendBits(b, 8, bb);
+      return new _QrSegment2(_QrSegment2.Mode.BYTE, data.length, bb);
+    }
+    static makeNumeric(digits) {
+      if (!_QrSegment2.isNumeric(digits))
+        throw new RangeError("String contains non-numeric characters");
+      let bb = [];
+      for (let i = 0;i < digits.length; ) {
+        const n = Math.min(digits.length - i, 3);
+        appendBits(parseInt(digits.substring(i, i + n), 10), n * 3 + 1, bb);
+        i += n;
+      }
+      return new _QrSegment2(_QrSegment2.Mode.NUMERIC, digits.length, bb);
+    }
+    static makeAlphanumeric(text) {
+      if (!_QrSegment2.isAlphanumeric(text))
+        throw new RangeError("String contains unencodable characters in alphanumeric mode");
+      let bb = [];
+      let i;
+      for (i = 0;i + 2 <= text.length; i += 2) {
+        let temp = _QrSegment2.ALPHANUMERIC_CHARSET.indexOf(text.charAt(i)) * 45;
+        temp += _QrSegment2.ALPHANUMERIC_CHARSET.indexOf(text.charAt(i + 1));
+        appendBits(temp, 11, bb);
+      }
+      if (i < text.length)
+        appendBits(_QrSegment2.ALPHANUMERIC_CHARSET.indexOf(text.charAt(i)), 6, bb);
+      return new _QrSegment2(_QrSegment2.Mode.ALPHANUMERIC, text.length, bb);
+    }
+    static makeSegments(text) {
+      if (text == "")
+        return [];
+      else if (_QrSegment2.isNumeric(text))
+        return [_QrSegment2.makeNumeric(text)];
+      else if (_QrSegment2.isAlphanumeric(text))
+        return [_QrSegment2.makeAlphanumeric(text)];
+      else
+        return [_QrSegment2.makeBytes(_QrSegment2.toUtf8ByteArray(text))];
+    }
+    static makeEci(assignVal) {
+      let bb = [];
+      if (assignVal < 0)
+        throw new RangeError("ECI assignment value out of range");
+      else if (assignVal < 1 << 7)
+        appendBits(assignVal, 8, bb);
+      else if (assignVal < 1 << 14) {
+        appendBits(2, 2, bb);
+        appendBits(assignVal, 14, bb);
+      } else if (assignVal < 1e6) {
+        appendBits(6, 3, bb);
+        appendBits(assignVal, 21, bb);
+      } else
+        throw new RangeError("ECI assignment value out of range");
+      return new _QrSegment2(_QrSegment2.Mode.ECI, 0, bb);
+    }
+    static isNumeric(text) {
+      return _QrSegment2.NUMERIC_REGEX.test(text);
+    }
+    static isAlphanumeric(text) {
+      return _QrSegment2.ALPHANUMERIC_REGEX.test(text);
+    }
+    getData() {
+      return this.bitData.slice();
+    }
+    static getTotalBits(segs, version) {
+      let result = 0;
+      for (const seg of segs) {
+        const ccbits = seg.mode.numCharCountBits(version);
+        if (seg.numChars >= 1 << ccbits)
+          return Infinity;
+        result += 4 + ccbits + seg.bitData.length;
+      }
+      return result;
+    }
+    static toUtf8ByteArray(str) {
+      str = encodeURI(str);
+      let result = [];
+      for (let i = 0;i < str.length; i++) {
+        if (str.charAt(i) != "%")
+          result.push(str.charCodeAt(i));
+        else {
+          result.push(parseInt(str.substring(i + 1, i + 3), 16));
+          i += 2;
+        }
+      }
+      return result;
+    }
+  };
+  _QrSegment.NUMERIC_REGEX = /^[0-9]*$/;
+  _QrSegment.ALPHANUMERIC_REGEX = /^[A-Z0-9 $%*+.\/:-]*$/;
+  _QrSegment.ALPHANUMERIC_CHARSET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+  let QrSegment = _QrSegment;
+  qrcodegen2.QrSegment = _QrSegment;
+})(qrcodegen || (qrcodegen = {}));
+((qrcodegen2) => {
+  let QrCode;
+  ((QrCode2) => {
+    const _Ecc = class _Ecc2 {
+      constructor(ordinal, formatBits) {
+        this.ordinal = ordinal;
+        this.formatBits = formatBits;
+      }
+    };
+    _Ecc.LOW = new _Ecc(0, 1);
+    _Ecc.MEDIUM = new _Ecc(1, 0);
+    _Ecc.QUARTILE = new _Ecc(2, 3);
+    _Ecc.HIGH = new _Ecc(3, 2);
+    let Ecc = _Ecc;
+    QrCode2.Ecc = _Ecc;
+  })(QrCode = qrcodegen2.QrCode || (qrcodegen2.QrCode = {}));
+})(qrcodegen || (qrcodegen = {}));
+((qrcodegen2) => {
+  let QrSegment;
+  ((QrSegment2) => {
+    const _Mode = class _Mode2 {
+      constructor(modeBits, numBitsCharCount) {
+        this.modeBits = modeBits;
+        this.numBitsCharCount = numBitsCharCount;
+      }
+      numCharCountBits(ver) {
+        return this.numBitsCharCount[Math.floor((ver + 7) / 17)];
+      }
+    };
+    _Mode.NUMERIC = new _Mode(1, [10, 12, 14]);
+    _Mode.ALPHANUMERIC = new _Mode(2, [9, 11, 13]);
+    _Mode.BYTE = new _Mode(4, [8, 16, 16]);
+    _Mode.KANJI = new _Mode(8, [8, 10, 12]);
+    _Mode.ECI = new _Mode(7, [0, 0, 0]);
+    let Mode = _Mode;
+    QrSegment2.Mode = _Mode;
+  })(QrSegment = qrcodegen2.QrSegment || (qrcodegen2.QrSegment = {}));
+})(qrcodegen || (qrcodegen = {}));
+var qrcodegen_default = qrcodegen;
+var ERROR_LEVEL_MAP = {
+  L: qrcodegen_default.QrCode.Ecc.LOW,
+  M: qrcodegen_default.QrCode.Ecc.MEDIUM,
+  Q: qrcodegen_default.QrCode.Ecc.QUARTILE,
+  H: qrcodegen_default.QrCode.Ecc.HIGH
+};
+var DEFAULT_SIZE = 128;
+var DEFAULT_LEVEL = "L";
+var DEFAULT_BGCOLOR = "#FFFFFF";
+var DEFAULT_FGCOLOR = "#000000";
+var DEFAULT_INCLUDEMARGIN = false;
+var DEFAULT_MINVERSION = 1;
+var SPEC_MARGIN_SIZE = 4;
+var DEFAULT_MARGIN_SIZE = 0;
+var DEFAULT_IMG_SCALE = 0.1;
+function generatePath(modules, margin = 0) {
+  const ops = [];
+  modules.forEach(function(row, y) {
+    let start = null;
+    row.forEach(function(cell, x) {
+      if (!cell && start !== null) {
+        ops.push(`M${start + margin} ${y + margin}h${x - start}v1H${start + margin}z`);
+        start = null;
+        return;
+      }
+      if (x === row.length - 1) {
+        if (!cell) {
+          return;
+        }
+        if (start === null) {
+          ops.push(`M${x + margin},${y + margin} h1v1H${x + margin}z`);
+        } else {
+          ops.push(`M${start + margin},${y + margin} h${x + 1 - start}v1H${start + margin}z`);
+        }
+        return;
+      }
+      if (cell && start === null) {
+        start = x;
+      }
+    });
+  });
+  return ops.join("");
+}
+function excavateModules(modules, excavation) {
+  return modules.slice().map((row, y) => {
+    if (y < excavation.y || y >= excavation.y + excavation.h) {
+      return row;
+    }
+    return row.map((cell, x) => {
+      if (x < excavation.x || x >= excavation.x + excavation.w) {
+        return cell;
+      }
+      return false;
+    });
+  });
+}
+function getImageSettings(cells, size, margin, imageSettings) {
+  if (imageSettings == null) {
+    return null;
+  }
+  const numCells = cells.length + margin * 2;
+  const defaultSize = Math.floor(size * DEFAULT_IMG_SCALE);
+  const scale = numCells / size;
+  const w = (imageSettings.width || defaultSize) * scale;
+  const h = (imageSettings.height || defaultSize) * scale;
+  const x = imageSettings.x == null ? cells.length / 2 - w / 2 : imageSettings.x * scale;
+  const y = imageSettings.y == null ? cells.length / 2 - h / 2 : imageSettings.y * scale;
+  const opacity = imageSettings.opacity == null ? 1 : imageSettings.opacity;
+  let excavation = null;
+  if (imageSettings.excavate) {
+    let floorX = Math.floor(x);
+    let floorY = Math.floor(y);
+    let ceilW = Math.ceil(w + x - floorX);
+    let ceilH = Math.ceil(h + y - floorY);
+    excavation = { x: floorX, y: floorY, w: ceilW, h: ceilH };
+  }
+  const crossOrigin = imageSettings.crossOrigin;
+  return { x, y, h, w, excavation, opacity, crossOrigin };
+}
+function getMarginSize(includeMargin, marginSize) {
+  if (marginSize != null) {
+    return Math.max(Math.floor(marginSize), 0);
+  }
+  return includeMargin ? SPEC_MARGIN_SIZE : DEFAULT_MARGIN_SIZE;
+}
+function useQRCode({
+  value,
+  level,
+  minVersion,
+  includeMargin,
+  marginSize,
+  imageSettings,
+  size,
+  boostLevel
+}) {
+  let qrcode = import_react.default.useMemo(() => {
+    const values = Array.isArray(value) ? value : [value];
+    const segments = values.reduce((accum, v) => {
+      accum.push(...qrcodegen_default.QrSegment.makeSegments(v));
+      return accum;
+    }, []);
+    return qrcodegen_default.QrCode.encodeSegments(segments, ERROR_LEVEL_MAP[level], minVersion, undefined, undefined, boostLevel);
+  }, [value, level, minVersion, boostLevel]);
+  const { cells, margin, numCells, calculatedImageSettings } = import_react.default.useMemo(() => {
+    let cells2 = qrcode.getModules();
+    const margin2 = getMarginSize(includeMargin, marginSize);
+    const numCells2 = cells2.length + margin2 * 2;
+    const calculatedImageSettings2 = getImageSettings(cells2, size, margin2, imageSettings);
+    return {
+      cells: cells2,
+      margin: margin2,
+      numCells: numCells2,
+      calculatedImageSettings: calculatedImageSettings2
+    };
+  }, [qrcode, size, imageSettings, includeMargin, marginSize]);
+  return {
+    qrcode,
+    margin,
+    cells,
+    numCells,
+    calculatedImageSettings
+  };
+}
+var SUPPORTS_PATH2D = function() {
+  try {
+    new Path2D().addPath(new Path2D);
+  } catch (e) {
+    return false;
+  }
+  return true;
+}();
+var QRCodeCanvas = import_react.default.forwardRef(function QRCodeCanvas2(props, forwardedRef) {
+  const _a = props, {
+    value,
+    size = DEFAULT_SIZE,
+    level = DEFAULT_LEVEL,
+    bgColor = DEFAULT_BGCOLOR,
+    fgColor = DEFAULT_FGCOLOR,
+    includeMargin = DEFAULT_INCLUDEMARGIN,
+    minVersion = DEFAULT_MINVERSION,
+    boostLevel,
+    marginSize,
+    imageSettings
+  } = _a, extraProps = __objRest(_a, [
+    "value",
+    "size",
+    "level",
+    "bgColor",
+    "fgColor",
+    "includeMargin",
+    "minVersion",
+    "boostLevel",
+    "marginSize",
+    "imageSettings"
+  ]);
+  const _b = extraProps, { style: style3 } = _b, otherProps = __objRest(_b, ["style"]);
+  const imgSrc = imageSettings == null ? undefined : imageSettings.src;
+  const _canvas = import_react.default.useRef(null);
+  const _image = import_react.default.useRef(null);
+  const setCanvasRef = import_react.default.useCallback((node) => {
+    _canvas.current = node;
+    if (typeof forwardedRef === "function") {
+      forwardedRef(node);
+    } else if (forwardedRef) {
+      forwardedRef.current = node;
+    }
+  }, [forwardedRef]);
+  const [isImgLoaded, setIsImageLoaded] = import_react.default.useState(false);
+  const { margin, cells, numCells, calculatedImageSettings } = useQRCode({
+    value,
+    level,
+    minVersion,
+    boostLevel,
+    includeMargin,
+    marginSize,
+    imageSettings,
+    size
+  });
+  import_react.default.useEffect(() => {
+    if (_canvas.current != null) {
+      const canvas = _canvas.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+      let cellsToDraw = cells;
+      const image = _image.current;
+      const haveImageToRender = calculatedImageSettings != null && image !== null && image.complete && image.naturalHeight !== 0 && image.naturalWidth !== 0;
+      if (haveImageToRender) {
+        if (calculatedImageSettings.excavation != null) {
+          cellsToDraw = excavateModules(cells, calculatedImageSettings.excavation);
+        }
+      }
+      const pixelRatio = window.devicePixelRatio || 1;
+      canvas.height = canvas.width = size * pixelRatio;
+      const scale = size / numCells * pixelRatio;
+      ctx.scale(scale, scale);
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, numCells, numCells);
+      ctx.fillStyle = fgColor;
+      if (SUPPORTS_PATH2D) {
+        ctx.fill(new Path2D(generatePath(cellsToDraw, margin)));
+      } else {
+        cells.forEach(function(row, rdx) {
+          row.forEach(function(cell, cdx) {
+            if (cell) {
+              ctx.fillRect(cdx + margin, rdx + margin, 1, 1);
+            }
+          });
+        });
+      }
+      if (calculatedImageSettings) {
+        ctx.globalAlpha = calculatedImageSettings.opacity;
+      }
+      if (haveImageToRender) {
+        ctx.drawImage(image, calculatedImageSettings.x + margin, calculatedImageSettings.y + margin, calculatedImageSettings.w, calculatedImageSettings.h);
+      }
+    }
+  });
+  import_react.default.useEffect(() => {
+    setIsImageLoaded(false);
+  }, [imgSrc]);
+  const canvasStyle = __spreadValues({ height: size, width: size }, style3);
+  let img = null;
+  if (imgSrc != null) {
+    img = /* @__PURE__ */ import_react.default.createElement("img", {
+      src: imgSrc,
+      key: imgSrc,
+      style: { display: "none" },
+      onLoad: () => {
+        setIsImageLoaded(true);
+      },
+      ref: _image,
+      crossOrigin: calculatedImageSettings == null ? undefined : calculatedImageSettings.crossOrigin
+    });
+  }
+  return /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("canvas", __spreadValues({
+    style: canvasStyle,
+    height: size,
+    width: size,
+    ref: setCanvasRef,
+    role: "img"
+  }, otherProps)), img);
+});
+QRCodeCanvas.displayName = "QRCodeCanvas";
+var QRCodeSVG = import_react.default.forwardRef(function QRCodeSVG2(props, forwardedRef) {
+  const _a = props, {
+    value,
+    size = DEFAULT_SIZE,
+    level = DEFAULT_LEVEL,
+    bgColor = DEFAULT_BGCOLOR,
+    fgColor = DEFAULT_FGCOLOR,
+    includeMargin = DEFAULT_INCLUDEMARGIN,
+    minVersion = DEFAULT_MINVERSION,
+    boostLevel,
+    title: title3,
+    marginSize,
+    imageSettings
+  } = _a, otherProps = __objRest(_a, [
+    "value",
+    "size",
+    "level",
+    "bgColor",
+    "fgColor",
+    "includeMargin",
+    "minVersion",
+    "boostLevel",
+    "title",
+    "marginSize",
+    "imageSettings"
+  ]);
+  const { margin, cells, numCells, calculatedImageSettings } = useQRCode({
+    value,
+    level,
+    minVersion,
+    boostLevel,
+    includeMargin,
+    marginSize,
+    imageSettings,
+    size
+  });
+  let cellsToDraw = cells;
+  let image = null;
+  if (imageSettings != null && calculatedImageSettings != null) {
+    if (calculatedImageSettings.excavation != null) {
+      cellsToDraw = excavateModules(cells, calculatedImageSettings.excavation);
+    }
+    image = /* @__PURE__ */ import_react.default.createElement("image", {
+      href: imageSettings.src,
+      height: calculatedImageSettings.h,
+      width: calculatedImageSettings.w,
+      x: calculatedImageSettings.x + margin,
+      y: calculatedImageSettings.y + margin,
+      preserveAspectRatio: "none",
+      opacity: calculatedImageSettings.opacity,
+      crossOrigin: calculatedImageSettings.crossOrigin
+    });
+  }
+  const fgPath = generatePath(cellsToDraw, margin);
+  return /* @__PURE__ */ import_react.default.createElement("svg", __spreadValues({
+    height: size,
+    width: size,
+    viewBox: `0 0 ${numCells} ${numCells}`,
+    ref: forwardedRef,
+    role: "img"
+  }, otherProps), !!title3 && /* @__PURE__ */ import_react.default.createElement("title", null, title3), /* @__PURE__ */ import_react.default.createElement("path", {
+    fill: bgColor,
+    d: `M0,0 h${numCells}v${numCells}H0z`,
+    shapeRendering: "crispEdges"
+  }), /* @__PURE__ */ import_react.default.createElement("path", { fill: fgColor, d: fgPath, shapeRendering: "crispEdges" }), image);
+});
+QRCodeSVG.displayName = "QRCodeSVG";
+
 // providers/custom/qr/QRUI.tsx
 var InsertedScript = ({
   qrUrl,
@@ -2478,9 +4256,11 @@ var QrUIBody = ({ wsUrl, qrUrl, copy }) => {
           }, undefined, true, undefined, this),
           /* @__PURE__ */ jsxDEV2("div", {
             className: "qr-canvas-wrapper",
-            children: /* @__PURE__ */ jsxDEV2("canvas", {
-              id: "qrcode",
-              className: "qr-canvas"
+            children: /* @__PURE__ */ jsxDEV2(QRCodeSVG, {
+              value: qrUrl,
+              size: 250,
+              className: "qr-canvas",
+              level: "H"
             }, undefined, false, undefined, this)
           }, undefined, false, undefined, this)
         ]

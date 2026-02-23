@@ -14,3 +14,5 @@ Bun.build({
   },
   root: "providers/custom",
 });
+
+console.log("Build terminé !");

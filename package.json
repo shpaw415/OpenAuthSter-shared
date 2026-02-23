@@ -37,6 +37,7 @@
     "./security": "./security/index.ts"
   },
   "scripts": {
-    "build:ui": "bun bin/build_ui.ts"
+    "build:ui": "bun bin/build_ui.ts",
+    "git:push": "bun run build:ui && git add . && git commit -m 'update UI' && git push"
   }
 }
