@@ -47,7 +47,7 @@ const QrUIBody: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
         </div>
 
         <div className="qr-canvas-wrapper">
-          <svg viewBox={`0 0 ${size} ${size}`} className="w-64 h-64">
+          <svg viewBox={`0 0 ${size} ${size}`} className="qr-canvas">
             {qrMatrix.map((row, y) =>
               row.map((active, x) =>
                 active ? (

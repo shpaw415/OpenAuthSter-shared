@@ -2393,7 +2393,7 @@ var qr_default = `.qr-container {
 
 .qr-canvas-wrapper {
   padding: 1.25rem;
-  background: white;
+  background: var(--color-background);
   border-radius: calc(var(--border-radius) * 0.5rem);
   box-shadow:
     0 4px 6px -1px color-mix(in oklch, var(--color-high) 10%, transparent),
@@ -3063,7 +3063,7 @@ var QrUIBody = ({ wsUrl, qrUrl, copy }) => {
             className: "qr-canvas-wrapper",
             children: /* @__PURE__ */ jsxDEV2("svg", {
               viewBox: `0 0 ${size} ${size}`,
-              className: "w-64 h-64",
+              className: "qr-canvas",
               children: qrMatrix.map((row, y) => row.map((active, x) => active ? /* @__PURE__ */ jsxDEV2("rect", {
                 x,
                 y,

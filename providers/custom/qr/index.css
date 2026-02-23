@@ -33,7 +33,7 @@
 
 .qr-canvas-wrapper {
   padding: 1.25rem;
-  background: white;
+  background: var(--color-background);
   border-radius: calc(var(--border-radius) * 0.5rem);
   box-shadow:
     0 4px 6px -1px color-mix(in oklch, var(--color-high) 10%, transparent),
