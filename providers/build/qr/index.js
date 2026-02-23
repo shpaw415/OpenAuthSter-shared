@@ -2393,7 +2393,7 @@ var qr_default = `.qr-container {
 
 .qr-canvas-wrapper {
   padding: 1.25rem;
-  background: var(--color-background);
+  background: white;
   border-radius: calc(var(--border-radius) * 0.5rem);
   box-shadow:
     0 4px 6px -1px color-mix(in oklch, var(--color-high) 10%, transparent),
@@ -2414,6 +2414,10 @@ var qr_default = `.qr-container {
   object-fit: contain;
   background: #ffffff;
   border-radius: calc(var(--border-radius) * 0.25rem);
+}
+
+.qr-pixel {
+  fill: black;
 }
 `;
 
@@ -3007,19 +3011,7 @@ function renderQrCode(data) {
   const { data: matrix } = encode(data);
   return matrix;
 }
-var InsertedScript = ({
-  qrUrl,
-  wsUrl
-}) => `// Affiche le QR Code contenant l'URL de validation
-      QRCode.toCanvas(
-        document.getElementById("qrcode"),
-        "${qrUrl}",
-        { width: 250 },
-        function (error) {
-          if (error) console.error(error);
-        },
-      );
-
+var InsertedScript = ({ wsUrl }) => `
       // Ouvre une WebSocket vers le Durable Object pour attendre le signal de succès
       const ws = new WebSocket("${wsUrl}");
       ws.onmessage = (event) => {
@@ -3049,7 +3041,7 @@ var QrUIBody = ({ wsUrl, qrUrl, copy }) => {
         dangerouslySetInnerHTML: { __html: qr_default }
       }, undefined, false, undefined, this),
       /* @__PURE__ */ jsxDEV2("script", {
-        dangerouslySetInnerHTML: { __html: InsertedScript({ qrUrl, wsUrl }) }
+        dangerouslySetInnerHTML: { __html: InsertedScript({ wsUrl }) }
       }, undefined, false, undefined, this),
       /* @__PURE__ */ jsxDEV2("div", {
         className: "qr-container",

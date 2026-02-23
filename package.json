@@ -17,7 +17,6 @@
     "@openauthjs/openauth": "^0.4.3",
     "cloudflare": "^5.2.0",
     "mustache": "^4.2.0",
-    "qrcode.react": "^4.2.0",
     "uqr": "^0.1.2",
     "valibot": "^1.2.0"
   },

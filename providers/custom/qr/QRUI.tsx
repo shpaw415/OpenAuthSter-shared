@@ -9,22 +9,7 @@ export function renderQrCode(data: string) {
   return matrix; // Retourne un tableau de tableaux (boolean[][])
 }
 
-const InsertedScript = ({
-  qrUrl,
-  wsUrl,
-}: {
-  qrUrl: string;
-  wsUrl: string;
-}) => `// Affiche le QR Code contenant l'URL de validation
-      QRCode.toCanvas(
-        document.getElementById("qrcode"),
-        "${qrUrl}",
-        { width: 250 },
-        function (error) {
-          if (error) console.error(error);
-        },
-      );
-
+const InsertedScript = ({ wsUrl }: { wsUrl: string }) => `
       // Ouvre une WebSocket vers le Durable Object pour attendre le signal de succès
       const ws = new WebSocket("${wsUrl}");
       ws.onmessage = (event) => {
@@ -54,9 +39,7 @@ const QrUIBody: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <script
-        dangerouslySetInnerHTML={{ __html: InsertedScript({ qrUrl, wsUrl }) }}
-      />
+      <script dangerouslySetInnerHTML={{ __html: InsertedScript({ wsUrl }) }} />
       <div className="qr-container">
         <div className="qr-header">
           <h1 className="qr-title">{mergedCopy.title}</h1>
