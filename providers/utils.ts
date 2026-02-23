@@ -1,7 +1,7 @@
 import { createClient } from "@openauthjs/openauth/client";
 import type { Hono } from "hono";
 
-export function createSelfClient({
+export function createSelfClient<Issuer extends Hono>({
   ctx,
   clientID,
   issuerURI,
@@ -11,7 +11,7 @@ export function createSelfClient({
   ctx: ExecutionContext;
   clientID: string;
   issuerURI?: string;
-  issuer: Hono;
+  issuer: Issuer;
   env: Env;
 }) {
   return createClient({

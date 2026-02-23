@@ -3,6 +3,9 @@ import { jsxRenderer } from "hono/jsx-renderer";
 import { type JSX } from "hono/jsx/jsx-runtime";
 import type { QRHandshake } from "../DurableObject";
 import { Layout } from "@openauthjs/openauth/ui/base";
+import { createSelfClient } from "../../utils";
+import type { Hono } from "hono";
+import type { SubjectSchema } from "@openauthjs/openauth/subject";
 
 export const DEFAULT_COPY = {
   title: "Connexion par QR Code",
@@ -31,6 +34,9 @@ export interface QRProviderConfig {
 
   client_id: string;
 
+  issuer: Hono;
+  subject: SubjectSchema;
+
   UI: (props: {
     copy?: Partial<typeof DEFAULT_COPY>;
     qrUrl: string;
@@ -43,7 +49,9 @@ export interface QRProviderConfig {
  * Ce provider permet à un PC d'afficher un QR Code et d'attendre qu'un mobile
  * valide la session via un Durable Object.
  */
-export function QRProvider(config: QRProviderConfig): Provider {
+export function QRProvider(
+  config: QRProviderConfig,
+): Provider<{ clientID: string; identifier: string }> {
   return {
     type: "qr",
     init(route, options) {
@@ -109,13 +117,30 @@ export function QRProvider(config: QRProviderConfig): Provider {
         const handshakeId = c.req.query("id");
         if (!handshakeId) return c.text("ID manquant", 400);
 
-        const authorization = await options.get(c, "authorization");
+        const authorizationHeader = c.req.header("Authorization");
+        if (!authorizationHeader) {
+          return c.text("Authorization header manquant", 401);
+        }
 
-        console.log(
-          "Validation request received for handshake ID:",
-          handshakeId,
-        );
-        console.log("Authorization data from mobile:", authorization);
+        const token = authorizationHeader.replace("Bearer ", "");
+        if (!token) {
+          return c.text("Token manquant", 401);
+        }
+
+        const subject = await createSelfClient({
+          ctx: c.executionCtx,
+          clientID: config.client_id,
+          issuerURI: config.issuerURI,
+          issuer: config.issuer,
+          env: c.env as Env,
+        }).verify(config.subject, token);
+
+        if (subject.err) {
+          console.error("Erreur de vérification du token:", subject.err);
+          return c.text("Token invalide", 401);
+        }
+
+        console.log("Authorization with subject:", subject);
 
         const id = config.binding.idFromName(handshakeId);
         const stub = config.binding.get(id);
@@ -126,6 +151,8 @@ export function QRProvider(config: QRProviderConfig): Provider {
           return c.text("Handshake expiré ou invalide", 400);
         }
 
+        console.log("Auth data retrieved from DO:", { authData });
+
         // Injecte l'état d'autorisation dans le contexte actuel pour que OpenAuth puisse le lire
         // C'est crucial car le mobile n'a pas le cookie d'autorisation du PC.
         //@ts-ignore
@@ -134,7 +161,9 @@ export function QRProvider(config: QRProviderConfig): Provider {
         // Génère manuellement l'Authorization Code OAuth2 (standard OpenAuth) pour cet utilisateur
         // options.success va générer le code et renvoyer une réponse de redirection (302)
         const response = await options.success(c, {
-          clientID: authData.clientID,
+          clientID: config.client_id,
+          identifier: (subject.subject.properties as { identifier: string })!
+            .identifier,
         });
 
         if (response.status !== 302) {
