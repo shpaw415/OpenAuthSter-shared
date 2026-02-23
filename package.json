@@ -30,6 +30,7 @@
     "./client/user": "./client/user.ts",
     "./utils": "./utils.ts",
     "./providers": "./providers/index.ts",
+    "./providers/utils": "./providers/utils.ts",
     "./providers/custom/*": "./providers/custom/*",
     "./providers/custom/out/*": "./providers/custom/build/*",
     "./webhook/types": "./webhook/types.ts",
