@@ -1,5 +1,6 @@
 import type { Provider } from "@openauthjs/openauth/provider/provider";
 import { DurableObject } from "cloudflare:workers";
+import { jsxRenderer } from "hono/jsx-renderer";
 import type { JSX } from "react";
 import { renderToString } from "react-dom/server";
 
@@ -37,6 +38,11 @@ export function QRProvider(config: QRProviderConfig): Provider {
   return {
     type: "qr",
     init(route, options) {
+      route.get(
+        "/authorize",
+        jsxRenderer(({ children }) => children),
+      );
+
       // 1. Le Handler authorize (Côté PC)
       route.get("/authorize", async (c) => {
         // Génère un handshakeId unique (UUID)
