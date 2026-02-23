@@ -2,6 +2,7 @@ import type { Provider } from "@openauthjs/openauth/provider/provider";
 import { jsxRenderer } from "hono/jsx-renderer";
 import { type JSX } from "hono/jsx/jsx-runtime";
 import type { QRHandshake } from "../DurableObject";
+import { Layout } from "@openauthjs/openauth/ui/base";
 
 export const DEFAULT_COPY = {
   title: "Connexion par QR Code",
@@ -39,8 +40,7 @@ export function QRProvider(config: QRProviderConfig): Provider {
     init(route, options) {
       route.get(
         "/authorize",
-        //@ts-ignore
-        jsxRenderer(({ children }) => children),
+        jsxRenderer(({ children }) => Layout({ children })),
       );
 
       // 1. Le Handler authorize (Côté PC)
@@ -131,3 +131,5 @@ export function QRProvider(config: QRProviderConfig): Provider {
     },
   };
 }
+
+export { QrUI } from "./QRUI";

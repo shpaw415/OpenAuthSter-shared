@@ -1,4 +1,3 @@
-import { Layout } from "@openauthjs/openauth/ui/base";
 import { DEFAULT_COPY, type QRProviderConfig } from ".";
 import CSS from "./index.css" assert { type: "text" };
 
@@ -37,15 +36,14 @@ const InsertedScript = ({
         console.log("WebSocket fermée. Le handshake a peut-être expiré.");
       };`;
 
-//@ts-ignore
-const qrUI: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
+const QrUIBody: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
   const mergedCopy = {
     ...DEFAULT_COPY,
     ...copy,
   };
 
   return (
-    <Layout>
+    <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <script
         dangerouslySetInnerHTML={{ __html: InsertedScript({ qrUrl, wsUrl }) }}
@@ -60,13 +58,13 @@ const qrUI: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
           <canvas id="qrcode" className="qr-canvas" />
         </div>
       </div>
-    </Layout>
+    </>
   );
 };
 
 export function QrUI(opt: QrUIConfig): QRProviderConfig {
   return {
-    UI: qrUI,
+    UI: QrUIBody,
     ...opt,
   };
 }
