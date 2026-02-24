@@ -3,9 +3,9 @@ import { jsxRenderer } from "hono/jsx-renderer";
 import { type JSX } from "hono/jsx/jsx-runtime";
 import type { QRHandshake } from "../DurableObject";
 import { Layout } from "@openauthjs/openauth/ui/base";
-import { createSelfClient } from "../../utils";
 import type { Hono } from "hono";
 import type { SubjectSchema } from "@openauthjs/openauth/subject";
+import { createLocalJWKSet, jwtVerify, type JSONWebKeySet } from "jose";
 
 export const DEFAULT_COPY = {
   title: "Connexion par QR Code",
@@ -52,6 +52,28 @@ export interface QRProviderConfig {
 export function QRProvider(
   config: QRProviderConfig,
 ): Provider<{ clientID: string; identifier: string }> {
+  let cachedJWKS: ReturnType<typeof createLocalJWKSet> | null = null;
+
+  async function getJWKS(issuer: Hono, env: Env, ctx: ExecutionContext) {
+    if (cachedJWKS) return cachedJWKS;
+    const wkRes = await issuer.fetch(
+      new Request(
+        `${config.issuerURI}/.well-known/oauth-authorization-server?client_id=${config.client_id}`,
+      ),
+      env,
+      ctx,
+    );
+    const wk = (await wkRes.json()) as { jwks_uri: string };
+    const keysRes = await issuer.fetch(
+      new Request(`${wk.jwks_uri}?client_id=${config.client_id}`),
+      env,
+      ctx,
+    );
+    const keyset = (await keysRes.json()) as JSONWebKeySet;
+    cachedJWKS = createLocalJWKSet(keyset);
+    return cachedJWKS;
+  }
+
   return {
     type: "qr",
     init(route, options) {
@@ -129,16 +151,43 @@ export function QRProvider(
         }
         console.log("Token extracted:", token);
 
-        const subject = await createSelfClient({
-          ctx: c.executionCtx,
-          clientID: config.client_id,
-          issuerURI: config.issuerURI,
-          issuer: config.issuer,
-          env: c.env as Env,
-        }).verify(config.subject, token);
+        const jwks = await getJWKS(config.issuer, c.env as Env, c.executionCtx);
 
-        if (subject.err) {
-          console.error("Erreur de vérification du token:", subject.err);
+        let subject: {
+          type: string;
+          properties: Record<string, unknown>;
+        };
+        try {
+          const result = await jwtVerify<{
+            mode: "access";
+            type: string;
+            properties: Record<string, unknown>;
+          }>(token, jwks, { issuer: config.issuerURI });
+
+          console.log("Token vérifié avec succès:", { result });
+
+          if (result.payload.mode !== "access") {
+            return c.text("Token invalide", 401);
+          }
+
+          const schema = config.subject[result.payload.type];
+          if (!schema) {
+            return c.text("Token invalide: type de sujet inconnu", 401);
+          }
+
+          const validated = await schema["~standard"].validate(
+            result.payload.properties,
+          );
+          if (validated.issues) {
+            return c.text("Token invalide: propriétés invalides", 401);
+          }
+
+          subject = {
+            type: result.payload.type,
+            properties: validated.value as Record<string, unknown>,
+          };
+        } catch (e) {
+          console.error("Erreur de vérification du token:", e);
           return c.text("Token invalide", 401);
         }
 
@@ -164,7 +213,7 @@ export function QRProvider(
         // options.success va générer le code et renvoyer une réponse de redirection (302)
         const response = await options.success(c, {
           clientID: config.client_id,
-          identifier: (subject.subject.properties as { identifier: string })!
+          identifier: (subject.properties as { identifier: string })!
             .identifier,
         });
 

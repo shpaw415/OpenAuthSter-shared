@@ -17,6 +17,7 @@
     "@openauthjs/openauth": "^0.4.3",
     "cloudflare": "^5.2.0",
     "mustache": "^4.2.0",
+    "openauth-webui-shared-types": ".",
     "uqr": "^0.1.2",
     "valibot": "^1.2.0"
   },

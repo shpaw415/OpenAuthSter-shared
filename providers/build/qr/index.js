@@ -2377,21 +2377,6 @@ function concat(...buffers) {
 }
 
 // node_modules/jose/dist/browser/runtime/base64url.js
-var encodeBase64 = (input3) => {
-  let unencoded = input3;
-  if (typeof unencoded === "string") {
-    unencoded = encoder.encode(unencoded);
-  }
-  const CHUNK_SIZE = 32768;
-  const arr = [];
-  for (let i = 0;i < unencoded.length; i += CHUNK_SIZE) {
-    arr.push(String.fromCharCode.apply(null, unencoded.subarray(i, i + CHUNK_SIZE)));
-  }
-  return btoa(arr.join(""));
-};
-var encode = (input3) => {
-  return encodeBase64(input3).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-};
 var decodeBase64 = (encoded) => {
   const binary = atob(encoded);
   const bytes = new Uint8Array(binary.length);
@@ -2414,25 +2399,6 @@ var decode = (input3) => {
 };
 
 // node_modules/jose/dist/browser/util/errors.js
-var exports_errors = {};
-__export(exports_errors, {
-  JWTInvalid: () => JWTInvalid,
-  JWTExpired: () => JWTExpired,
-  JWTClaimValidationFailed: () => JWTClaimValidationFailed,
-  JWSSignatureVerificationFailed: () => JWSSignatureVerificationFailed,
-  JWSInvalid: () => JWSInvalid,
-  JWKSTimeout: () => JWKSTimeout,
-  JWKSNoMatchingKey: () => JWKSNoMatchingKey,
-  JWKSMultipleMatchingKeys: () => JWKSMultipleMatchingKeys,
-  JWKSInvalid: () => JWKSInvalid,
-  JWKInvalid: () => JWKInvalid,
-  JWEInvalid: () => JWEInvalid,
-  JWEDecryptionFailed: () => JWEDecryptionFailed,
-  JOSENotSupported: () => JOSENotSupported,
-  JOSEError: () => JOSEError,
-  JOSEAlgNotAllowed: () => JOSEAlgNotAllowed
-});
-
 class JOSEError extends Error {
   constructor(message, options) {
     super(message, options);
@@ -3536,284 +3502,6 @@ function createLocalJWKSet(jwks) {
   });
   return localJWKSet;
 }
-// node_modules/jose/dist/browser/util/base64url.js
-var exports_base64url = {};
-__export(exports_base64url, {
-  encode: () => encode2,
-  decode: () => decode2
-});
-var encode2 = encode;
-var decode2 = decode;
-
-// node_modules/jose/dist/browser/util/decode_jwt.js
-function decodeJwt(jwt) {
-  if (typeof jwt !== "string")
-    throw new JWTInvalid("JWTs must use Compact JWS serialization, JWT must be a string");
-  const { 1: payload, length } = jwt.split(".");
-  if (length === 5)
-    throw new JWTInvalid("Only JWTs using Compact JWS serialization can be decoded");
-  if (length !== 3)
-    throw new JWTInvalid("Invalid JWT");
-  if (!payload)
-    throw new JWTInvalid("JWTs must contain a payload");
-  let decoded;
-  try {
-    decoded = decode2(payload);
-  } catch {
-    throw new JWTInvalid("Failed to base64url decode the payload");
-  }
-  let result;
-  try {
-    result = JSON.parse(decoder.decode(decoded));
-  } catch {
-    throw new JWTInvalid("Failed to parse the decoded payload as JSON");
-  }
-  if (!isObject(result))
-    throw new JWTInvalid("Invalid JWT Claims Set");
-  return result;
-}
-// node_modules/@openauthjs/openauth/dist/esm/error.js
-class InvalidSubjectError extends Error {
-  constructor() {
-    super("Invalid subject");
-  }
-}
-
-class InvalidRefreshTokenError extends Error {
-  constructor() {
-    super("Invalid refresh token");
-  }
-}
-
-class InvalidAccessTokenError extends Error {
-  constructor() {
-    super("Invalid access token");
-  }
-}
-
-class InvalidAuthorizationCodeError extends Error {
-  constructor() {
-    super("Invalid authorization code");
-  }
-}
-
-// node_modules/@openauthjs/openauth/dist/esm/pkce.js
-function generateVerifier(length) {
-  const buffer = new Uint8Array(length);
-  crypto.getRandomValues(buffer);
-  return exports_base64url.encode(buffer);
-}
-async function generateChallenge(verifier, method) {
-  if (method === "plain")
-    return verifier;
-  const encoder2 = new TextEncoder;
-  const data = encoder2.encode(verifier);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return exports_base64url.encode(new Uint8Array(hash));
-}
-async function generatePKCE(length = 64) {
-  if (length < 43 || length > 128) {
-    throw new Error("Code verifier length must be between 43 and 128 characters");
-  }
-  const verifier = generateVerifier(length);
-  const challenge = await generateChallenge(verifier, "S256");
-  return {
-    verifier,
-    challenge,
-    method: "S256"
-  };
-}
-
-// node_modules/@openauthjs/openauth/dist/esm/client.js
-function createClient(input3) {
-  const jwksCache = new Map;
-  const issuerCache = new Map;
-  const issuer = input3.issuer || process.env.OPENAUTH_ISSUER;
-  if (!issuer)
-    throw new Error("No issuer");
-  const f = input3.fetch ?? fetch;
-  async function getIssuer() {
-    const cached = issuerCache.get(issuer);
-    if (cached)
-      return cached;
-    const wellKnown = await (f || fetch)(`${issuer}/.well-known/oauth-authorization-server`).then((r) => r.json());
-    issuerCache.set(issuer, wellKnown);
-    return wellKnown;
-  }
-  async function getJWKS() {
-    const wk = await getIssuer();
-    const cached = jwksCache.get(issuer);
-    if (cached)
-      return cached;
-    const keyset = await (f || fetch)(wk.jwks_uri).then((r) => r.json());
-    const result2 = createLocalJWKSet(keyset);
-    jwksCache.set(issuer, result2);
-    return result2;
-  }
-  const result = {
-    async authorize(redirectURI, response, opts) {
-      const result2 = new URL(issuer + "/authorize");
-      const challenge = {
-        state: crypto.randomUUID()
-      };
-      result2.searchParams.set("client_id", input3.clientID);
-      result2.searchParams.set("redirect_uri", redirectURI);
-      result2.searchParams.set("response_type", response);
-      result2.searchParams.set("state", challenge.state);
-      if (opts?.provider)
-        result2.searchParams.set("provider", opts.provider);
-      if (opts?.pkce && response === "code") {
-        const pkce = await generatePKCE();
-        result2.searchParams.set("code_challenge_method", "S256");
-        result2.searchParams.set("code_challenge", pkce.challenge);
-        challenge.verifier = pkce.verifier;
-      }
-      return {
-        challenge,
-        url: result2.toString()
-      };
-    },
-    async pkce(redirectURI, opts) {
-      const result2 = new URL(issuer + "/authorize");
-      if (opts?.provider)
-        result2.searchParams.set("provider", opts.provider);
-      result2.searchParams.set("client_id", input3.clientID);
-      result2.searchParams.set("redirect_uri", redirectURI);
-      result2.searchParams.set("response_type", "code");
-      const pkce = await generatePKCE();
-      result2.searchParams.set("code_challenge_method", "S256");
-      result2.searchParams.set("code_challenge", pkce.challenge);
-      return [pkce.verifier, result2.toString()];
-    },
-    async exchange(code, redirectURI, verifier) {
-      const tokens = await f(issuer + "/token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: new URLSearchParams({
-          code,
-          redirect_uri: redirectURI,
-          grant_type: "authorization_code",
-          client_id: input3.clientID,
-          code_verifier: verifier || ""
-        }).toString()
-      });
-      const json = await tokens.json();
-      if (!tokens.ok) {
-        return {
-          err: new InvalidAuthorizationCodeError
-        };
-      }
-      return {
-        err: false,
-        tokens: {
-          access: json.access_token,
-          refresh: json.refresh_token,
-          expiresIn: json.expires_in
-        }
-      };
-    },
-    async refresh(refresh, opts) {
-      if (opts && opts.access) {
-        const decoded = decodeJwt(opts.access);
-        if (!decoded) {
-          return {
-            err: new InvalidAccessTokenError
-          };
-        }
-        if ((decoded.exp || 0) > Date.now() / 1000 + 30) {
-          return {
-            err: false
-          };
-        }
-      }
-      const tokens = await f(issuer + "/token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: new URLSearchParams({
-          grant_type: "refresh_token",
-          refresh_token: refresh
-        }).toString()
-      });
-      const json = await tokens.json();
-      if (!tokens.ok) {
-        return {
-          err: new InvalidRefreshTokenError
-        };
-      }
-      return {
-        err: false,
-        tokens: {
-          access: json.access_token,
-          refresh: json.refresh_token,
-          expiresIn: json.expires_in
-        }
-      };
-    },
-    async verify(subjects, token, options) {
-      const jwks = await getJWKS();
-      try {
-        const result2 = await jwtVerify(token, jwks, {
-          issuer
-        });
-        const validated = await subjects[result2.payload.type]["~standard"].validate(result2.payload.properties);
-        if (!validated.issues && result2.payload.mode === "access")
-          return {
-            aud: result2.payload.aud,
-            subject: {
-              type: result2.payload.type,
-              properties: validated.value
-            }
-          };
-        return {
-          err: new InvalidSubjectError
-        };
-      } catch (e) {
-        if (e instanceof exports_errors.JWTExpired && options?.refresh) {
-          const refreshed = await this.refresh(options.refresh);
-          if (refreshed.err)
-            return refreshed;
-          const verified = await result.verify(subjects, refreshed.tokens.access, {
-            refresh: refreshed.tokens.refresh,
-            issuer,
-            fetch: options?.fetch
-          });
-          if (verified.err)
-            return verified;
-          verified.tokens = refreshed.tokens;
-          return verified;
-        }
-        return {
-          err: new InvalidAccessTokenError
-        };
-      }
-    }
-  };
-  return result;
-}
-
-// providers/utils.ts
-function createSelfClient({
-  ctx,
-  clientID,
-  issuerURI,
-  issuer,
-  env
-}) {
-  return createClient({
-    clientID,
-    issuer: issuerURI,
-    async fetch(input3, init) {
-      const url = new URL(input3);
-      url.searchParams.append("client_id", clientID);
-      return issuer.fetch(new Request(url.toString(), init), env, ctx);
-    }
-  });
-}
-
 // providers/custom/qr/index.css
 var qr_default = `.qr-container {
   display: flex;
@@ -4408,7 +4096,7 @@ function encodeSegments(segs, ecl, minVersion = 1, maxVersion = 40, mask = -1, b
   bb.forEach((b, i) => dataCodewords[i >>> 3] |= b << 7 - (i & 7));
   return new QrCode(version, ecl, dataCodewords, mask);
 }
-function encode3(data, options) {
+function encode(data, options) {
   const {
     ecc = "L",
     boostEcc = false,
@@ -4465,7 +4153,7 @@ function addBorder(input3, border = 1) {
 
 // providers/custom/qr/QRUI.tsx
 function renderQrCode(data) {
-  const { data: matrix } = encode3(data);
+  const { data: matrix } = encode(data);
   return matrix;
 }
 var InsertedScript = ({ wsUrl, qrUrl }) => `
@@ -4552,6 +4240,17 @@ var DEFAULT_COPY = {
   description: "Scannez ce QR Code avec votre application mobile pour vous connecter."
 };
 function QRProvider(config) {
+  let cachedJWKS = null;
+  async function getJWKS(issuer, env, ctx) {
+    if (cachedJWKS)
+      return cachedJWKS;
+    const wkRes = await issuer.fetch(new Request(`${config.issuerURI}/.well-known/oauth-authorization-server?client_id=${config.client_id}`), env, ctx);
+    const wk = await wkRes.json();
+    const keysRes = await issuer.fetch(new Request(`${wk.jwks_uri}?client_id=${config.client_id}`), env, ctx);
+    const keyset = await keysRes.json();
+    cachedJWKS = createLocalJWKSet(keyset);
+    return cachedJWKS;
+  }
   return {
     type: "qr",
     init(route, options) {
@@ -4600,15 +4299,28 @@ function QRProvider(config) {
           return c.text("Token manquant", 401);
         }
         console.log("Token extracted:", token);
-        const subject = await createSelfClient({
-          ctx: c.executionCtx,
-          clientID: config.client_id,
-          issuerURI: config.issuerURI,
-          issuer: config.issuer,
-          env: c.env
-        }).verify(config.subject, token);
-        if (subject.err) {
-          console.error("Erreur de vérification du token:", subject.err);
+        const jwks = await getJWKS(config.issuer, c.env, c.executionCtx);
+        let subject;
+        try {
+          const result = await jwtVerify(token, jwks, { issuer: config.issuerURI });
+          console.log("Token vérifié avec succès:", { result });
+          if (result.payload.mode !== "access") {
+            return c.text("Token invalide", 401);
+          }
+          const schema = config.subject[result.payload.type];
+          if (!schema) {
+            return c.text("Token invalide: type de sujet inconnu", 401);
+          }
+          const validated = await schema["~standard"].validate(result.payload.properties);
+          if (validated.issues) {
+            return c.text("Token invalide: propriétés invalides", 401);
+          }
+          subject = {
+            type: result.payload.type,
+            properties: validated.value
+          };
+        } catch (e) {
+          console.error("Erreur de vérification du token:", e);
           return c.text("Token invalide", 401);
         }
         console.log("Authorization with subject:", subject);
@@ -4622,7 +4334,7 @@ function QRProvider(config) {
         c.set("authorization", authData);
         const response = await options.success(c, {
           clientID: config.client_id,
-          identifier: subject.subject.properties.identifier
+          identifier: subject.properties.identifier
         });
         if (response.status !== 302) {
           return c.text("Erreur lors de la génération du code d'autorisation", 500);
