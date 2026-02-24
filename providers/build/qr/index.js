@@ -4293,17 +4293,15 @@ function QRProvider(config) {
         if (!authorizationHeader) {
           return c.text("Authorization header manquant", 401);
         }
-        console.log("Authorization header received:", authorizationHeader);
         const token = authorizationHeader.replace("Bearer ", "").trim();
         if (!token) {
           return c.text("Token manquant", 401);
         }
-        console.log("Token extracted:", token);
         const jwks = await getJWKS(config.issuer, c.env, c.executionCtx);
         let subject;
         try {
           const result = await jwtVerify(token, jwks, { issuer: config.issuerURI });
-          console.log("Token vérifié avec succès:", { result });
+          console.log("Token vérifié avec succès:", JSON.stringify({ result }, null, 2));
           if (result.payload.mode !== "access") {
             return c.text("Token invalide", 401);
           }
@@ -4315,7 +4313,7 @@ function QRProvider(config) {
           if (validated.issues) {
             return c.text("Token invalide: propriétés invalides", 401);
           }
-          console.log("Token validé avec succès:", { validated });
+          console.log("Token validé avec succès:", JSON.stringify({ validated }, null, 2));
           subject = {
             type: result.payload.type,
             properties: validated.value
@@ -4324,14 +4322,14 @@ function QRProvider(config) {
           console.error("Erreur de vérification du token:", e);
           return c.text("Token invalide", 401);
         }
-        console.log("Authorization with subject:", subject);
+        console.log("Authorization with subject:", JSON.stringify({ subject }, null, 2));
         const id = config.binding.idFromName(handshakeId);
         const stub = config.binding.get(id);
         const authData = await stub.getAuthData();
         if (!authData) {
           return c.text("Handshake expiré ou invalide", 400);
         }
-        console.log("Auth data retrieved from DO:", { authData });
+        console.log("Auth data retrieved from DO:", JSON.stringify({ authData }, null, 2));
         c.set("authorization", authData);
         const response = await options.success(c, {
           clientID: config.client_id,

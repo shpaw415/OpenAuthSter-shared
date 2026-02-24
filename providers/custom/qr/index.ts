@@ -143,13 +143,10 @@ export function QRProvider(
         if (!authorizationHeader) {
           return c.text("Authorization header manquant", 401);
         }
-        console.log("Authorization header received:", authorizationHeader);
-
         const token = authorizationHeader.replace("Bearer ", "").trim();
         if (!token) {
           return c.text("Token manquant", 401);
         }
-        console.log("Token extracted:", token);
 
         const jwks = await getJWKS(config.issuer, c.env as Env, c.executionCtx);
 
@@ -164,7 +161,10 @@ export function QRProvider(
             properties: Record<string, unknown>;
           }>(token, jwks, { issuer: config.issuerURI });
 
-          console.log("Token vérifié avec succès:", { result });
+          console.log(
+            "Token vérifié avec succès:",
+            JSON.stringify({ result }, null, 2),
+          );
 
           if (result.payload.mode !== "access") {
             return c.text("Token invalide", 401);
@@ -182,7 +182,10 @@ export function QRProvider(
             return c.text("Token invalide: propriétés invalides", 401);
           }
 
-          console.log("Token validé avec succès:", { validated });
+          console.log(
+            "Token validé avec succès:",
+            JSON.stringify({ validated }, null, 2),
+          );
 
           subject = {
             type: result.payload.type,
@@ -193,7 +196,10 @@ export function QRProvider(
           return c.text("Token invalide", 401);
         }
 
-        console.log("Authorization with subject:", subject);
+        console.log(
+          "Authorization with subject:",
+          JSON.stringify({ subject }, null, 2),
+        );
 
         const id = config.binding.idFromName(handshakeId);
         const stub = config.binding.get(id);
@@ -204,7 +210,10 @@ export function QRProvider(
           return c.text("Handshake expiré ou invalide", 400);
         }
 
-        console.log("Auth data retrieved from DO:", { authData });
+        console.log(
+          "Auth data retrieved from DO:",
+          JSON.stringify({ authData }, null, 2),
+        );
 
         // Injecte l'état d'autorisation dans le contexte actuel pour que OpenAuth puisse le lire
         // C'est crucial car le mobile n'a pas le cookie d'autorisation du PC.
