@@ -4327,7 +4327,8 @@ function QRProvider(config) {
           return c.text("Handshake expiré ou invalide", 400);
         }
         c.set("authorization", authData);
-        console.log("Subject validated from mobile:", { subject });
+        console.log("Subject validated from mobile:", JSON.stringify({ subject }, null, 2));
+        console.log("Auth data retrieved from DO:", JSON.stringify({ authData }, null, 2));
         const response = await options.success(c, subject.properties);
         if (response.status !== 302) {
           return c.text("Erreur lors de la génération du code d'autorisation", 500);

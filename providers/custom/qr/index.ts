@@ -209,7 +209,14 @@ export function QRProvider(
         //@ts-ignore
         c.set("authorization", authData);
 
-        console.log("Subject validated from mobile:", { subject });
+        console.log(
+          "Subject validated from mobile:",
+          JSON.stringify({ subject }, null, 2),
+        );
+        console.log(
+          "Auth data retrieved from DO:",
+          JSON.stringify({ authData }, null, 2),
+        );
 
         // Génère manuellement l'Authorization Code OAuth2 (standard OpenAuth) pour cet utilisateur
         // options.success va générer le code et renvoyer une réponse de redirection (302)
