@@ -4501,7 +4501,7 @@ var QrUIBody = ({ wsUrl, qrUrl, copy }) => {
       }, undefined, false, undefined, this),
       /* @__PURE__ */ jsxDEV2("script", {
         dangerouslySetInnerHTML: {
-          __html: InsertedScript({ wsUrl })
+          __html: InsertedScript({ wsUrl, qrUrl })
         }
       }, undefined, false, undefined, this),
       /* @__PURE__ */ jsxDEV2("div", {

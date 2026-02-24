@@ -43,7 +43,7 @@ const QrUIBody: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <script
         dangerouslySetInnerHTML={{
-          __html: InsertedScript({ wsUrl }),
+          __html: InsertedScript({ wsUrl, qrUrl }),
         }}
       />
       <div className="qr-container">
