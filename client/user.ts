@@ -33,6 +33,7 @@ export const UserEndpointValidation = v.object({
 export const defaultSubjectSchema = createSubjects({
   user: v.object({
     id: v.string(),
+    identifier: v.string(),
     data: v.any(),
     clientID: v.string(),
     provider: v.string(),
