@@ -4315,6 +4315,7 @@ function QRProvider(config) {
           if (validated.issues) {
             return c.text("Token invalide: propriétés invalides", 401);
           }
+          console.log("Token validé avec succès:", { validated });
           subject = {
             type: result.payload.type,
             properties: validated.value

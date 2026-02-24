@@ -182,6 +182,8 @@ export function QRProvider(
             return c.text("Token invalide: propriétés invalides", 401);
           }
 
+          console.log("Token validé avec succès:", { validated });
+
           subject = {
             type: result.payload.type,
             properties: validated.value as Record<string, unknown>,
