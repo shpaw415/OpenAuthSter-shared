@@ -121,11 +121,13 @@ export function QRProvider(
         if (!authorizationHeader) {
           return c.text("Authorization header manquant", 401);
         }
+        console.log("Authorization header received:", authorizationHeader);
 
-        const token = authorizationHeader.replace("Bearer ", "");
+        const token = authorizationHeader.replace("Bearer ", "").trim();
         if (!token) {
           return c.text("Token manquant", 401);
         }
+        console.log("Token extracted:", token);
 
         const subject = await createSelfClient({
           ctx: c.executionCtx,

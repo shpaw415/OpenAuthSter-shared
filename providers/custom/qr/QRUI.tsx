@@ -11,6 +11,7 @@ export function renderQrCode(data: string) {
 
 const InsertedScript = ({ wsUrl }: { wsUrl: string }) => `
       // Ouvre une WebSocket vers le Durable Object pour attendre le signal de succès
+      console.log("Connecting to WebSocket at ${wsUrl}...");
       const ws = new WebSocket("${wsUrl}");
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);

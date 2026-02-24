@@ -4470,6 +4470,7 @@ function renderQrCode(data) {
 }
 var InsertedScript = ({ wsUrl }) => `
       // Ouvre une WebSocket vers le Durable Object pour attendre le signal de succès
+      console.log("Connecting to WebSocket at ${wsUrl}...");
       const ws = new WebSocket("${wsUrl}");
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -4592,10 +4593,12 @@ function QRProvider(config) {
         if (!authorizationHeader) {
           return c.text("Authorization header manquant", 401);
         }
-        const token = authorizationHeader.replace("Bearer ", "");
+        console.log("Authorization header received:", authorizationHeader);
+        const token = authorizationHeader.replace("Bearer ", "").trim();
         if (!token) {
           return c.text("Token manquant", 401);
         }
+        console.log("Token extracted:", token);
         const subject = await createSelfClient({
           ctx: c.executionCtx,
           clientID: config.client_id,
