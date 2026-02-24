@@ -4468,9 +4468,10 @@ function renderQrCode(data) {
   const { data: matrix } = encode3(data);
   return matrix;
 }
-var InsertedScript = ({ wsUrl }) => `
+var InsertedScript = ({ wsUrl, qrUrl }) => `
       // Ouvre une WebSocket vers le Durable Object pour attendre le signal de succès
-      console.log("Connecting to WebSocket at ${wsUrl}...");
+      console.log("qrUrl:", "${qrUrl}");
+
       const ws = new WebSocket("${wsUrl}");
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
