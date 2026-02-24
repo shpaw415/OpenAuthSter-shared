@@ -6,6 +6,7 @@ import { Layout } from "@openauthjs/openauth/ui/base";
 import type { Hono } from "hono";
 import type { SubjectSchema } from "@openauthjs/openauth/subject";
 import { createLocalJWKSet, jwtVerify, type JSONWebKeySet } from "jose";
+import type { ProviderType } from "openauth-webui-shared-types";
 
 export const DEFAULT_COPY = {
   title: "Connexion par QR Code",
@@ -44,6 +45,13 @@ export interface QRProviderConfig {
   }) => JSX.Element;
 }
 
+export type QRProviderOnSuccessData = {
+  id: string;
+  data: Record<string, unknown>;
+  clientID: string;
+  provider: ProviderType;
+};
+
 /**
  * Provider OpenAuth pour l'authentification par QR Code.
  * Ce provider permet à un PC d'afficher un QR Code et d'attendre qu'un mobile
@@ -51,7 +59,7 @@ export interface QRProviderConfig {
  */
 export function QRProvider(
   config: QRProviderConfig,
-): Provider<{ clientID: string; identifier: string }> {
+): Provider<QRProviderOnSuccessData> {
   let cachedJWKS: ReturnType<typeof createLocalJWKSet> | null = null;
 
   async function getJWKS(issuer: Hono, env: Env, ctx: ExecutionContext) {
@@ -152,7 +160,7 @@ export function QRProvider(
 
         let subject: {
           type: string;
-          properties: Record<string, unknown>;
+          properties: QRProviderOnSuccessData;
         };
         try {
           const result = await jwtVerify<{
@@ -189,7 +197,7 @@ export function QRProvider(
 
           subject = {
             type: result.payload.type,
-            properties: validated.value as Record<string, unknown>,
+            properties: validated.value as QRProviderOnSuccessData,
           };
         } catch (e) {
           console.error("Erreur de vérification du token:", e);
@@ -222,11 +230,7 @@ export function QRProvider(
 
         // Génère manuellement l'Authorization Code OAuth2 (standard OpenAuth) pour cet utilisateur
         // options.success va générer le code et renvoyer une réponse de redirection (302)
-        const response = await options.success(c, {
-          clientID: config.client_id,
-          identifier: (subject.properties as { identifier: string })!
-            .identifier,
-        });
+        const response = await options.success(c, subject.properties);
 
         if (response.status !== 302) {
           return c.text(

@@ -4331,10 +4331,7 @@ function QRProvider(config) {
         }
         console.log("Auth data retrieved from DO:", JSON.stringify({ authData }, null, 2));
         c.set("authorization", authData);
-        const response = await options.success(c, {
-          clientID: config.client_id,
-          identifier: subject.properties.identifier
-        });
+        const response = await options.success(c, subject.properties);
         if (response.status !== 302) {
           return c.text("Erreur lors de la génération du code d'autorisation", 500);
         }
