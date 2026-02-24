@@ -45,12 +45,12 @@ export interface QRProviderConfig {
   }) => JSX.Element;
 }
 
-export type QRProviderOnSuccessData = {
+export type QRProviderOnSuccessData<Provider extends ProviderType = "qr"> = {
   id: string;
   identifier: string;
   data: Record<string, unknown>;
   clientID: string;
-  provider: ProviderType;
+  provider: Provider;
 };
 
 /**
@@ -60,7 +60,7 @@ export type QRProviderOnSuccessData = {
  */
 export function QRProvider(
   config: QRProviderConfig,
-): Provider<QRProviderOnSuccessData> {
+): Provider<QRProviderOnSuccessData<"qr">> {
   let cachedJWKS: ReturnType<typeof createLocalJWKSet> | null = null;
 
   async function getJWKS(issuer: Hono, env: Env, ctx: ExecutionContext) {
@@ -188,7 +188,10 @@ export function QRProvider(
 
           subject = {
             type: result.payload.type,
-            properties: validated.value as QRProviderOnSuccessData,
+            properties: {
+              ...(validated.value as QRProviderOnSuccessData<"qr">),
+              provider: "qr",
+            },
           };
         } catch (e) {
           console.error("Erreur de vérification du token:", e);

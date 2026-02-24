@@ -4314,7 +4314,10 @@ function QRProvider(config) {
           }
           subject = {
             type: result.payload.type,
-            properties: validated.value
+            properties: {
+              ...validated.value,
+              provider: "qr"
+            }
           };
         } catch (e) {
           console.error("Erreur de vérification du token:", e);
