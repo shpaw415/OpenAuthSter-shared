@@ -18,6 +18,7 @@ import {
   type UserResponseSchemaInferdType,
 } from "../database/endpoints";
 import type { OTFUsersParsedType } from "../database/schema";
+import OpenAuthsterErrors, { type ErrorList } from "./errors";
 
 export const userEndpointURI = "/session" as const;
 
@@ -25,7 +26,6 @@ export type FlowTypes = "invite" | "qr";
 
 export const UserEndpointValidation = v.object({
   type: v.union([v.literal("public"), v.literal("private")]),
-  action: v.union([v.literal("get"), v.literal("update"), v.literal("delete")]),
   data: v.optional(v.any()),
   client_id: v.string(),
 });
@@ -34,6 +34,7 @@ export const defaultSubjectSchema = createSubjects({
   user: v.object({
     id: v.string(),
     identifier: v.string(),
+    role: v.undefinedable(v.string()),
     data: v.any(),
     clientID: v.string(),
     provider: v.string(),
@@ -111,6 +112,7 @@ export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
    */
   subject?: SubjectSchema;
   authFlowCallbacks?: Partial<AuthFlowCallbacks>;
+  onError?: (err: ErrorList) => void;
 } & OpenAuthsterOptions;
 
 export type USerMetaData = {
@@ -147,7 +149,7 @@ export class OpenAuthsterClient<
   UserInfo extends RequiredResponseData["userInfo"] = { provider: string },
 > {
   public openAuthClient: Client;
-  public expiresIn?: number;
+  public expiresAt?: Date;
   public isLoaded: boolean = false;
   public isAuthenticated: boolean = false;
   public data: {
@@ -178,6 +180,7 @@ export class OpenAuthsterClient<
   > = new Map();
   private subject: SubjectSchema = defaultSubjectSchema;
   private authFlowCallbacks: Partial<AuthFlowCallbacks>;
+  private onError?: (err: ErrorList) => void;
 
   constructor(props: ClientProps) {
     this.issuerURI = props.issuerURI;
@@ -195,6 +198,7 @@ export class OpenAuthsterClient<
       this.subject = props.subject;
     }
     this.authFlowCallbacks = props.authFlowCallbacks ?? {};
+    this.onError = props.onError;
   }
   /**
    * Trigger client initialization. Must be called after the first page load, for SSR compatibility.
@@ -339,12 +343,12 @@ export class OpenAuthsterClient<
   logout() {
     this.token = null;
     this.refreshToken = null;
-    this.expiresIn = undefined;
+    this.expiresAt = undefined;
     this.clearRefreshTimer();
     this.removeToken();
     this.removeRefreshToken();
     this.removeChallenge();
-    this.removeStoredExpiration();
+    this.removeStoredExpiresAt();
     this.isAuthenticated = false;
     this.isLoaded = true;
     this.data = {
@@ -360,23 +364,26 @@ export class OpenAuthsterClient<
 
     if (!code) return;
     if (!challenge) {
-      return Promise.reject(new Error("No challenge found in storage."));
+      return Promise.reject(
+        new OpenAuthsterErrors.CallbackError("No challenge found in storage."),
+      );
     }
     await this.openAuthClient
       .exchange(code, this.redirectURI, challenge.verifier)
       .then((tokens) => {
-        if (tokens.err)
-          throw new Error("No tokens received from exchange.", {
-            cause: tokens.err,
-          });
-        this.storeExpiration(tokens.tokens?.expiresIn || 3600);
+        if (tokens.err) throw tokens.err;
         this.updateTokens(tokens);
         this.createResetTimer(tokens.tokens?.expiresIn || null);
         this.isAuthenticated = true;
       })
       .catch((err) => {
         console.error("Error during callback exchange: ", err);
-        throw new Error(`Error during callback exchange: ${err.message}`);
+        this.triggerError(
+          new OpenAuthsterErrors.CallbackError(
+            `Error during callback exchange: ${err.message}`,
+            err,
+          ),
+        );
       })
       .finally(() => {
         this.removeChallenge();
@@ -739,16 +746,20 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
     if (!tokenToVerify) {
       return Promise.reject(new Error("No token available for verification."));
     }
-    return this.verifyToken(tokenToVerify).then((res) => {
-      if (res.err) {
-        console.error("Failed to verify token.", res.err);
-        return false;
-      }
-      if (this.token) {
-        this.isAuthenticated = true;
-      }
-      return true;
-    });
+    return this.verifyToken(tokenToVerify)
+      .then((res) => {
+        if (res.err) {
+          console.error("Failed to verify token.", res.err);
+          return false;
+        }
+        if (this.token) {
+          this.isAuthenticated = true;
+        }
+        return true;
+      })
+      .catch((err) => {
+        console.error(err);
+      });
   }
 
   private verifyToken(token: string) {
@@ -777,7 +788,7 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
     } else {
       const accessToken = this.token || this.getStoredToken();
       const refreshToken = this.refreshToken || this.getStoredRefreshToken();
-      const expiresIn = this.expiresIn || this.getStoredExpiration();
+      const expiresAt = this.expiresAt || this.getStoredExpiresAt();
       if (accessToken) {
         this.token = accessToken;
         this.isAuthenticated = true;
@@ -785,10 +796,13 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
       if (refreshToken) {
         this.refreshToken = refreshToken;
       }
-      if (expiresIn) {
-        this.expiresIn = expiresIn;
-        this.storeExpiration(expiresIn);
-        this.createResetTimer(expiresIn);
+      if (expiresAt) {
+        this.expiresAt = expiresAt;
+        if (expiresAt < new Date()) {
+          this.triggerRefresh();
+        } else {
+          this.createResetTimer(expiresAt.getTime() - Date.now());
+        }
       }
     }
     this.isLoaded = true;
@@ -856,39 +870,42 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
       })
       .then((newTokens) => {
         if (newTokens.err) {
-          throw new Error("No tokens received from refresh.", {
-            cause: newTokens.err,
-          });
+          throw newTokens.err;
         }
-        if (newTokens.tokens?.expiresIn)
-          this.storeExpiration(newTokens.tokens.expiresIn);
         this.updateTokens(newTokens);
-        this.createResetTimer(newTokens.tokens?.expiresIn || null);
       })
-      .catch(() => {
-        console.warn("Failed to refresh token");
+      .catch((err) => {
+        console.warn("Failed to refresh token", err);
+        this.triggerError(
+          new OpenAuthsterErrors.RefreshError("Failed to refresh token.", err),
+        );
       });
   }
 
-  private createResetTimer(expiresIn: number | null) {
-    if (!expiresIn) return;
+  /**
+   * expiresIn must be in Ms
+   */
+  private createResetTimer(expiresInMs: number | null) {
+    if (!expiresInMs) return;
+    const refresh = () => this.triggerRefresh();
     clearTimeout(this.refreshTimer);
-    this.refreshTimer = setTimeout(
-      this.triggerRefresh.bind(this),
-      (expiresIn - 60) * 1000,
-    ); // Refresh 1 minute before expiry
+    this.refreshTimer = setTimeout(() => refresh(), expiresInMs - 60000); // Refresh 1 minute before expiry
   }
 
   private updateTokens(tokens: ExchangeSuccess | RefreshSuccess) {
     if (tokens.tokens?.access) {
       this.token = tokens.tokens?.access;
       this.storeToken(tokens.tokens.access);
+      if (tokens.tokens?.expiresIn) {
+        this.expiresAt = new Date(tokens.tokens?.expiresIn * 1000 + Date.now());
+        this.storeExpiresAt(this.expiresAt);
+        this.createResetTimer(tokens.tokens.expiresIn * 1000);
+      }
     }
     if (tokens.tokens?.refresh) {
       this.refreshToken = tokens.tokens.refresh;
       this.storeRefreshToken(tokens.tokens.refresh);
     }
-    this.expiresIn = tokens.tokens?.expiresIn;
   }
 
   private clearRefreshTimer() {
@@ -946,30 +963,36 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
   }
 
   /**
-   * @returns Expires In timestamp in milliseconds if valid and not expired, otherwise null
+   * Retrives the timeStamp exiresAt from local storage. This is used to determine when the token expires and when to attempt refreshes. If the client is closed and reopened, it will check the stored expiration time to determine if the token is still valid or if it needs to be refreshed immediately.
+   *
+   * **Browser Only**
+   * @returns The expiration time as a timestamp in milliseconds, or null if not found or invalid.
    */
-  private getStoredExpiration(): number | null {
-    const expiresAt = localStorage.getItem("oa_expires_at");
-    const now = new Date().getTime();
-    if (!expiresAt) return null;
-    const expiresAtNumber = parseInt(expiresAt);
-    return expiresAtNumber > now ? expiresAtNumber - now : null;
+  private getStoredExpiresAt(): Date | null {
+    const stored =
+      typeof window !== "undefined"
+        ? localStorage.getItem("oa_expires_at")
+        : null;
+    if (!stored) return null;
+    const expiresAt = parseInt(stored);
+    return isNaN(expiresAt) ? null : new Date(expiresAt);
   }
   /**
    * Store the expiration time as a timestamp in milliseconds in local storage. The client will use this to determine when to attempt token refreshes. If the client is closed and reopened, it will check the stored expiration time to determine if the token is still valid or if it needs to be refreshed immediately.
    *
    * **Browser Only**
    */
-  private storeExpiration(expiresIn: number) {
+  private storeExpiresAt(expiresAt: Date) {
     if (typeof window === "undefined") return;
-    localStorage.setItem(
-      "oa_expires_at",
-      (new Date().getTime() + expiresIn * 1000).toString(),
-    );
+    localStorage.setItem("oa_expires_at", expiresAt.getTime().toString());
   }
-  private removeStoredExpiration() {
+  private removeStoredExpiresAt() {
     if (typeof window === "undefined") return;
     localStorage.removeItem("oa_expires_at");
+  }
+  private triggerError(err: ErrorList) {
+    this.onError?.(err);
+    throw err;
   }
 }
 
