@@ -19,6 +19,7 @@ import {
 } from "../database/endpoints";
 import type { OTFUsersParsedType } from "../database/schema";
 import OpenAuthsterErrors, { type ErrorList } from "./errors";
+import { InvalidRefreshTokenError } from "@openauthjs/openauth/error";
 
 export const userEndpointURI = "/session" as const;
 
@@ -34,7 +35,7 @@ export const defaultSubjectSchema = createSubjects({
   user: v.object({
     id: v.string(),
     identifier: v.string(),
-    role: v.undefinedable(v.string()),
+    role: v.nullable(v.string()),
     data: v.any(),
     clientID: v.string(),
     provider: v.string(),
@@ -89,6 +90,12 @@ type AuthFlowCallbacks = {
    * @returns true for prceeding with the authentication flow, false to abort. Can also return a Promise resolving to true or false for asynchronous operations.
    */
   onQRAuthFlowStart: () => boolean | Promise<boolean>;
+  /**
+   * Event triggered when the token is expired and a refresh attempt as failed.
+   *
+   * The callback must return true for redirecting the user to the login page, false to manage it yourself.
+   */
+  onLoginRequired: () => boolean | Promise<boolean>;
 };
 
 export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
@@ -223,7 +230,9 @@ export class OpenAuthsterClient<
    * ```
    */
   async init() {
-    return this._init().then(this.triggerUpdate.bind(this));
+    return this._init()
+      .then(this.triggerUpdate.bind(this))
+      .then(() => this);
   }
   /**
    * Triggers an update by calling all registered initialization listeners. This can be used to notify any components or parts of the application that are listening for updates to re-render or fetch new data after changes to authentication state or session data. The listeners will be called in the order they were registered, and can be asynchronous if needed.
@@ -368,6 +377,8 @@ export class OpenAuthsterClient<
         new OpenAuthsterErrors.CallbackError("No challenge found in storage."),
       );
     }
+    this.removeRefreshToken();
+    this.removeToken();
     await this.openAuthClient
       .exchange(code, this.redirectURI, challenge.verifier)
       .then((tokens) => {
@@ -791,11 +802,11 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
       const expiresAt = this.expiresAt || this.getStoredExpiresAt();
       if (accessToken) {
         this.token = accessToken;
-        this.isAuthenticated = true;
       }
       if (refreshToken) {
         this.refreshToken = refreshToken;
       }
+      let isExpired = false;
       if (expiresAt) {
         this.expiresAt = expiresAt;
         if (expiresAt < new Date()) {
@@ -803,6 +814,9 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
         } else {
           this.createResetTimer(expiresAt.getTime() - Date.now());
         }
+      }
+      if (accessToken && !isExpired) {
+        this.isAuthenticated = true;
       }
     }
     this.isLoaded = true;
@@ -862,14 +876,20 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
 
   private triggerRefresh() {
     const refreshToken = this.refreshToken || this.getStoredRefreshToken();
-    const token = this.token || this.getStoredToken();
     if (!refreshToken) return;
     this.openAuthClient
-      .refresh(refreshToken, {
-        access: token || undefined,
-      })
-      .then((newTokens) => {
+      .refresh(refreshToken)
+      .then(async (newTokens) => {
         if (newTokens.err) {
+          if (newTokens.err instanceof InvalidRefreshTokenError) {
+            this.logout();
+            const shouldRedirect =
+              (await this.authFlowCallbacks.onLoginRequired?.()) ?? true;
+            if (shouldRedirect) {
+              this.login();
+            }
+            return;
+          }
           throw newTokens.err;
         }
         this.updateTokens(newTokens);

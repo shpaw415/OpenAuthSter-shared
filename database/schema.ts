@@ -192,6 +192,15 @@ export const webuiProjectTable = sqliteTable("openauth_webui", {
   expiry: integer(),
 });
 
+export const totpTable = sqliteTable("openauth_totp", {
+  user_id: text().primaryKey(),
+  secret: text().notNull(),
+  is_verified: integer({
+    mode: "boolean",
+  }).default(false),
+  created_at: text().notNull(),
+});
+
 export const WebUiProjectUserTable = OTFusersTable("openauth_webui");
 
 export function parseDBCopyTemplate<T extends CopyData>(data: any) {
