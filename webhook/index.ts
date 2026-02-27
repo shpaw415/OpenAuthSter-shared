@@ -7,6 +7,7 @@ import type {
 import { drizzle, eq, and } from "../database/drizzle";
 import { insertLog, WebHookTable } from "../database/schema";
 import { hashWithSecretKey, verifySignature } from "../security/encryption";
+import type { WebHooksPayloads } from "./types";
 
 export class WebHookUnAuthorizedError extends Error {
   constructor(message?: string) {
@@ -96,18 +97,25 @@ export class WebHook {
    *
    * **Internal use only**
    */
-  async trigger<DataType extends Record<string, any> = Record<string, any>>({
+  async trigger<
+    Event extends WebHookEvents,
+    DataType = Event extends keyof WebHooksPayloads
+      ? WebHooksPayloads[Event]
+      : Record<string, any>,
+  >({
     clientID,
     event,
     secret,
     data,
     log = false,
+    request,
   }: {
     clientID: string;
-    event: WebHookEvents;
+    event: Event;
     secret: string;
     data: DataType;
     log?: boolean;
+    request: Request;
   }) {
     const webhooks = await this.db
       .select()
@@ -120,12 +128,24 @@ export class WebHook {
     const res = await Promise.all(
       webhooks.map(this.parseWebHookConfig).map(async (webhook) => {
         try {
-          const fullPayload: WebHookPayLoad = {
+          const fullPayload: WebHookPayLoad<any, any> = {
             id: webhook.id,
             timestamp: new Date().toISOString(),
             clientID: webhook.clientID,
             event: webhook.event,
             data,
+            meta: {
+              ip:
+                request.headers.get("cf-connecting-ip") ||
+                request.headers.get("x-real-ip") ||
+                request.headers
+                  .get("x-forwarded-for")
+                  ?.split(",")
+                  .at(0)
+                  ?.trim() ||
+                "unknown",
+              userAgent: request.headers.get("user-agent") || "unknown",
+            },
           };
 
           const url = new URL(webhook.url);
@@ -192,13 +212,18 @@ export class WebHook {
   /**
    * Extracts the webhook payload from an incoming request after verifying its authenticity. It checks for a secret value in the request headers to ensure that the request is legitimate before parsing and returning the JSON payload. This method is intended to be used internally when handling incoming webhook requests.
    */
-  static async getWebHookPayloadFromRequest<
-    AwaitedEvent extends WebHookEvents = WebHookEvents,
-    AwaitedData extends Record<string, any> = Record<string, any>,
-  >(
+  static async getWebHookPayloadFromRequest<AwaitedEvent extends WebHookEvents>(
+    event: AwaitedEvent,
     request: Request,
     appSecret: string,
-  ): Promise<WebHookPayLoad<AwaitedData> & { event: AwaitedEvent }> {
+  ): Promise<
+    WebHookPayLoad<
+      AwaitedEvent,
+      AwaitedEvent extends keyof WebHooksPayloads
+        ? WebHooksPayloads[AwaitedEvent]
+        : Record<string, any>
+    >
+  > {
     const payload = await this.getPayLoadFromRequest(request);
     await this.ensureAuthenticity({
       request,
@@ -206,9 +231,12 @@ export class WebHook {
       data: payload,
     });
 
-    const parsedPayload = JSON.parse(payload) as WebHookPayLoad<AwaitedData> & {
-      event: AwaitedEvent;
-    };
+    const parsedPayload = JSON.parse(payload) as WebHookPayLoad<
+      AwaitedEvent,
+      AwaitedEvent extends keyof WebHooksPayloads
+        ? WebHooksPayloads[AwaitedEvent]
+        : Record<string, any>
+    >;
 
     this.ensureTimeStamp(parsedPayload);
     return parsedPayload;
@@ -275,7 +303,7 @@ export class WebHook {
     }
   }
 
-  private static ensureTimeStamp(payload: WebHookPayLoad) {
+  private static ensureTimeStamp(payload: WebHookPayLoad<any, {}>) {
     const payloadTime = new Date(payload.timestamp).getTime();
     const now = Date.now();
     const diff = Math.abs(now - payloadTime);
