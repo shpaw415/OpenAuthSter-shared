@@ -3,6 +3,7 @@ import type {
   Client,
   ExchangeSuccess,
   RefreshSuccess,
+  AuthorizeOptions,
 } from "@openauthjs/openauth/client";
 import * as v from "valibot";
 import type { InferOutput } from "valibot";
@@ -19,7 +20,6 @@ import {
 } from "../database/endpoints";
 import type { OTFUsersParsedType } from "../database/schema";
 import OpenAuthsterErrors, { type ErrorList } from "./errors";
-import { InvalidRefreshTokenError } from "@openauthjs/openauth/error";
 import { MFAmanager } from "./mfa";
 
 export const userEndpointURI = "/session" as const;
@@ -85,21 +85,31 @@ export type OpenAuthsterOptions = {
   secret?: string;
 };
 
-type AuthFlowCallbacks = {
+type AuthFlowCallbacks<
+  Public extends RequiredResponseData["public"],
+  Private extends RequiredResponseData["private"],
+> = {
   /**
    * Event triggered when the QR authentication flow is initiated. This can be used to perform a security mesure to verify that the user ia aware of the login attempt, for example by displaying a notification or requiring a confirmation before proceeding with the authentication process.
    * @returns true for prceeding with the authentication flow, false to abort. Can also return a Promise resolving to true or false for asynchronous operations.
    */
-  onQRAuthFlowStart: () => boolean | Promise<boolean>;
+  onQRAuthFlowStart: (
+    client: OpenAuthsterClient<Public, Private>,
+  ) => boolean | Promise<boolean>;
   /**
    * Event triggered when the token is expired and a refresh attempt as failed.
    *
    * The callback must return true for redirecting the user to the login page, false to manage it yourself.
    */
-  onLoginRequired: () => boolean | Promise<boolean>;
+  onLoginRequired: (
+    client: OpenAuthsterClient<Public, Private>,
+  ) => boolean | Promise<boolean>;
 };
 
-export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
+export type ClientProps<
+  PublicSessionData extends RequiredResponseData["public"],
+  PrivateSessionData extends RequiredResponseData["private"],
+> = {
   issuerURI: string;
   clientID: string;
   token?: string | null;
@@ -119,7 +129,9 @@ export type ClientProps<PublicSessionData = any, PrivateSessionData = any> = {
    * **Server side only.**
    */
   subject?: SubjectSchema;
-  authFlowCallbacks?: Partial<AuthFlowCallbacks>;
+  authFlowCallbacks?: Partial<
+    AuthFlowCallbacks<PublicSessionData, PrivateSessionData>
+  >;
   onError?: (err: ErrorList) => void;
 } & OpenAuthsterOptions;
 
@@ -187,11 +199,13 @@ export class OpenAuthsterClient<
     CallbackType<PublicSessionData, PrivateSessionData, UserInfo>
   > = new Map();
   private subject: SubjectSchema = defaultSubjectSchema;
-  private authFlowCallbacks: Partial<AuthFlowCallbacks>;
+  private authFlowCallbacks: Partial<
+    AuthFlowCallbacks<PublicSessionData, PrivateSessionData>
+  >;
   private onError?: (err: ErrorList) => void;
   public mfa: MFAmanager;
 
-  constructor(props: ClientProps) {
+  constructor(props: ClientProps<PublicSessionData, PrivateSessionData>) {
     this.issuerURI = props.issuerURI;
     this.openAuthClient = createClient({
       clientID: props.clientID,
@@ -338,17 +352,19 @@ export class OpenAuthsterClient<
    *
    * **Browser Only**
    */
-  async login(): Promise<void> {
-    return this.openAuthClient.authorize(this.redirectURI, "code").then((e) => {
-      this.setChallenge(e.challenge);
-      const authURL = new URL(e.url);
-      const currentURI = new URL(window.location.href);
-      const inviteId = currentURI.searchParams.get("invite_id");
-      inviteId && authURL.searchParams.set("invite_id", inviteId);
-      const copyID = currentURI.searchParams.get("copyID");
-      copyID && authURL.searchParams.set("copyID", copyID);
-      window.location.href = authURL.toString();
-    });
+  async login(options?: AuthorizeOptions): Promise<void> {
+    return this.openAuthClient
+      .authorize(this.redirectURI, "code", options)
+      .then((e) => {
+        this.setChallenge(e.challenge);
+        const authURL = new URL(e.url);
+        const currentURI = new URL(window.location.href);
+        const inviteId = currentURI.searchParams.get("invite_id");
+        inviteId && authURL.searchParams.set("invite_id", inviteId);
+        const copyID = currentURI.searchParams.get("copyID");
+        copyID && authURL.searchParams.set("copyID", copyID);
+        window.location.href = authURL.toString();
+      });
   }
 
   /**
@@ -545,7 +561,8 @@ import { TotpClient } from './totp';
   }
 
   /**
-   * Make Authenticated fetch request to an endpoint needing user authentication. Automatically adds the Bearer token to the Authorization header and X-Client-Secret header if secret is provided in client initialization.
+   * Make Authenticated fetch request to an endpoint needing user authentication.
+   * Automatically adds the Bearer token to the Authorization header and Secret Headers ( X-Client-Timestamp, X-Client-Signature ) if secret is provided in client initialization.
    *
    * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
    */
@@ -825,7 +842,7 @@ import { TotpClient } from './totp';
     return attemptRefresh().then((success) => {
       if (!success) {
         if (this.authFlowCallbacks.onLoginRequired) {
-          this.authFlowCallbacks.onLoginRequired();
+          this.authFlowCallbacks.onLoginRequired(this);
         } else {
           this.logout();
         }
@@ -888,7 +905,7 @@ import { TotpClient } from './totp';
   }
 
   private async QRauthFlowCallback(id: string | null) {
-    if (!(await this.authFlowCallbacks.onQRAuthFlowStart?.())) return;
+    if (!(await this.authFlowCallbacks.onQRAuthFlowStart?.(this))) return;
 
     if (!this.getStoredToken()) return this.login();
     if (!id) {
