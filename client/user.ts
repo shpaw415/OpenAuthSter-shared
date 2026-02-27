@@ -101,9 +101,7 @@ type AuthFlowCallbacks<
    *
    * The callback must return true for redirecting the user to the login page, false to manage it yourself.
    */
-  onLoginRequired: (
-    client: OpenAuthsterClient<Public, Private>,
-  ) => boolean | Promise<boolean>;
+  onLoginRequired: (client: OpenAuthsterClient<Public, Private>) => void;
 };
 
 export type ClientProps<
@@ -351,10 +349,16 @@ export class OpenAuthsterClient<
    * Initiates the login process by redirecting the user to the authorization URL provided by the OpenAuth client. The client will generate a PKCE challenge and store it in local storage before redirecting. After the user completes the login flow and is redirected back to the application, the `callback` method should be called to complete the authentication process and exchange the authorization code for tokens.
    *
    * **Browser Only**
+   *
+   * @returns A promise that resolves to the authorization URL the user is being redirected to. This can be used for custom handling of the login flow.
    */
-  async login(options?: AuthorizeOptions): Promise<void> {
+  async login(
+    options?: AuthorizeOptions & { autoNavigate?: boolean },
+  ): Promise<string> {
+    const { autoNavigate = true, ...authorizedOptions } = options || {};
+
     return this.openAuthClient
-      .authorize(this.redirectURI, "code", options)
+      .authorize(this.redirectURI, "code", authorizedOptions)
       .then((e) => {
         this.setChallenge(e.challenge);
         const authURL = new URL(e.url);
@@ -363,7 +367,10 @@ export class OpenAuthsterClient<
         inviteId && authURL.searchParams.set("invite_id", inviteId);
         const copyID = currentURI.searchParams.get("copyID");
         copyID && authURL.searchParams.set("copyID", copyID);
-        window.location.href = authURL.toString();
+        if (autoNavigate) {
+          window.location.href = authURL.toString();
+        }
+        return authURL.toString();
       });
   }
 
@@ -807,7 +814,7 @@ import { TotpClient } from './totp';
    *
    * **`Client Side`**
    */
-  public async triggerRefresh(): Promise<boolean> {
+  async triggerRefresh(): Promise<boolean> {
     const refreshToken = this.refreshToken || this.getStoredRefreshToken();
     let count = 0;
     if (!refreshToken) return Promise.resolve(false);
@@ -894,7 +901,10 @@ import { TotpClient } from './totp';
 
     if (this.expiresAt && this.expiresAt < new Date()) {
       const refreshed = await this.triggerRefresh();
-      if (!refreshed) return;
+      if (!refreshed) {
+        this.authFlowCallbacks.onLoginRequired?.(this);
+        return;
+      }
     } else if (this.expiresAt) {
       this.createResetTimer(this.expiresAt.getTime() - Date.now());
     }
