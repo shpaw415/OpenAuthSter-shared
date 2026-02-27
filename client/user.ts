@@ -796,18 +796,18 @@ import { TotpClient } from './totp';
     const inviteFlow = url.get("invite_id");
     const flow = url.get("flow") as FlowTypes | null;
 
-    if (flow === "qr") {
-      await this.authFlowCallback(url.get("id"));
-    }
-
     if (error) {
       this.handleAuthError(error, error_description);
-    } else if (inviteFlow) {
-      return this.login();
     } else if (this.getCode()) {
       await this.callback();
     } else {
       await this.restoreSession();
+    }
+
+    if (flow === "qr") {
+      await this.QRauthFlowCallback(url.get("id"));
+    } else if (inviteFlow) {
+      return this.login();
     }
 
     this.isLoaded = true;
@@ -838,7 +838,7 @@ import { TotpClient } from './totp';
     }
   }
 
-  private async authFlowCallback(id: string | null) {
+  private async QRauthFlowCallback(id: string | null) {
     if (!(await this.authFlowCallbacks.onQRAuthFlowStart?.())) return;
 
     if (!this.getStoredToken()) return this.login();
@@ -893,31 +893,54 @@ import { TotpClient } from './totp';
   private async triggerRefresh(): Promise<boolean> {
     const refreshToken = this.refreshToken || this.getStoredRefreshToken();
     if (!refreshToken) return Promise.resolve(false);
-    return this.openAuthClient
-      .refresh(refreshToken)
-      .then(async (newTokens) => {
-        if (newTokens.err) {
-          if (newTokens.err instanceof InvalidRefreshTokenError) {
-            this.logout();
-            const shouldRedirect =
-              (await this.authFlowCallbacks.onLoginRequired?.()) ?? true;
-            if (shouldRedirect) {
-              this.login();
+    const refresher = () =>
+      this.openAuthClient
+        .refresh(refreshToken)
+        .then(async (newTokens) => {
+          if (newTokens.err) {
+            if (newTokens.err instanceof InvalidRefreshTokenError) {
+              this.logout();
+              const shouldRedirect =
+                (await this.authFlowCallbacks.onLoginRequired?.()) ?? true;
+              if (shouldRedirect) {
+                this.login();
+              }
+              return false;
             }
-            return false;
+            throw newTokens.err;
           }
-          throw newTokens.err;
+          this.updateTokens(newTokens);
+          return true;
+        })
+        .catch((err) => {
+          console.warn("Failed to refresh token", err);
+          this.triggerError(
+            new OpenAuthsterErrors.RefreshError(
+              "Failed to refresh token.",
+              err,
+            ),
+          );
+          return false;
+        });
+    let count = 0;
+
+    const attemptRefresh = (): Promise<boolean> => {
+      return refresher().then((success) => {
+        if (!success && count < 3) {
+          count++;
+          const retryDelay = 2000 * count; // Exponential backoff: 2s, 4s, 6s
+          console.warn(
+            `Retrying token refresh in ${retryDelay / 1000} seconds...`,
+          );
+          return new Promise((resolve) => setTimeout(resolve, retryDelay)).then(
+            attemptRefresh,
+          );
         }
-        this.updateTokens(newTokens);
-        return true;
-      })
-      .catch((err) => {
-        console.warn("Failed to refresh token", err);
-        this.triggerError(
-          new OpenAuthsterErrors.RefreshError("Failed to refresh token.", err),
-        );
-        return false;
+        return success;
       });
+    };
+
+    return attemptRefresh();
   }
 
   /**
@@ -925,9 +948,12 @@ import { TotpClient } from './totp';
    */
   private createResetTimer(expiresInMs: number | null) {
     if (!expiresInMs) return;
-    const refresh = () => this.triggerRefresh();
     clearTimeout(this.refreshTimer);
-    this.refreshTimer = setTimeout(() => refresh(), expiresInMs - 60000); // Refresh 1 minute before expiry
+    const self = this;
+    this.refreshTimer = setTimeout(
+      () => this.triggerRefresh.bind(self),
+      expiresInMs,
+    );
   }
 
   private updateTokens(tokens: ExchangeSuccess | RefreshSuccess) {
