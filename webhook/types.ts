@@ -1,3 +1,5 @@
+import type { ProviderType } from "../";
+
 export type WebHookEvents = (typeof WebHookEventsList)[number];
 export const WebHookEventsList = [
   "registration_success",
@@ -95,22 +97,24 @@ export type WebHookPayLoad<
 export type WebHookPayloadCodeSent = WebHookPayLoad<
   "code_sent",
   {
-    claim: Record<string, any>;
     code: string;
+    method: "email" | "sms";
+    send_to: string;
   }
 >;
 
 export type WebHookPayloadLoginSuccess = WebHookPayLoad<
   "login_success",
   {
-    claim: Record<string, any>;
+    userID: string;
   }
 >;
 
 export type WebHookPayloadRegistrationSuccess = WebHookPayLoad<
   "registration_success",
   {
-    claim: Record<string, any>;
+    userID: string;
+    provider: ProviderType;
   }
 >;
 
@@ -125,28 +129,28 @@ export type WebHookPayloadPasswordReset = WebHookPayLoad<
 export type WebHookPayloadMFASetup = WebHookPayLoad<
   "mfa_setup",
   {
-    user_id: string;
+    userID: string;
   }
 >;
 
 export type WebHookPayloadMFAConfirmed = WebHookPayLoad<
   "mfa_confirmed",
   {
-    user_id: string;
+    userID: string;
   }
 >;
 
 export type WebHookPayloadMFAFailed = WebHookPayLoad<
   "mfa_failed",
   {
-    user_id: string;
+    userID: string;
   }
 >;
 
 export type WebHookPayloadMFARemoved = WebHookPayLoad<
   "mfa_removed",
   {
-    user_id: string;
+    userID: string;
   }
 >;
 
