@@ -1,3 +1,4 @@
+export type WebHookEvents = (typeof WebHookEventsList)[number];
 export const WebHookEventsList = [
   "registration_success",
   "login_success",
@@ -7,7 +8,43 @@ export const WebHookEventsList = [
   "totp_confirmed",
 ] as const;
 
-export type WebHookEvents = (typeof WebHookEventsList)[number];
+export const WebHookEventsDetails: Array<{
+  event: WebHookEvents;
+  description: string;
+  label: string;
+}> = [
+  {
+    event: "registration_success",
+    description: "Triggered when a user successfully registers.",
+    label: "Registration Success",
+  },
+  {
+    event: "login_success",
+    description: "Triggered when a user successfully logs in.",
+    label: "Login Success",
+  },
+  {
+    event: "password_reset",
+    description: "Triggered when a user resets their password.",
+    label: "Password Reset",
+  },
+  {
+    event: "code_sent",
+    description: "Triggered when a verification code is sent to a user.",
+    label: "Code Sent",
+  },
+  {
+    event: "totp_setup",
+    description:
+      "Triggered when a user sets up TOTP (Time-based One-Time Password).",
+    label: "TOTP Setup",
+  },
+  {
+    event: "totp_confirmed",
+    description: "Triggered when a user confirms TOTP setup.",
+    label: "TOTP Confirmed",
+  },
+];
 
 export type WebHookConfig = {
   url: string;
