@@ -785,6 +785,55 @@ import { TotpClient } from './totp';
       });
   }
 
+  /**
+   * Attempts to refresh the access token using the refresh token. If the refresh attempt fails, it will retry up to 3 times with exponential backoff (2s, 4s, 6s) between attempts. If all attempts fail, it will return false, indicating that the user needs to log in again. If a refresh is successful, it will update the client's token and expiration time accordingly.
+   *
+   * **`Client Side`**
+   */
+  public async triggerRefresh(): Promise<boolean> {
+    const refreshToken = this.refreshToken || this.getStoredRefreshToken();
+    let count = 0;
+    if (!refreshToken) return Promise.resolve(false);
+    const refresher = async () => {
+      try {
+        const refreshResult = await this.openAuthClient.refresh(refreshToken);
+        if (refreshResult.err) throw refreshResult.err;
+        this.updateTokens(refreshResult);
+        return true;
+      } catch (err) {
+        console.error("Token refresh failed:", err);
+        return false;
+      }
+    };
+
+    const attemptRefresh = async (): Promise<boolean> => {
+      return refresher().then((success) => {
+        if (!success && count < 3) {
+          count++;
+          const retryDelay = 2000 * count; // Exponential backoff: 2s, 4s, 6s
+          console.warn(
+            `Retrying token refresh in ${retryDelay / 1000} seconds...`,
+          );
+          return new Promise((resolve) => setTimeout(resolve, retryDelay)).then(
+            attemptRefresh,
+          );
+        }
+        return success;
+      });
+    };
+
+    return attemptRefresh().then((success) => {
+      if (!success) {
+        if (this.authFlowCallbacks.onLoginRequired) {
+          this.authFlowCallbacks.onLoginRequired();
+        } else {
+          this.logout();
+        }
+      }
+      return success;
+    });
+  }
+
   private verifyToken(token: string) {
     return this.openAuthClient.verify(this.subject, token);
   }
@@ -888,59 +937,6 @@ import { TotpClient } from './totp';
       user_identifier: string;
       userInfo: UserInfo;
     };
-  }
-
-  private async triggerRefresh(): Promise<boolean> {
-    const refreshToken = this.refreshToken || this.getStoredRefreshToken();
-    if (!refreshToken) return Promise.resolve(false);
-    const refresher = () =>
-      this.openAuthClient
-        .refresh(refreshToken)
-        .then(async (newTokens) => {
-          if (newTokens.err) {
-            if (newTokens.err instanceof InvalidRefreshTokenError) {
-              this.logout();
-              const shouldRedirect =
-                (await this.authFlowCallbacks.onLoginRequired?.()) ?? true;
-              if (shouldRedirect) {
-                this.login();
-              }
-              return false;
-            }
-            throw newTokens.err;
-          }
-          this.updateTokens(newTokens);
-          return true;
-        })
-        .catch((err) => {
-          console.warn("Failed to refresh token", err);
-          this.triggerError(
-            new OpenAuthsterErrors.RefreshError(
-              "Failed to refresh token.",
-              err,
-            ),
-          );
-          return false;
-        });
-    let count = 0;
-
-    const attemptRefresh = (): Promise<boolean> => {
-      return refresher().then((success) => {
-        if (!success && count < 3) {
-          count++;
-          const retryDelay = 2000 * count; // Exponential backoff: 2s, 4s, 6s
-          console.warn(
-            `Retrying token refresh in ${retryDelay / 1000} seconds...`,
-          );
-          return new Promise((resolve) => setTimeout(resolve, retryDelay)).then(
-            attemptRefresh,
-          );
-        }
-        return success;
-      });
-    };
-
-    return attemptRefresh();
   }
 
   /**
