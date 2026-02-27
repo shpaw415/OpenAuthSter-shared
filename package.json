@@ -29,6 +29,8 @@
     "./endpoints": "./database/endpoints.ts",
     "./client": "./client/index.ts",
     "./client/user": "./client/user.ts",
+    "./client/mfa": "./client/mfa/index.ts",
+    "./client/errors": "./client/errors.ts",
     "./utils": "./utils.ts",
     "./providers": "./providers/index.ts",
     "./providers/utils": "./providers/utils.ts",

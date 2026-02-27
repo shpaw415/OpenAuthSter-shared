@@ -5,7 +5,7 @@ import type {
   WebHookPayLoad,
 } from "./types";
 import { drizzle, eq, and } from "../database/drizzle";
-import { WebHookTable } from "../database/schema";
+import { insertLog, WebHookTable } from "../database/schema";
 import { hashWithSecretKey, verifySignature } from "../security/encryption";
 
 export class WebHookUnAuthorizedError extends Error {
@@ -17,9 +17,11 @@ export class WebHookUnAuthorizedError extends Error {
 
 export class WebHook {
   private db: ReturnType<typeof drizzle>;
+  private rawDB: D1Database;
 
   constructor({ db }: { db: D1Database }) {
     this.db = drizzle(db);
+    this.rawDB = db;
   }
 
   async register({
@@ -94,16 +96,18 @@ export class WebHook {
    *
    * **Internal use only**
    */
-  async trigger({
+  async trigger<DataType extends Record<string, any> = Record<string, any>>({
     clientID,
     event,
     secret,
     data,
+    log = false,
   }: {
     clientID: string;
     event: WebHookEvents;
     secret: string;
-    data: Record<string, any>;
+    data: DataType;
+    log?: boolean;
   }) {
     const webhooks = await this.db
       .select()
@@ -113,7 +117,7 @@ export class WebHook {
       )
       .all();
 
-    return Promise.all(
+    const res = await Promise.all(
       webhooks.map(this.parseWebHookConfig).map(async (webhook) => {
         try {
           const fullPayload: WebHookPayLoad = {
@@ -168,6 +172,22 @@ export class WebHook {
         }
       }),
     );
+
+    if (log) {
+      await insertLog({
+        type: "warning",
+        clientID,
+        message: `Triggered webhooks for event ${event}. Some requests may have failed.`,
+        database: this.rawDB,
+        context: {
+          event,
+          payload: data,
+          results: res,
+        },
+      });
+    }
+
+    return res;
   }
   /**
    * Extracts the webhook payload from an incoming request after verifying its authenticity. It checks for a secret value in the request headers to ensure that the request is legitimate before parsing and returning the JSON payload. This method is intended to be used internally when handling incoming webhook requests.

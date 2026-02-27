@@ -152,7 +152,9 @@ export interface PasswordProviderConfig extends BaseProviderConfig {
 // QR Code provider configuration
 export interface QRProviderConfig extends BaseProviderConfig {
   type: "qr";
-  data: {};
+  data: {
+    requireMFA: boolean;
+  };
 }
 
 // Union type for all provider configurations

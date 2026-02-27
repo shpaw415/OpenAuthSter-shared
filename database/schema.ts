@@ -194,12 +194,40 @@ export const webuiProjectTable = sqliteTable("openauth_webui", {
 
 export const totpTable = sqliteTable("openauth_totp", {
   user_id: text().primaryKey(),
+  clientID: text().notNull(),
   secret: text().notNull(),
   is_verified: integer({
     mode: "boolean",
   }).default(false),
+  backup_codes: text({
+    mode: "json",
+  }).notNull(),
   created_at: text().notNull(),
 });
+
+export const totpTokenTable = sqliteTable("openauth_totp_tokens", {
+  token: text().primaryKey(),
+  user_id: text().notNull(),
+  clientID: text().notNull(),
+  token_expires_at: text().notNull(),
+  created_at: text().notNull(),
+});
+
+export type TOTPTableType = Omit<
+  typeof totpTable.$inferSelect,
+  "created_at"
+> & {
+  created_at: Date;
+};
+
+export function parseDBTOTP(
+  data: typeof totpTable.$inferSelect,
+): TOTPTableType {
+  return {
+    ...data,
+    created_at: new Date(data.created_at),
+  } satisfies TOTPTableType;
+}
 
 export const WebUiProjectUserTable = OTFusersTable("openauth_webui");
 

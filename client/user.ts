@@ -20,6 +20,7 @@ import {
 import type { OTFUsersParsedType } from "../database/schema";
 import OpenAuthsterErrors, { type ErrorList } from "./errors";
 import { InvalidRefreshTokenError } from "@openauthjs/openauth/error";
+import { MFAmanager } from "./mfa";
 
 export const userEndpointURI = "/session" as const;
 
@@ -156,7 +157,7 @@ export class OpenAuthsterClient<
   UserInfo extends RequiredResponseData["userInfo"] = { provider: string },
 > {
   public openAuthClient: Client;
-  public expiresAt?: Date;
+  public expiresAt: Date | null = null;
   public isLoaded: boolean = false;
   public isAuthenticated: boolean = false;
   public data: {
@@ -188,6 +189,7 @@ export class OpenAuthsterClient<
   private subject: SubjectSchema = defaultSubjectSchema;
   private authFlowCallbacks: Partial<AuthFlowCallbacks>;
   private onError?: (err: ErrorList) => void;
+  public mfa: MFAmanager;
 
   constructor(props: ClientProps) {
     this.issuerURI = props.issuerURI;
@@ -206,6 +208,11 @@ export class OpenAuthsterClient<
     }
     this.authFlowCallbacks = props.authFlowCallbacks ?? {};
     this.onError = props.onError;
+    this.mfa = new MFAmanager({
+      issuerURI: this.issuerURI,
+      fetch: this.fetch.bind(this) as any,
+      onError: this.onError ?? (() => {}),
+    });
   }
   /**
    * Trigger client initialization. Must be called after the first page load, for SSR compatibility.
@@ -352,7 +359,7 @@ export class OpenAuthsterClient<
   logout() {
     this.token = null;
     this.refreshToken = null;
-    this.expiresAt = undefined;
+    this.expiresAt = null;
     this.clearRefreshTimer();
     this.removeToken();
     this.removeRefreshToken();
@@ -491,6 +498,7 @@ export class OpenAuthsterClient<
    * import { OpenAuthsterClient } from "openauthster-shared";
 import { OTFusersTable } from '../database/schema';
 import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../database/endpoints';
+import { TotpClient } from './totp';
    *
    * const client = new OpenAuthsterClient({
    *   issuerURI: "https://your-issuer.com",
@@ -541,7 +549,7 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
    *
    * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
    */
-  fetch(input: RequestInfo, init?: RequestInit) {
+  async fetch(input: RequestInfo, init?: RequestInit) {
     const isRequest = typeof input !== "string";
     const inputUrl = isRequest ? input.url : input;
 
@@ -573,7 +581,11 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
       mergedHeaders.set("Authorization", `Bearer ${this.token}`);
     }
     if (this.secret) {
-      mergedHeaders.set("X-Client-Secret", this.secret);
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const signature = await this.generateSignature(timestamp);
+
+      mergedHeaders.set("X-Client-Timestamp", timestamp);
+      mergedHeaders.set("X-Client-Signature", signature);
     }
 
     // 3. Apply caller-provided headers (highest priority)
@@ -784,42 +796,46 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
     const inviteFlow = url.get("invite_id");
     const flow = url.get("flow") as FlowTypes | null;
 
-    if (flow == "qr") await this.authFlowCallback(url.get("id"));
+    if (flow === "qr") {
+      await this.authFlowCallback(url.get("id"));
+    }
 
     if (error) {
-      console.error(`Error from authorization callback: `, {
-        error,
-        error_description,
-      });
-      this.error = { error, error_description: error_description || null };
+      this.handleAuthError(error, error_description);
     } else if (inviteFlow) {
       return this.login();
     } else if (this.getCode()) {
       await this.callback();
     } else {
-      const accessToken = this.token || this.getStoredToken();
-      const refreshToken = this.refreshToken || this.getStoredRefreshToken();
-      const expiresAt = this.expiresAt || this.getStoredExpiresAt();
-      if (accessToken) {
-        this.token = accessToken;
-      }
-      if (refreshToken) {
-        this.refreshToken = refreshToken;
-      }
-      let isExpired = false;
-      if (expiresAt) {
-        this.expiresAt = expiresAt;
-        if (expiresAt < new Date()) {
-          this.triggerRefresh();
-        } else {
-          this.createResetTimer(expiresAt.getTime() - Date.now());
-        }
-      }
-      if (accessToken && !isExpired) {
-        this.isAuthenticated = true;
-      }
+      await this.restoreSession();
     }
+
     this.isLoaded = true;
+  }
+
+  private handleAuthError(error: string, error_description: string | null) {
+    console.error("Error from authorization callback: ", {
+      error,
+      error_description,
+    });
+    this.error = { error, error_description };
+  }
+
+  private async restoreSession() {
+    this.token ??= this.getStoredToken();
+    this.refreshToken ??= this.getStoredRefreshToken();
+    this.expiresAt ??= this.getStoredExpiresAt();
+
+    if (this.expiresAt && this.expiresAt < new Date()) {
+      const refreshed = await this.triggerRefresh();
+      if (!refreshed) return;
+    } else if (this.expiresAt) {
+      this.createResetTimer(this.expiresAt.getTime() - Date.now());
+    }
+
+    if (this.token) {
+      this.isAuthenticated = true;
+    }
   }
 
   private async authFlowCallback(id: string | null) {
@@ -828,8 +844,8 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
     if (!this.getStoredToken()) return this.login();
     if (!id) {
       this.error = {
-        error: "No QR validation ID provided in URL.",
-        error_description: null,
+        error: "missing_qr_validation_id",
+        error_description: "No QR validation ID provided in URL.",
       };
       return this.triggerRefresh();
     }
@@ -874,10 +890,10 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
     };
   }
 
-  private triggerRefresh() {
+  private async triggerRefresh(): Promise<boolean> {
     const refreshToken = this.refreshToken || this.getStoredRefreshToken();
-    if (!refreshToken) return;
-    this.openAuthClient
+    if (!refreshToken) return Promise.resolve(false);
+    return this.openAuthClient
       .refresh(refreshToken)
       .then(async (newTokens) => {
         if (newTokens.err) {
@@ -888,17 +904,19 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
             if (shouldRedirect) {
               this.login();
             }
-            return;
+            return false;
           }
           throw newTokens.err;
         }
         this.updateTokens(newTokens);
+        return true;
       })
       .catch((err) => {
         console.warn("Failed to refresh token", err);
         this.triggerError(
           new OpenAuthsterErrors.RefreshError("Failed to refresh token.", err),
         );
+        return false;
       });
   }
 
@@ -1013,6 +1031,31 @@ import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../d
   private triggerError(err: ErrorList) {
     this.onError?.(err);
     throw err;
+  }
+  /**
+   * Helper interne pour générer la signature HMAC
+   */
+  private async generateSignature(timestamp: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(this.secret);
+    const messageData = encoder.encode(`${timestamp}:${this.clientID}`);
+
+    // Importation de la clé pour HMAC
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+
+    // Génération de la signature
+    const signature = await crypto.subtle.sign("HMAC", key, messageData);
+
+    // Conversion en Hexadécimal
+    return Array.from(new Uint8Array(signature))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
   }
 }
 

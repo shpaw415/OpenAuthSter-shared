@@ -31,15 +31,39 @@ export class TokenVerificationError extends Error {
   }
 }
 
+export class TotpError extends Error {
+  constructor(
+    message: string,
+    public type:
+      | "invalid_code"
+      | "totp_not_setup"
+      | "request_failed"
+      | "failed_to_generate_token"
+      | "invalid_token"
+      | "invalid_backup_code"
+      | "totp_token_expired"
+      | "totp_setup_expired"
+      | "totp_already_setup"
+      | "totp_token_not_found"
+      | "totp_backup_code_invalid",
+    public originalError?: Error,
+  ) {
+    super(message);
+    this.name = "TotpError";
+  }
+}
+
 export type ErrorList =
   | CallbackError
   | RefreshError
   | TokenVerificationError
   | InvalidRefreshTokenError
-  | InvalidRefreshTokenError;
+  | InvalidRefreshTokenError
+  | TotpError;
 
 export default {
   CallbackError,
   RefreshError,
   TokenVerificationError,
+  TotpError,
 };
