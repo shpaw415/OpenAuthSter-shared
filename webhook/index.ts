@@ -99,7 +99,7 @@ export class WebHook {
    */
   async trigger<
     Event extends WebHookEvents,
-    DataType = Event extends keyof WebHooksPayloads
+    DataType extends Event extends keyof WebHooksPayloads
       ? WebHooksPayloads[Event]
       : Record<string, any>,
   >({
@@ -125,7 +125,10 @@ export class WebHook {
       )
       .all();
 
-    const res = await Promise.all(
+    const res: Array<
+      | { success: true; id: string }
+      | { success: false; error: Error; id: string }
+    > = await Promise.all(
       webhooks.map(this.parseWebHookConfig).map(async (webhook) => {
         try {
           const fullPayload: WebHookPayLoad<any, any> = {
@@ -193,16 +196,22 @@ export class WebHook {
       }),
     );
 
-    if (log) {
+    const failedEvent = res
+      .filter((r) => !r.success)
+      .map((r) => ({
+        id: r.id,
+        error: r.error instanceof Error ? r.error.message : String(r.error),
+      }));
+    if (log && failedEvent.length > 0) {
       await insertLog({
         type: "warning",
         clientID,
-        message: `Triggered webhooks for event ${event}. Some requests may have failed.`,
+        message: `Triggered webhooks for event ${event}. Some requests have failed.`,
         database: this.rawDB,
         context: {
           event,
           payload: data,
-          results: res,
+          results: failedEvent,
         },
       });
     }

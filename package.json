@@ -15,6 +15,8 @@
   },
   "dependencies": {
     "@openauthjs/openauth": "^0.4.3",
+    "@simplewebauthn/browser": "^13.2.2",
+    "@simplewebauthn/server": "^13.2.3",
     "cloudflare": "^5.2.0",
     "mustache": "^4.2.0",
     "openauth-webui-shared-types": ".",

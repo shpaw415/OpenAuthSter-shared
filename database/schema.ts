@@ -312,3 +312,28 @@ export function insertLog({
       throw err;
     });
 }
+
+export const webauthnChallengesTable = sqliteTable("webauthn_challenges", {
+  id: text().primaryKey(),
+  user_id: text().notNull(),
+  clientID: text().notNull(),
+  challenge: text().notNull(),
+  expires_at: text().notNull(),
+  created_at: text().notNull(),
+});
+
+export const webauthnCredentialsTable = sqliteTable("webauthn_credentials", {
+  credential_id: text().primaryKey(),
+  user_id: text().notNull(),
+  clientID: text().notNull(),
+  public_key: text().notNull(),
+  counter: integer().notNull(),
+  device_type: text(),
+  backed_up: integer({
+    mode: "boolean",
+  }).default(false),
+  transports: text({
+    mode: "json",
+  }),
+  created_at: text().notNull(),
+});

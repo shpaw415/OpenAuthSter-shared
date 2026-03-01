@@ -8,8 +8,8 @@ export const WebHookEventsList = [
   "password_reset",
   "code_sent",
   "mfa_setup",
+  "mfa_update",
   "mfa_confirmed",
-  "mfa_failed",
   "mfa_removed",
 ] as const;
 
@@ -50,14 +50,14 @@ export const WebHookEventsDetails: Array<{
     label: "MFA Setup",
   },
   {
+    event: "mfa_update",
+    description: "Triggered when a user updates their MFA settings.",
+    label: "MFA Update",
+  },
+  {
     event: "mfa_confirmed",
     description: "Triggered when a user confirms MFA setup.",
     label: "MFA Confirmed",
-  },
-  {
-    event: "mfa_failed",
-    description: "Triggered when a user fails MFA verification.",
-    label: "MFA Failed",
   },
   {
     event: "mfa_removed",
@@ -98,7 +98,7 @@ export type WebHookPayloadCodeSent = WebHookPayLoad<
   "code_sent",
   {
     code: string;
-    method: "email" | "sms";
+    method: "email" | "phone";
     send_to: string;
   }
 >;
@@ -107,6 +107,7 @@ export type WebHookPayloadLoginSuccess = WebHookPayLoad<
   "login_success",
   {
     userID: string;
+    provider: ProviderType;
   }
 >;
 
@@ -140,17 +141,19 @@ export type WebHookPayloadMFAConfirmed = WebHookPayLoad<
   }
 >;
 
-export type WebHookPayloadMFAFailed = WebHookPayLoad<
-  "mfa_failed",
-  {
-    userID: string;
-  }
->;
-
 export type WebHookPayloadMFARemoved = WebHookPayLoad<
   "mfa_removed",
   {
     userID: string;
+    method: "token" | "backup_code";
+  }
+>;
+
+export type WebHookPayloadMFAUpdate = WebHookPayLoad<
+  "mfa_update",
+  {
+    userID: string;
+    method: "backup_code";
   }
 >;
 
@@ -161,6 +164,6 @@ export type WebHooksPayloads = {
   password_reset: WebHookPayloadPasswordReset["data"];
   mfa_setup: WebHookPayloadMFASetup["data"];
   mfa_confirmed: WebHookPayloadMFAConfirmed["data"];
-  mfa_failed: WebHookPayloadMFAFailed["data"];
   mfa_removed: WebHookPayloadMFARemoved["data"];
+  mfa_update: WebHookPayloadMFAUpdate["data"];
 };

@@ -1,0 +1,64 @@
+/* Styles déplacés de PasskeyUI */
+
+.passkey-container {
+  max-width: 28rem;
+  width: 100%;
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0; /* slate-200 */
+  text-align: center;
+}
+
+.passkey-spinner {
+  border-radius: 9999px;
+  height: 3rem;
+  width: 3rem;
+  border-bottom-width: 2px;
+  border-bottom-style: solid;
+  border-color: #2563eb; /* blue-600 */
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 1.5rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.passkey-title {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  color: #0f172a; /* slate-900 */
+  margin-bottom: 0.5rem;
+}
+
+.passkey-description {
+  color: #64748b; /* slate-500 */
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.passkey-error {
+  margin-top: 1rem;
+  background-color: #fef2f2; /* red-50 */
+  color: #b91c1c; /* red-700 */
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #fee2e2; /* red-100 */
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.hidden {
+  display: none;
+}

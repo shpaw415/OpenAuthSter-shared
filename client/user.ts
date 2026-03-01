@@ -21,6 +21,7 @@ import {
 import type { OTFUsersParsedType } from "../database/schema";
 import OpenAuthsterErrors, { type ErrorList } from "./errors";
 import { MFAmanager } from "./mfa";
+import { Passkey } from "./passkey";
 
 export const userEndpointURI = "/session" as const;
 
@@ -202,6 +203,7 @@ export class OpenAuthsterClient<
   >;
   private onError?: (err: ErrorList) => void;
   public mfa: MFAmanager;
+  public passkey: Passkey;
 
   constructor(props: ClientProps<PublicSessionData, PrivateSessionData>) {
     this.issuerURI = props.issuerURI;
@@ -225,6 +227,7 @@ export class OpenAuthsterClient<
       fetch: this.fetch.bind(this) as any,
       onError: this.onError ?? (() => {}),
     });
+    this.passkey = new Passkey(this.fetch.bind(this) as any, this.issuerURI);
   }
   /**
    * Trigger client initialization. Must be called after the first page load, for SSR compatibility.
@@ -522,6 +525,7 @@ export class OpenAuthsterClient<
 import { OTFusersTable } from '../database/schema';
 import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../database/endpoints';
 import { TotpClient } from './totp';
+import { Passkey } from './passkey';
    *
    * const client = new OpenAuthsterClient({
    *   issuerURI: "https://your-issuer.com",

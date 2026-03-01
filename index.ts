@@ -17,6 +17,7 @@ import type { Oauth2Config } from "@openauthjs/openauth/provider/oauth2";
 
 // custom Provider types
 import type { DEFAULT_COPY as QR_DEFAULT_COPY } from "./providers/custom/qr";
+import type { PASSKEY_DEFAULT_COPY } from "./providers/custom/passkey/index";
 
 export * from "./database/schema";
 
@@ -42,7 +43,8 @@ export type ProviderType =
   | "password"
   | "microsoft"
   | "jumpcloud"
-  | "qr";
+  | "qr"
+  | "passkey";
 
 // Provider category for UI organization
 export type ProviderCategory = "social" | "enterprise" | "custom" | "form";
@@ -157,6 +159,12 @@ export interface QRProviderConfig extends BaseProviderConfig {
   };
 }
 
+// WebAuthn provider configuration
+export interface WebAuthnProviderConfig extends BaseProviderConfig {
+  type: "passkey";
+  data: {};
+}
+
 // Union type for all provider configurations
 export type ProviderConfig =
   | OAuth2ProviderConfig
@@ -171,7 +179,8 @@ export type ProviderConfig =
   | AppleOIDCProviderConfig
   | AppleOAuthProviderConfig
   | SlackProviderConfig
-  | QRProviderConfig;
+  | QRProviderConfig
+  | WebAuthnProviderConfig;
 
 // Provider metadata for UI
 export interface ProviderMeta {
@@ -335,6 +344,13 @@ export const PROVIDER_REGISTRY: ProviderMeta[] = [
     description:
       "Authenticate by scanning a QR code with your authenticated mobile device",
   },
+  {
+    type: "passkey",
+    name: "WebAuthn Passkey",
+    category: "custom",
+    icon: "🔑",
+    description: "Sign in with WebAuthn Passkey",
+  },
 ];
 
 // Helper function to get provider metadata
@@ -347,88 +363,6 @@ export function getProvidersByCategory(
   category: ProviderCategory,
 ): ProviderMeta[] {
   return PROVIDER_REGISTRY.filter((p) => p.category === category);
-}
-
-// Create default provider config
-export function createDefaultProviderConfig(
-  type: ProviderType,
-): ProviderConfig {
-  const base: BaseProviderConfig = {
-    type,
-    enabled: false,
-  };
-
-  switch (type) {
-    case "code":
-      return {
-        ...base,
-        type: "code",
-        data: {
-          length: 6,
-          mode: "email",
-          sendCode: async (claim, code) => console.log({ claim, code }),
-          request: undefined as any,
-        },
-      } satisfies CodeProviderConfig;
-    case "password":
-      return {
-        ...base,
-        type: "password",
-        data: {
-          minLength: 8,
-          requireUppercase: true,
-          requireNumber: true,
-          requireSpecialChar: false,
-        },
-      } as PasswordProviderConfig;
-    case "oidc":
-      return {
-        ...base,
-        type: "oidc",
-        data: {
-          clientID: "",
-          issuer: "",
-          scopes: ["openid", "email", "profile"],
-        },
-      } as OIDCProviderConfig;
-    case "oauth":
-      return {
-        ...base,
-        type: "oauth",
-        data: {
-          clientID: "",
-          clientSecret: "",
-          authorizationEndpoint: "",
-          tokenEndpoint: "",
-          scopes: [],
-          endpoint: { authorization: "", token: "" },
-          userInfoGetter: {
-            url: "",
-            method: "GET",
-            headers: {},
-            idPath: "email",
-          },
-        },
-      } as GenericOAuthProviderConfig;
-    case "keycloak":
-      return {
-        ...base,
-        type: "keycloak",
-        data: {
-          clientID: "",
-          clientSecret: "",
-          realm: "",
-          baseUrl: "",
-          scopes: ["openid", "email", "profile"],
-        },
-      } as KeycloakProviderConfig;
-    default:
-      return {
-        ...base,
-        type,
-        data: { clientID: "", clientSecret: "", scopes: [] },
-      } as OAuth2ProviderConfig;
-  }
 }
 
 // Project data for email templates and customization
@@ -468,12 +402,14 @@ export type Project = EnsureKeys<
 export type CopyData =
   | CodeUICopy
   | PasswordUIOptions["copy"]
-  | typeof QR_DEFAULT_COPY;
+  | typeof QR_DEFAULT_COPY
+  | typeof PASSKEY_DEFAULT_COPY;
 
 export type CopyDataSelection = {
   password: PasswordUIOptions["copy"];
   code: CodeUICopy;
   qr: typeof QR_DEFAULT_COPY;
+  passkey: typeof PASSKEY_DEFAULT_COPY;
 };
 
 // Global configuration for external integrations

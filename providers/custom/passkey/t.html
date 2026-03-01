@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authenticate with Passkey</title>
+  </head>
+  <body
+    style="
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    "
+  >
+    <div id="status">Starting authentication...</div>
+    <script>
+      const options = ${JSON.stringify(options)};
+      const clientID = "${clientID}";
+      const identifier = "${identifier}";
+
+      function base64UrlToUint8Array(base64Url) {
+          const padding = '='.repeat((4 - base64Url.length % 4) % 4);
+          const base64 = (base64Url + padding)
+              .replace(/\\-/g, '+')
+              .replace(/_/g, '/');
+          const rawData = window.atob(base64);
+          const outputArray = new Uint8Array(rawData.length);
+          for (let i = 0; i < rawData.length; ++i) {
+              outputArray[i] = rawData.charCodeAt(i);
+          }
+          return outputArray;
+      }
+
+      function bufferToBase64Url(buffer) {
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+              binary += String.fromCharCode(bytes[i]);
+          }
+          return window.btoa(binary)
+              .replace(/\\+/g, '-')
+              .replace(/\\//g, '_')
+              .replace(/=/g, '');
+      }
+
+      async function start() {
+          try {
+              // Convert challenge and allowCredentials ids
+              options.challenge = base64UrlToUint8Array(options.challenge);
+              if (options.allowCredentials) {
+                  options.allowCredentials.forEach(cred => {
+                      cred.id = base64UrlToUint8Array(cred.id);
+                  });
+              }
+
+              const credential = await navigator.credentials.get({ publicKey: options });
+
+              const response = {
+                  id: credential.id,
+                  rawId: bufferToBase64Url(credential.rawId),
+                  type: credential.type,
+                  response: {
+                      authenticatorData: bufferToBase64Url(credential.response.authenticatorData),
+                      clientDataJSON: bufferToBase64Url(credential.response.clientDataJSON),
+                      signature: bufferToBase64Url(credential.response.signature),
+                      userHandle: credential.response.userHandle ? bufferToBase64Url(credential.response.userHandle) : null
+                  },
+                  clientExtensionResults: credential.getClientExtensionResults()
+              };
+
+              const res = await fetch(`./callback?client_id=${clientID}&identifier=${identifier}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(response)
+              });
+
+              if (res.ok) {
+                 const json = await res.json();
+                 if (json.redirect) {
+                     window.location.href = json.redirect;
+                 } else {
+                     window.location.href = res.url;
+                 }
+              } else {
+                  const error = await res.text();
+                  document.getElementById('status').innerText = 'Authentication failed: ' + error;
+              }
+          } catch (err) {
+              console.error(err);
+              document.getElementById('status').innerText = 'Error: ' + err.message;
+          }
+      }
+
+      start();
+    </script>
+  </body>
+</html>
