@@ -25,7 +25,7 @@ import { Passkey } from "./passkey";
 
 export const userEndpointURI = "/session" as const;
 
-export type FlowTypes = "invite" | "qr";
+export type FlowTypes = "invite" | "qr" | "passkey";
 
 export const UserEndpointValidation = v.object({
   type: v.union([v.literal("public"), v.literal("private")]),
@@ -884,7 +884,11 @@ import { Passkey } from './passkey';
     if (flow === "qr") {
       await this.QRauthFlowCallback(url.get("id"));
     } else if (inviteFlow) {
-      return this.login();
+      return this.login({
+        autoNavigate: true,
+      });
+    } else if (flow === "passkey") {
+      return this.passkey.flowCallback();
     }
 
     this.isLoaded = true;
