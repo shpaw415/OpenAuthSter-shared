@@ -1,23 +1,48 @@
-import { startRegistration } from "@simplewebauthn/browser";
-import type { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/browser";
+import {
+  startRegistration,
+  startAuthentication,
+} from "@simplewebauthn/browser";
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from "@simplewebauthn/browser";
+import type { OpenAuthsterClient } from "./user";
+export type PasskeyRegistrationOptions = {
+  userDisplayName?: string;
+  flow?: "app" | "auth";
+};
 
 export class Passkey {
   constructor(
-    private fetch: typeof window.fetch,
     private issuerURI: string,
+    private client: OpenAuthsterClient,
   ) {}
 
-  async registerPasskey(): Promise<{
+  async register(options?: PasskeyRegistrationOptions) {
+    const { flow = "app" } = options || {};
+    if (flow === "app") {
+      return this.registerPasskeyAppFlow(options);
+    } else {
+      throw new Error("Not implemented yet");
+    }
+  }
+
+  private async registerPasskeyAppFlow(
+    options?: PasskeyRegistrationOptions,
+  ): Promise<{
     success: boolean;
     message?: string;
     error?: string;
   }> {
+    const { userDisplayName } = options || {};
+
     try {
       // Étape 1 : Demander le "challenge" et les options à ton Worker
-      const startRes = await this.fetch(
+      const startRes = await this.client.fetch(
         `${this.issuerURI}/passkey/register/start`,
         {
           method: "POST",
+          body: JSON.stringify({ userDisplayName }),
         },
       );
 
@@ -58,7 +83,7 @@ export class Passkey {
       }
 
       // Étape 3 : Envoyer la signature cryptographique au serveur pour validation finale
-      const finishRes = await this.fetch(
+      const finishRes = await this.client.fetch(
         `${this.issuerURI}/passkey/register/finish`,
         {
           method: "POST",
@@ -87,5 +112,53 @@ export class Passkey {
         error: error.message || "Une erreur inattendue est survenue.",
       };
     }
+  }
+  /**
+   * Trigger the Passkey login flow. This will redirect the user to the OS-level authentication prompt.
+   */
+  login() {
+    this.client.login({
+      provider: "passkey",
+    });
+  }
+  async flowCallback() {
+    const challengeData = (await this.createFetch("/generate_challenge", {
+      credentials: "include",
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(await r.text());
+      return await r.json();
+    })) as {
+      challenge: { id: string; challenge: string; expires_at: string };
+      options: PublicKeyCredentialRequestOptionsJSON;
+    };
+
+    const res = await startAuthentication({
+      optionsJSON: challengeData.options,
+    });
+    const verifyRes = await this.createFetch(
+      `/authorize/token/${challengeData.challenge.id}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(res),
+      },
+    );
+    if (!verifyRes.ok) {
+      const errorText = await verifyRes.text();
+      throw new Error(errorText || "Authentication failed");
+    }
+
+    const token_access = (await verifyRes.json()) as {
+      token: string;
+      expires_at: string;
+    };
+
+    window.location.href = `${this.issuerURI}/passkey/callback/${token_access.token}`;
+  }
+
+  private createFetch(endpoint: string, options?: RequestInit) {
+    const url = new URL(`${this.issuerURI}/passkey${endpoint}`);
+    return this.client.fetch(url.toString(), options);
   }
 }

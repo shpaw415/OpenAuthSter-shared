@@ -315,7 +315,6 @@ export function insertLog({
 
 export const webauthnChallengesTable = sqliteTable("webauthn_challenges", {
   id: text().primaryKey(),
-  user_id: text().notNull(),
   clientID: text().notNull(),
   challenge: text().notNull(),
   expires_at: text().notNull(),
@@ -335,5 +334,13 @@ export const webauthnCredentialsTable = sqliteTable("webauthn_credentials", {
   transports: text({
     mode: "json",
   }),
+  created_at: text().notNull(),
+});
+
+export const webAuthnTokenAccessTable = sqliteTable("webauthn_token_access", {
+  token: text().primaryKey(),
+  user_id: text().notNull(),
+  clientID: text().notNull(),
+  expires_at: text().notNull(),
   created_at: text().notNull(),
 });

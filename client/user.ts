@@ -227,7 +227,7 @@ export class OpenAuthsterClient<
       fetch: this.fetch.bind(this) as any,
       onError: this.onError ?? (() => {}),
     });
-    this.passkey = new Passkey(this.fetch.bind(this) as any, this.issuerURI);
+    this.passkey = new Passkey(this.issuerURI, this as OpenAuthsterClient);
   }
   /**
    * Trigger client initialization. Must be called after the first page load, for SSR compatibility.

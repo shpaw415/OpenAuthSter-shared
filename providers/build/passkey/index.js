@@ -3,25 +3,43 @@ var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+function __accessProp(key) {
+  return this[key];
+}
+var __toESMCache_node;
+var __toESMCache_esm;
 var __toESM = (mod, isNodeMode, target) => {
+  var canCache = mod != null && typeof mod === "object";
+  if (canCache) {
+    var cache = isNodeMode ? __toESMCache_node ??= new WeakMap : __toESMCache_esm ??= new WeakMap;
+    var cached = cache.get(mod);
+    if (cached)
+      return cached;
+  }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
   const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
   for (let key of __getOwnPropNames(mod))
     if (!__hasOwnProp.call(to, key))
       __defProp(to, key, {
-        get: () => mod[key],
+        get: __accessProp.bind(mod, key),
         enumerable: true
       });
+  if (canCache)
+    cache.set(mod, to);
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: true,
       configurable: true,
-      set: (newValue) => all[name] = () => newValue
+      set: __exportSetter.bind(all, name)
     });
 };
 
@@ -11439,7 +11457,7 @@ var DNS = "dns";
 var DN = "dn";
 var EMAIL = "email";
 var IP = "ip";
-var URL = "url";
+var URL2 = "url";
 var GUID = "guid";
 var UPN = "upn";
 var REGISTERED_ID = "id";
@@ -11495,7 +11513,7 @@ class GeneralName3 extends AsnData {
           });
           break;
         }
-        case URL:
+        case URL2:
           name2 = new GeneralName({ uniformResourceIdentifier: args[1] });
           break;
         default:
@@ -11519,7 +11537,7 @@ class GeneralName3 extends AsnData {
       this.type = IP;
       this.value = asn.iPAddress;
     } else if (asn.uniformResourceIdentifier != null) {
-      this.type = URL;
+      this.type = URL2;
       this.value = asn.uniformResourceIdentifier;
     } else if (asn.registeredID != null) {
       this.type = REGISTERED_ID;
@@ -11566,7 +11584,7 @@ class GeneralName3 extends AsnData {
       case IP:
       case REGISTERED_ID:
       case UPN:
-      case URL:
+      case URL2:
         type = this.type.toUpperCase();
         break;
       case EMAIL:
@@ -19140,7 +19158,6 @@ var LogsTable = sqliteTable("openauth_webui_logs", {
 });
 var webauthnChallengesTable = sqliteTable("webauthn_challenges", {
   id: text().primaryKey(),
-  user_id: text().notNull(),
   clientID: text().notNull(),
   challenge: text().notNull(),
   expires_at: text().notNull(),
@@ -19159,6 +19176,13 @@ var webauthnCredentialsTable = sqliteTable("webauthn_credentials", {
   transports: text({
     mode: "json"
   }),
+  created_at: text().notNull()
+});
+var webAuthnTokenAccessTable = sqliteTable("webauthn_token_access", {
+  token: text().primaryKey(),
+  user_id: text().notNull(),
+  clientID: text().notNull(),
+  expires_at: text().notNull(),
   created_at: text().notNull()
 });
 
@@ -21638,25 +21662,43 @@ var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+function __accessProp(key) {
+  return this[key];
+}
+var __toESMCache_node;
+var __toESMCache_esm;
 var __toESM = (mod, isNodeMode, target) => {
+  var canCache = mod != null && typeof mod === "object";
+  if (canCache) {
+    var cache = isNodeMode ? __toESMCache_node ??= new WeakMap : __toESMCache_esm ??= new WeakMap;
+    var cached = cache.get(mod);
+    if (cached)
+      return cached;
+  }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
   const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
   for (let key of __getOwnPropNames(mod))
     if (!__hasOwnProp.call(to, key))
       __defProp(to, key, {
-        get: () => mod[key],
+        get: __accessProp.bind(mod, key),
         enumerable: true
       });
+  if (canCache)
+    cache.set(mod, to);
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: true,
       configurable: true,
-      set: (newValue) => all[name] = () => newValue
+      set: __exportSetter.bind(all, name)
     });
 };
 
@@ -21897,12 +21939,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     assertionInput.value = JSON.stringify(assertion);
     form.submit();
   } catch (error) {
-    console.error(error);
-    errorDiv.classList.remove("hidden");
-    if (error.name === "NotAllowedError") {
-      errorDiv.innerText = "Authentification annulée. Veuillez rafraîchir la page pour réessayer.";
-    } else {
-      errorDiv.innerText = "L'authentification a échoué. Votre appareil n'est peut-être pas compatible.";
+    if (error instanceof Error) {
+      console.error(error);
+      errorDiv.classList.remove("hidden");
+      if (error.name === "NotAllowedError") {
+        errorDiv.innerText = "Authentification annulée. Veuillez rafraîchir la page pour réessayer.";
+      } else {
+        errorDiv.innerText = "L'authentification a échoué. Votre appareil n'est peut-être pas compatible.";
+      }
     }
   }
 });
@@ -21922,112 +21966,254 @@ function base64UrlToUint8Array(base64Url) {
   }
   return outputArray;
 }
+var challenges = {
+  async generate({
+    db,
+    client_id,
+    options
+  }) {
+    const _db = drizzle(db);
+    const opt = await generateAuthenticationOptions({
+      ...options,
+      userVerification: "preferred",
+      challenge: crypto.randomUUID()
+    });
+    const challengeData = await _db.insert(webauthnChallengesTable).values({
+      id: crypto.randomUUID(),
+      clientID: client_id,
+      challenge: opt.challenge,
+      expires_at: new Date(Date.now() + 60000 * 5).toISOString(),
+      created_at: new Date().toISOString()
+    }).returning({
+      id: webauthnChallengesTable.id,
+      challenge: webauthnChallengesTable.challenge,
+      expires_at: webauthnChallengesTable.expires_at
+    }).get();
+    return {
+      challenge: challengeData,
+      options: opt
+    };
+  },
+  async retrieve({
+    client_id,
+    challenge_id,
+    db
+  }) {
+    const _db = drizzle(db);
+    const _challenge = await _db.select().from(webauthnChallengesTable).where(and(eq(webauthnChallengesTable.clientID, client_id), eq(webauthnChallengesTable.id, challenge_id))).orderBy(desc(webauthnChallengesTable.created_at)).limit(1).get();
+    if (!_challenge || new Date(_challenge.expires_at) < new Date) {
+      return null;
+    }
+    return {
+      challenge: _challenge.challenge,
+      delete() {
+        return _db.delete(webauthnChallengesTable).where(eq(webauthnChallengesTable.id, _challenge.id)).run();
+      }
+    };
+  }
+};
+var credentials = {
+  async retrive({
+    db,
+    credsId,
+    client_id
+  }) {
+    const _db = drizzle(db);
+    const creds = await _db.select().from(webauthnCredentialsTable).where(and(eq(webauthnCredentialsTable.credential_id, credsId), eq(webauthnCredentialsTable.clientID, client_id))).get().then((res) => res ? {
+      ...res,
+      public_key: new Uint8Array(base64UrlToUint8Array(res.public_key))
+    } : null);
+    if (!creds)
+      return null;
+    return {
+      creds,
+      updateCounter(newCounter) {
+        return _db.update(webauthnCredentialsTable).set({ counter: newCounter }).where(and(eq(webauthnCredentialsTable.credential_id, credsId), eq(webauthnCredentialsTable.clientID, client_id))).run();
+      },
+      async verify({
+        challenge,
+        payload,
+        origin,
+        rpID
+      }) {
+        if (!creds)
+          return Promise.reject(new Error("Credential not found"));
+        const verified = await verifyAuthenticationResponse({
+          response: payload,
+          expectedChallenge: challenge,
+          expectedOrigin: origin,
+          expectedRPID: rpID,
+          credential: {
+            publicKey: creds.public_key,
+            id: creds.credential_id,
+            counter: creds.counter,
+            transports: creds.transports ? creds.transports : undefined
+          },
+          requireUserVerification: true
+        });
+        if (!verified.verified) {
+          return null;
+        }
+        return {
+          verified,
+          getUser() {
+            return _db.select().from(OTFusersTable(client_id)).where(eq(OTFusersTable(client_id).id, creds.user_id)).get();
+          }
+        };
+      }
+    };
+  }
+};
+var TokenAccess = {
+  async generate({
+    db,
+    user_id,
+    client_id
+  }) {
+    const token = crypto.randomUUID();
+    const expires_at = new Date(Date.now() + 1000 * 60 * 5).toISOString();
+    const created_at = new Date().toISOString();
+    const createdToken = (await drizzle(db).insert(webAuthnTokenAccessTable).values({
+      token,
+      user_id,
+      clientID: client_id,
+      expires_at,
+      created_at
+    }).returning({
+      token: webAuthnTokenAccessTable.token,
+      expires_at: webAuthnTokenAccessTable.expires_at
+    })).at(0);
+    if (!createdToken) {
+      throw new Error("Failed to create token");
+    }
+    return createdToken;
+  },
+  async retrive({ db, token }) {
+    const record = await drizzle(db).select().from(webAuthnTokenAccessTable).where(eq(webAuthnTokenAccessTable.token, token)).get();
+    if (!record || new Date(record.expires_at).getTime() < new Date().getTime()) {
+      return null;
+    }
+    return {
+      token: record,
+      delete() {
+        return drizzle(db).delete(webAuthnTokenAccessTable).where(eq(webAuthnTokenAccessTable.token, token)).run();
+      }
+    };
+  }
+};
 function WebAuthnProvider(config) {
-  const db = drizzle(config.db);
   return {
     type: "passkey",
     init(routes, ctx) {
       routes.get("/authorize", jsxRenderer(({ children }) => Layout({ children })));
       routes.get("/authorize", async (c) => {
-        const userID = c.req.query("user_id");
-        const clientID = c.req.query("client_id");
-        if (!userID || !clientID) {
-          return c.text("User ID and client_id are required", 400);
+        const authorizationCookie = await ctx.get(c, "authorization");
+        if (!authorizationCookie)
+          return c.text("Unauthorized", 401);
+        const flow = config.flow ?? "app";
+        if (flow == "app") {
+          const url = new URL(authorizationCookie.redirect_uri);
+          url.searchParams.set("flow", "passkey");
+          return c.redirect(url.toString());
         }
-        const dbUserTable = OTFusersTable(clientID);
-        let user;
-        try {
-          const result = await db.select().from(dbUserTable).where(eq(dbUserTable.id, userID)).limit(1);
-          user = result[0];
-        } catch (e) {
-          console.error(e);
-          return c.text("Error querying user", 500);
-        }
-        if (!user) {
-          return c.text("User not found", 404);
-        }
-        const userCredentials = await db.select().from(webauthnCredentialsTable).where(and(eq(webauthnCredentialsTable.user_id, user.id), eq(webauthnCredentialsTable.clientID, clientID)));
-        if (userCredentials.length === 0) {
-          return c.text("No passkeys registered for this user", 400);
-        }
-        const options = await generateAuthenticationOptions({
-          rpID: config.rpID,
-          allowCredentials: userCredentials.map((cred) => ({
-            id: cred.credential_id,
-            type: "public-key",
-            transports: cred.transports ? cred.transports : undefined
-          }))
-        });
-        await db.insert(webauthnChallengesTable).values({
-          id: crypto.randomUUID(),
-          user_id: user.id,
-          clientID,
-          challenge: options.challenge,
-          expires_at: new Date(Date.now() + 60000 * 5).toISOString(),
-          created_at: new Date().toISOString()
-        });
-        return c.html(config.UI({
-          callbackUrl: `/passkey/callback?user_id=${userID}&client_id=${clientID}`,
-          options
-        }));
-      });
-      routes.post("/callback", async (c) => {
-        const payload = await c.req.json();
-        const userID = c.req.query("user_id");
-        const clientID = c.req.query("client_id");
-        if (!userID || !clientID)
-          return c.json({ error: "Missing user_id or client_id" }, 400);
-        const dbUserTable = OTFusersTable(clientID);
-        const user = await db.select().from(dbUserTable).where(eq(dbUserTable.id, userID)).get();
-        if (!user)
-          return c.json({ error: "User not found" }, 404);
-        const challenges = await db.select().from(webauthnChallengesTable).where(and(eq(webauthnChallengesTable.user_id, user.id), eq(webauthnChallengesTable.clientID, clientID))).orderBy(desc(webauthnChallengesTable.created_at)).limit(1);
-        const challengeRecord = challenges[0];
-        if (!challengeRecord || new Date(challengeRecord.expires_at) < new Date) {
-          return c.json({ error: "Challenge expired or not found" }, 400);
-        }
-        const credId = payload.id;
-        const [storedCred] = await db.select({
-          publicKey: webauthnCredentialsTable.public_key,
-          counter: webauthnCredentialsTable.counter,
-          transports: webauthnCredentialsTable.transports
-        }).from(webauthnCredentialsTable).where(eq(webauthnCredentialsTable.credential_id, credId));
-        if (!storedCred) {
-          return c.json({ error: "Credential not found" }, 400);
-        }
-        let verification;
-        try {
-          const publicKey = base64UrlToUint8Array(storedCred.publicKey);
-          verification = await verifyAuthenticationResponse({
-            response: payload,
-            expectedChallenge: challengeRecord.challenge,
-            expectedOrigin: config.origin,
-            expectedRPID: config.rpID,
-            credential: {
-              publicKey: new Uint8Array(publicKey),
-              id: credId,
-              counter: storedCred.counter,
-              transports: storedCred.transports ? storedCred.transports : undefined
-            },
-            requireUserVerification: true
-          });
-        } catch (error) {
-          console.error("Verification error:", error);
-          return c.json({ error: "Verification failed" }, 400);
-        }
-        if (verification.verified) {
-          await db.update(webauthnCredentialsTable).set({
-            counter: verification.authenticationInfo.newCounter
-          }).where(eq(webauthnCredentialsTable.credential_id, credId));
-          await db.delete(webauthnChallengesTable).where(eq(webauthnChallengesTable.id, challengeRecord.id));
-          return ctx.success(c, { id: user.id });
-        } else {
-          return c.json({ error: "Invalid signature" }, 400);
-        }
+        return c.text("Passkey provider authorization endpoint");
       });
       routes.get("/client.js", async (c) => c.newResponse(client_default, 200, {
         "Content-Type": "application/javascript"
       }));
+      routes.get("/generate_challenge", async (c) => {
+        const env = c.env;
+        const authorizationCookie = await ctx.get(c, "authorization");
+        if (!authorizationCookie) {
+          return c.json({ error: "Unauthorized" }, 401);
+        }
+        try {
+          const challengeEntry = await challenges.generate({
+            db: env.AUTH_DB,
+            client_id: authorizationCookie.client_id,
+            options: {
+              rpID: config.rpID
+            }
+          });
+          return c.json(challengeEntry);
+        } catch (e) {
+          console.error(e);
+          return c.json({ error: "Error generating challenge" }, 500);
+        }
+      });
+      routes.post("/authorize/token/:challenge_id", async (c) => {
+        const env = c.env;
+        const payload = await c.req.json();
+        const challenge_id = c.req.param("challenge_id");
+        if (!challenge_id) {
+          return c.text("Challenge ID is required", 400);
+        }
+        const authorizationCookie = await ctx.get(c, "authorization");
+        if (!authorizationCookie) {
+          return c.json({ error: "Unauthorized" }, 401);
+        }
+        const challengeEntry = await challenges.retrieve({
+          db: env.AUTH_DB,
+          challenge_id,
+          client_id: authorizationCookie.client_id
+        });
+        if (!challengeEntry) {
+          return c.json({ error: "Invalid challenge" }, 400);
+        }
+        const creds = await credentials.retrive({
+          db: env.AUTH_DB,
+          credsId: payload.id,
+          client_id: authorizationCookie.client_id
+        });
+        if (!creds)
+          return c.json({ error: "Credential not found" }, 400);
+        try {
+          const verified = await creds.verify({
+            challenge: challengeEntry.challenge,
+            payload,
+            origin: config.origin,
+            rpID: config.rpID
+          });
+          if (!verified)
+            throw new Error("Verification failed");
+          await Promise.all([
+            creds.updateCounter(verified.verified.authenticationInfo.newCounter),
+            challengeEntry.delete()
+          ]);
+          const tokenEntry = await TokenAccess.generate({
+            db: env.AUTH_DB,
+            user_id: creds.creds.user_id,
+            client_id: authorizationCookie.client_id
+          });
+          return c.json(tokenEntry);
+        } catch (e) {
+          console.error("Verification error:", e);
+          return c.json({ error: e instanceof Error ? e.message : "Verification failed" }, 400);
+        }
+      });
+      routes.get("/callback/:token", async (c) => {
+        const token = c.req.param("token");
+        const authorizationCookie = await ctx.get(c, "authorization");
+        if (!authorizationCookie) {
+          return c.json({ error: "Unauthorized" }, 401);
+        }
+        const tokenRecord = await TokenAccess.retrive({
+          db: config.db,
+          token
+        });
+        if (!tokenRecord) {
+          return c.json({ valid: false });
+        }
+        await tokenRecord.delete();
+        const userTable = OTFusersTable(authorizationCookie.client_id);
+        const user = await drizzle(config.db).select({ identifier: userTable.identifier }).from(userTable).where(eq(userTable.id, tokenRecord.token.user_id)).get();
+        if (!user) {
+          return c.json({ error: "User not found" }, 404);
+        }
+        return ctx.success(c, {
+          identifier: user.identifier
+        });
+      });
     }
   };
 }
