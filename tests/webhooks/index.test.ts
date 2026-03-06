@@ -401,7 +401,7 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
 
   it("parses a valid POST request and returns the payload", async () => {
     const req = await makeSignedPostRequest(makeSamplePayload(), SECRET);
-    const result = await WebHook.getWebHookPayloadFromRequest(req, SECRET);
+    const result = await WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET);
     expect(result.event).toBe("login_success");
     expect(result.clientID).toBe(CLIENT_ID);
     expect(result.data).toEqual({ claim: { sub: "user-1" } });
@@ -409,21 +409,21 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
 
   it("parses a valid GET request and returns the payload", async () => {
     const req = await makeSignedGetRequest(makeSamplePayload(), SECRET);
-    const result = await WebHook.getWebHookPayloadFromRequest(req, SECRET);
+    const result = await WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET);
     expect(result.event).toBe("login_success");
   });
 
   it("throws when POST request has invalid signature", async () => {
     const req = await makeSignedPostRequest(makeSamplePayload(), SECRET, true);
     await expect(
-      WebHook.getWebHookPayloadFromRequest(req, SECRET),
+      WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET),
     ).rejects.toThrow("Unauthorized webhook request");
   });
 
   it("throws when GET request has invalid signature", async () => {
     const req = await makeSignedGetRequest(makeSamplePayload(), SECRET, true);
     await expect(
-      WebHook.getWebHookPayloadFromRequest(req, SECRET),
+      WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET),
     ).rejects.toThrow("Unauthorized webhook request");
   });
 
@@ -433,7 +433,7 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
       headers: { "x-secret": "anything" },
     });
     await expect(
-      WebHook.getWebHookPayloadFromRequest(req, SECRET),
+      WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET),
     ).rejects.toThrow("Missing payload in webhook request");
   });
 
@@ -445,7 +445,7 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
       body,
     });
     await expect(
-      WebHook.getWebHookPayloadFromRequest(req, SECRET),
+      WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET),
     ).rejects.toThrow("Unauthorized webhook request");
   });
 
@@ -457,7 +457,7 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
       timestamp: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
     };
     const req = await makeSignedPostRequest(stalePayload, SECRET);
-    expect(WebHook.getWebHookPayloadFromRequest(req, SECRET)).rejects.toThrow(
+    expect(WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET)).rejects.toThrow(
       WebHookUnAuthorizedError,
     );
   });
@@ -468,7 +468,7 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
       timestamp: new Date(Date.now() + 6 * 60 * 1000).toISOString(),
     };
     const req = await makeSignedPostRequest(futurePayload, SECRET);
-    expect(WebHook.getWebHookPayloadFromRequest(req, SECRET)).rejects.toThrow(
+    expect(WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET)).rejects.toThrow(
       WebHookUnAuthorizedError,
     );
   });
@@ -480,7 +480,7 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
     };
     const req = await makeSignedPostRequest(recentPayload, SECRET);
     await expect(
-      WebHook.getWebHookPayloadFromRequest(req, SECRET),
+      WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET),
     ).resolves.toMatchObject({ event: "login_success" });
   });
 });
