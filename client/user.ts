@@ -206,6 +206,7 @@ export class OpenAuthsterClient<
   public passkey: Passkey;
 
   constructor(props: ClientProps<PublicSessionData, PrivateSessionData>) {
+    this.verifyProps(props);
     this.issuerURI = props.issuerURI;
     this.openAuthClient = createClient({
       clientID: props.clientID,
@@ -297,9 +298,12 @@ export class OpenAuthsterClient<
    */
   getUserSession(type: RequestData["type"]) {
     this.ensureReady();
-    return this.fetch(`${this.issuerURI}/session/${type}/${this.clientID}`, {
-      method: "GET",
-    })
+    return this.fetchWithOptions(
+      `${this.issuerURI}/session/${type}/${this.clientID}`,
+      {
+        method: "GET",
+      },
+    )
       .then(
         (res) =>
           res.json() as Promise<
@@ -327,13 +331,16 @@ export class OpenAuthsterClient<
   ) {
     this.ensureReady();
 
-    return this.fetch(`${this.issuerURI}/session/${type}/${this.clientID}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-      headers: {
-        "Content-Type": "application/json",
+    return this.fetchWithOptions(
+      `${this.issuerURI}/session/${type}/${this.clientID}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-    })
+    )
       .then(
         (res) =>
           res.json() as Promise<
@@ -491,8 +498,7 @@ export class OpenAuthsterClient<
       .get("Cookie")
       ?.split(";")
       .find((cookie) => cookie.trim().startsWith("access_token="))
-      ?.split("=")
-      .at(1)
+      ?.replace(/^\s*access_token=/, "")
       ?.trim();
 
     return tokenFromCookie || null;
@@ -510,7 +516,7 @@ export class OpenAuthsterClient<
       throw new Error(
         "Cannot set token to cookie: document is undefined or token is null",
       );
-    document.cookie = `access_token=${this.token}; path=/; secure; samesite=strict;`;
+    document.cookie = `access_token=${this.token}; path=/; secure; samesite=lax;`;
   }
 
   /** Sets the client's token based on the Authorization header of a Request object. Also updates authentication state accordingly.
@@ -571,15 +577,24 @@ import { Passkey } from './passkey';
     });
   }
 
+  async fetch(input: RequestInfo, init?: RequestInit) {
+    return this.fetchWithOptions(input, init, { noClientId: true });
+  }
+
   /**
    * Make Authenticated fetch request to an endpoint needing user authentication.
    * Automatically adds the Bearer token to the Authorization header and Secret Headers ( X-Client-Timestamp, X-Client-Signature ) if secret is provided in client initialization.
    *
    * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
    */
-  async fetch(input: RequestInfo, init?: RequestInit) {
+  async fetchWithOptions(
+    input: RequestInfo,
+    init?: RequestInit,
+    options?: { noClientId: boolean },
+  ) {
     const isRequest = typeof input !== "string";
     const inputUrl = isRequest ? input.url : input;
+    const { noClientId = false } = options || {};
 
     // Only use a base for relative URLs; absolute URLs are left as-is
     const isAbsolute =
@@ -591,7 +606,9 @@ import { Passkey } from './passkey';
         : this.issuerURI;
 
     const url = new URL(inputUrl, base);
-    url.searchParams.set("client_id", this.clientID);
+    if (!noClientId) {
+      url.searchParams.set("client_id", this.clientID);
+    }
 
     // Build merged headers with proper priority:
     // Request headers (lowest) → auth headers → init headers (highest)
@@ -653,9 +670,12 @@ import { Passkey } from './passkey';
    * **`Can be called both on client and server side.`**
    */
   clearPublicSession() {
-    return this.fetch(`${this.issuerURI}/session/public/${this.clientID}`, {
-      method: "DELETE",
-    })
+    return this.fetchWithOptions(
+      `${this.issuerURI}/session/public/${this.clientID}`,
+      {
+        method: "DELETE",
+      },
+    )
       .then(
         (res) =>
           res.json() as Promise<
@@ -678,9 +698,12 @@ import { Passkey } from './passkey';
    *
    */
   clearPrivateSession() {
-    return this.fetch(`${this.issuerURI}/session/private/${this.clientID}`, {
-      method: "DELETE",
-    })
+    return this.fetchWithOptions(
+      `${this.issuerURI}/session/private/${this.clientID}`,
+      {
+        method: "DELETE",
+      },
+    )
       .then(
         (res) =>
           res.json() as Promise<
@@ -701,9 +724,12 @@ import { Passkey } from './passkey';
    * **`need secret to be set`**
    */
   getUserById(user_id: string) {
-    return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
-      method: "GET",
-    })
+    return this.fetchWithOptions(
+      `${this.issuerURI}/user/${this.clientID}/${user_id}`,
+      {
+        method: "GET",
+      },
+    )
       .then(
         (res) =>
           res.json() as Promise<
@@ -726,7 +752,7 @@ import { Passkey } from './passkey';
     const url = new URL(`${this.issuerURI}/users/${this.clientID}`);
     if (filters?.page) url.searchParams.set("page", filters.page.toString());
     if (filters?.limit) url.searchParams.set("limit", filters.limit.toString());
-    return this.fetch(url.toString(), {
+    return this.fetchWithOptions(url.toString(), {
       method: "GET",
     })
       .then((res) => res.json() as Promise<UserResponseSchemaType>)
@@ -741,9 +767,12 @@ import { Passkey } from './passkey';
   deleteUserById(
     user_id: string,
   ): Promise<{ success: boolean; error: null | string }> {
-    return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
-      method: "DELETE",
-    })
+    return this.fetchWithOptions(
+      `${this.issuerURI}/user/${this.clientID}/${user_id}`,
+      {
+        method: "DELETE",
+      },
+    )
       .then((res) => res.json() as Promise<UserResponseSchemaType>)
       .then((json) => {
         if (!json.success) {
@@ -763,13 +792,16 @@ import { Passkey } from './passkey';
     user_id: string,
     data: UpdateUserByIdData,
   ): Promise<UserResponseSchemaType["data"] | Error> {
-    return this.fetch(`${this.issuerURI}/user/${this.clientID}/${user_id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-      headers: {
-        "Content-Type": "application/json",
+    return this.fetchWithOptions(
+      `${this.issuerURI}/user/${this.clientID}/${user_id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-    })
+    )
       .then((res) => res.json() as Promise<UserResponseSchemaType>)
       .then((json) => {
         if (!json.success) {
@@ -923,7 +955,11 @@ import { Passkey } from './passkey';
   }
 
   private async QRauthFlowCallback(id: string | null) {
-    if (!(await this.authFlowCallbacks.onQRAuthFlowStart?.(this))) return;
+    if (
+      this.authFlowCallbacks.onQRAuthFlowStart &&
+      !(await this.authFlowCallbacks.onQRAuthFlowStart(this))
+    )
+      return;
 
     if (!this.getStoredToken()) return this.login();
     if (!id) {
@@ -936,7 +972,7 @@ import { Passkey } from './passkey';
     const _url = new URL(`${this.issuerURI}/qr/validate`);
     _url.searchParams.set("id", id);
 
-    return this.fetch(_url.toString(), {
+    return this.fetchWithOptions(_url.toString(), {
       method: "POST",
     });
   }
@@ -982,7 +1018,7 @@ import { Passkey } from './passkey';
     clearTimeout(this.refreshTimer);
     const self = this;
     this.refreshTimer = setTimeout(
-      () => this.triggerRefresh.bind(self),
+      this.triggerRefresh.bind(self),
       expiresInMs,
     );
   }
@@ -1113,6 +1149,18 @@ import { Passkey } from './passkey';
     return Array.from(new Uint8Array(signature))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
+  }
+  private verifyProps(
+    props: ClientProps<PublicSessionData, PrivateSessionData>,
+  ) {
+    if (!props.issuerURI.startsWith("http")) {
+      throw new Error("Invalid issuer URI. Must start with http or https.");
+    }
+    if (props.secret && typeof window !== "undefined") {
+      console.warn(
+        "Warning: Initializing client with a secret in a browser environment can lead to security risks. Make sure to only use secrets in server-side environments.",
+      );
+    }
   }
 }
 

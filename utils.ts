@@ -7,7 +7,9 @@ export function getCookiesFromRequest(
   if (cookieHeader) {
     const cookiePairs = cookieHeader.split("; ");
     for (const pair of cookiePairs) {
-      const [name, value] = pair.split("=") as [string, string];
+      const eqIdx = pair.indexOf("=");
+      const name = pair.slice(0, eqIdx);
+      const value = pair.slice(eqIdx + 1);
       cookies[name] = decodeURIComponent(value);
     }
   }

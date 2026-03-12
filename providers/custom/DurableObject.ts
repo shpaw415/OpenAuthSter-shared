@@ -38,12 +38,13 @@ export class QRHandshake extends DurableObject {
    * vers le PC via la WebSocket.
    */
   async authorize(location: string) {
+    await this.ctx.storage.put("pendingLocation", location);
     const websockets = this.ctx.getWebSockets();
     for (const ws of websockets) {
       try {
         ws.send(JSON.stringify({ location }));
       } catch (e) {
-        // Ignore les erreurs d'envoi
+        // Ignore send errors
       }
     }
   }
@@ -80,8 +81,8 @@ export class QRHandshake extends DurableObject {
     const websockets = this.ctx.getWebSockets();
     for (const ws of websockets) {
       try {
-        ws.send(JSON.stringify({ error: "Le QR Code a expiré." }));
-        ws.close(1000, "Handshake expiré");
+        ws.send(JSON.stringify({ error: "QR Code has expired." }));
+        ws.close(1000, "Handshake expired");
       } catch (e) {}
     }
     this.authData = null;

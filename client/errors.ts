@@ -58,7 +58,6 @@ export type ErrorList =
   | RefreshError
   | TokenVerificationError
   | InvalidRefreshTokenError
-  | InvalidRefreshTokenError
   | TotpError;
 
 export default {

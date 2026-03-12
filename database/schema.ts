@@ -29,6 +29,8 @@ export async function createUserTable(
   clientID: string,
   database: D1Database,
 ): Promise<void> {
+  if (!isClientIdValid(clientID))
+    throw new Error(`Invalid clientID: "${clientID}"`);
   const validName = ensureTableisValid(clientID);
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS ${validName}_users (
@@ -47,6 +49,8 @@ export async function DeleteOTFusersTable(
   clientID: string,
   database: D1Database,
 ): Promise<void> {
+  if (!isClientIdValid(clientID))
+    throw new Error(`Invalid clientID: "${clientID}"`);
   const res = await database
     .prepare(`DROP TABLE IF EXISTS ${clientID}_users;`)
     .run();

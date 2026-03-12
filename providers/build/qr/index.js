@@ -3535,6 +3535,26 @@ function createLocalJWKSet(jwks) {
   });
   return localJWKSet;
 }
+// node_modules/valibot/dist/index.mjs
+var store$4;
+function getGlobalConfig(config$1) {
+  return {
+    lang: config$1?.lang ?? store$4?.lang,
+    message: config$1?.message,
+    abortEarly: config$1?.abortEarly ?? store$4?.abortEarly,
+    abortPipeEarly: config$1?.abortPipeEarly ?? store$4?.abortPipeEarly
+  };
+}
+function safeParse(schema, input3, config$1) {
+  const dataset = schema["~run"]({ value: input3 }, /* @__PURE__ */ getGlobalConfig(config$1));
+  return {
+    typed: dataset.typed,
+    success: !dataset.issues,
+    output: dataset.value,
+    issues: dataset.issues
+  };
+}
+
 // providers/custom/qr/index.css
 var qr_default = `.qr-container {
   display: flex;
@@ -4269,19 +4289,21 @@ function QrUI(opt) {
 
 // providers/custom/qr/index.ts
 var DEFAULT_COPY = {
-  title: "Connexion par QR Code",
-  description: "Scannez ce QR Code avec votre application mobile pour vous connecter."
+  title: "Sign in with QR Code",
+  description: "Scan this QR Code with your mobile app to sign in."
 };
 function QRProvider(config) {
   let cachedJWKS = null;
+  let cachedJWKSAt = null;
   async function getJWKS(issuer, env, ctx) {
-    if (cachedJWKS)
+    if (cachedJWKS && cachedJWKSAt && Date.now() - cachedJWKSAt < 60 * 60 * 1000)
       return cachedJWKS;
     const wkRes = await issuer.fetch(new Request(`${config.issuerURI}/.well-known/oauth-authorization-server?client_id=${config.client_id}`), env, ctx);
     const wk = await wkRes.json();
     const keysRes = await issuer.fetch(new Request(`${wk.jwks_uri}?client_id=${config.client_id}`), env, ctx);
     const keyset = await keysRes.json();
     cachedJWKS = createLocalJWKSet(keyset);
+    cachedJWKSAt = Date.now();
     return cachedJWKS;
   }
   return {
@@ -4292,7 +4314,7 @@ function QRProvider(config) {
         const handshakeId = crypto.randomUUID();
         const authData = await options.get(c, "authorization");
         if (!authData) {
-          return c.text("Session d'autorisation introuvable ou expirée", 400);
+          return c.text("Authorization session not found or expired", 400);
         }
         const id = config.binding.idFromName(handshakeId);
         const stub = config.binding.get(id);
@@ -4313,7 +4335,7 @@ function QRProvider(config) {
       route.get("/ws", async (c) => {
         const handshakeId = c.req.query("id");
         if (!handshakeId)
-          return c.text("ID manquant", 400);
+          return c.text("Missing ID", 400);
         const id = config.binding.idFromName(handshakeId);
         const stub = config.binding.get(id);
         return stub.fetch(c.req.raw);
@@ -4321,57 +4343,57 @@ function QRProvider(config) {
       route.post("/validate", async (c) => {
         const handshakeId = c.req.query("id");
         if (!handshakeId)
-          return c.text("ID manquant", 400);
+          return c.text("Missing ID", 400);
         const authorizationHeader = c.req.header("Authorization");
         if (!authorizationHeader) {
-          return c.text("Authorization header manquant", 401);
+          return c.text("Missing Authorization header", 401);
         }
         const token = authorizationHeader.replace("Bearer ", "").trim();
         if (!token) {
-          return c.text("Token manquant", 401);
+          return c.text("Missing token", 401);
         }
         const jwks = await getJWKS(config.issuer, c.env, c.executionCtx);
         let subject;
         try {
           const result = await jwtVerify(token, jwks, { issuer: config.issuerURI });
           if (result.payload.mode !== "access") {
-            return c.text("Token invalide", 401);
+            return c.text("Invalid token", 401);
           }
           const schema = config.subject[result.payload.type];
           if (!schema) {
-            return c.text("Token invalide: type de sujet inconnu", 401);
+            return c.text("Invalid token: unknown subject type", 401);
           }
-          const validated = await schema["~standard"].validate(result.payload.properties);
-          if (validated.issues) {
-            return c.text("Token invalide: propriétés invalides", 401);
+          const validated = safeParse(schema, result.payload.properties);
+          if (!validated.success) {
+            return c.text("Invalid token: invalid subject properties", 401);
           }
           subject = {
             type: result.payload.type,
             properties: {
-              ...validated.value,
+              ...validated.output,
               provider: "qr"
             }
           };
         } catch (e) {
-          console.error("Erreur de vérification du token:", e);
-          return c.text("Token invalide", 401);
+          console.error("Token verification error:", e);
+          return c.text("Invalid token", 401);
         }
         const id = config.binding.idFromName(handshakeId);
         const stub = config.binding.get(id);
         const authData = await stub.getAuthData();
         if (!authData) {
-          return c.text("Handshake expiré ou invalide", 400);
+          return c.text("Handshake expired or invalid", 400);
         }
         c.set("authorization", authData);
         console.log("Subject validated from mobile:", JSON.stringify({ subject }, null, 2));
         console.log("Auth data retrieved from DO:", JSON.stringify({ authData }, null, 2));
         const response = await options.success(c, subject.properties);
         if (response.status !== 302) {
-          return c.text("Erreur lors de la génération du code d'autorisation", 500);
+          return c.text("Error generating authorization code", 500);
         }
         const location = response.headers.get("Location");
         if (!location) {
-          return c.text("En-tête Location manquant", 500);
+          return c.text("Missing Location header", 500);
         }
         await stub.authorize(location);
         return c.json({ success: true });

@@ -22181,7 +22181,7 @@ function WebAuthnProvider(config) {
             challengeEntry.delete()
           ]);
           const tokenEntry = await TokenAccess.generate({
-            db: env.AUTH_DB,
+            db: config.db,
             user_id: creds.creds.user_id,
             client_id: authorizationCookie.client_id
           });

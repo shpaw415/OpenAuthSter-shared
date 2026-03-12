@@ -74,7 +74,7 @@ export class WebHook {
       .from(WebHookTable)
       .where(
         filters?.id
-          ? eq(WebHookTable.id, filters.id)
+          ? and(eq(WebHookTable.id, filters.id), eq(WebHookTable.clientID, clientID))
           : filters?.event
             ? and(
                 eq(WebHookTable.event, filters.event),
@@ -86,10 +86,15 @@ export class WebHook {
       .then((res) => res.map((r) => this.parseWebHookConfig(r)));
   }
 
-  async deleteWebHook(webHookID: string) {
+  async deleteWebHook(webHookID: string, clientID: string) {
     return this.db
       .delete(WebHookTable)
-      .where(and(eq(WebHookTable.id, webHookID)))
+      .where(
+        and(
+          eq(WebHookTable.id, webHookID),
+          eq(WebHookTable.clientID, clientID),
+        ),
+      )
       .run() as unknown as Promise<void>;
   }
   /**

@@ -332,78 +332,6 @@ export function WebAuthnProvider(
         //   }),
         // );
       });
-      /*
-      routes.post("/callback", async (c) => {
-        const payload = (await c.req.json()) as AuthenticationResponseJSON;
-        const userID = c.req.query("user_id");
-        const clientID = c.req.query("client_id");
-
-        if (!userID || !clientID)
-          return c.json({ error: "Missing user_id or client_id" }, 400);
-
-        const dbUserTable = OTFusersTable(clientID);
-        const user = await db
-          .select()
-          .from(dbUserTable)
-          .where(eq(dbUserTable.id, userID))
-          .get();
-
-        if (!user) return c.json({ error: "User not found" }, 404);
-
-        // 2. Retrieve expected challenge
-        const challenge = await challenges.retrieve({
-          db: config.db,
-          client_id: clientID,
-        });
-
-        if (!challenge) {
-          return c.json({ error: "Challenge expired or not found" }, 400);
-        }
-
-        // 3. Get Credential Public Key
-        const storedCred = await credentials.retrive({
-          db: config.db,
-          user_id: user.id,
-          client_id: clientID,
-        });
-
-        if (!storedCred.creds) {
-          return c.json({ error: "Credential not found" }, 400);
-        }
-
-        // 4. Verify
-        let verification;
-        try {
-          verification = await storedCred.verify({
-            challenge: challenge.challenge,
-            payload,
-            origin: config.origin,
-            rpID: config.rpID,
-          });
-        } catch (error) {
-          console.error("Verification error:", error);
-          return c.json({ error: "Verification failed" }, 400);
-        }
-
-        if (verification.verified) {
-          // 5. Update counter
-          await storedCred.updateCounter(
-            verification.authenticationInfo.newCounter,
-          );
-
-          // Cleanup challenge
-          await challenge.delete();
-
-          return ctx.success(c, {
-            user_id: user.id,
-            client_id: clientID,
-            provider: "passkey",
-          });
-        } else {
-          return c.json({ error: "Invalid signature" }, 400);
-        }
-      });
-      */
 
       routes.get("/client.js", async (c) =>
         c.newResponse(ClientScript as string, 200, {
@@ -493,7 +421,7 @@ export function WebAuthnProvider(
             challengeEntry.delete(),
           ]);
           const tokenEntry = await TokenAccess.generate({
-            db: env.AUTH_DB,
+            db: config.db,
             user_id: creds.creds.user_id,
             client_id: authorizationCookie.client_id,
           });

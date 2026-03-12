@@ -38,7 +38,7 @@ export class Passkey {
 
     try {
       // Étape 1 : Demander le "challenge" et les options à ton Worker
-      const startRes = await this.client.fetch(
+      const startRes = await this.client.fetchWithOptions(
         `${this.issuerURI}/passkey/register/start`,
         {
           method: "POST",
@@ -83,7 +83,7 @@ export class Passkey {
       }
 
       // Étape 3 : Envoyer la signature cryptographique au serveur pour validation finale
-      const finishRes = await this.client.fetch(
+      const finishRes = await this.client.fetchWithOptions(
         `${this.issuerURI}/passkey/register/finish`,
         {
           method: "POST",
@@ -159,6 +159,6 @@ export class Passkey {
 
   private createFetch(endpoint: string, options?: RequestInit) {
     const url = new URL(`${this.issuerURI}/passkey${endpoint}`);
-    return this.client.fetch(url.toString(), options);
+    return this.client.fetchWithOptions(url.toString(), options);
   }
 }

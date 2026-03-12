@@ -243,7 +243,8 @@ describe("trigger", () => {
       clientID: CLIENT_ID,
       event: "login_success",
       secret: SECRET,
-      data: { claim: { sub: "user-1" } },
+      data: { userID: "user-1", provider: "google" },
+      request: new Request("https://example.com/login"),
     });
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
@@ -401,7 +402,11 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
 
   it("parses a valid POST request and returns the payload", async () => {
     const req = await makeSignedPostRequest(makeSamplePayload(), SECRET);
-    const result = await WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET);
+    const result = await WebHook.getWebHookPayloadFromRequest(
+      "login_success",
+      req,
+      SECRET,
+    );
     expect(result.event).toBe("login_success");
     expect(result.clientID).toBe(CLIENT_ID);
     expect(result.data).toEqual({ claim: { sub: "user-1" } });
@@ -409,7 +414,11 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
 
   it("parses a valid GET request and returns the payload", async () => {
     const req = await makeSignedGetRequest(makeSamplePayload(), SECRET);
-    const result = await WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET);
+    const result = await WebHook.getWebHookPayloadFromRequest(
+      "login_success",
+      req,
+      SECRET,
+    );
     expect(result.event).toBe("login_success");
   });
 
@@ -457,9 +466,9 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
       timestamp: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
     };
     const req = await makeSignedPostRequest(stalePayload, SECRET);
-    expect(WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET)).rejects.toThrow(
-      WebHookUnAuthorizedError,
-    );
+    expect(
+      WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET),
+    ).rejects.toThrow(WebHookUnAuthorizedError);
   });
 
   it("throws when timestamp is more than 5 minutes in the future", async () => {
@@ -468,9 +477,9 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
       timestamp: new Date(Date.now() + 6 * 60 * 1000).toISOString(),
     };
     const req = await makeSignedPostRequest(futurePayload, SECRET);
-    expect(WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET)).rejects.toThrow(
-      WebHookUnAuthorizedError,
-    );
+    expect(
+      WebHook.getWebHookPayloadFromRequest("login_success", req, SECRET),
+    ).rejects.toThrow(WebHookUnAuthorizedError);
   });
 
   it("accepts a timestamp within the 5-minute window", async () => {

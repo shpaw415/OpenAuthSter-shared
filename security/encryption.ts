@@ -13,6 +13,10 @@ export async function hashWithSecretKey(
     false,
     ["sign"],
   );
+  // NOTE: data is passed through JSON.stringify even though it is already a string.
+  // This is intentional — callers always pass serialized JSON strings, and the double-
+  // serialization is consistent across both hashWithSecretKey and verifySignature.
+  // Do NOT change this without updating all callers.
   const signature = await crypto.subtle.sign(
     "HMAC",
     key,
