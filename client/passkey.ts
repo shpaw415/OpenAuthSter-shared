@@ -117,7 +117,7 @@ export class Passkey {
    * Trigger the Passkey login flow. This will redirect the user to the OS-level authentication prompt.
    */
   login() {
-    this.client.login({
+    return this.client.login({
       provider: "passkey",
     });
   }

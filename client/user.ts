@@ -424,7 +424,6 @@ export class OpenAuthsterClient<
       .then((tokens) => {
         if (tokens.err) throw tokens.err;
         this.updateTokens(tokens);
-        this.createResetTimer(tokens.tokens?.expiresIn || null);
         this.isAuthenticated = true;
       })
       .catch((err) => {
@@ -935,15 +934,17 @@ import { Passkey } from './passkey';
   }
 
   private async restoreSession() {
-    this.token ??= this.getStoredToken();
-    this.refreshToken ??= this.getStoredRefreshToken();
-    this.expiresAt ??= this.getStoredExpiresAt();
+    this.token = this.getStoredToken();
+    this.refreshToken = this.getStoredRefreshToken();
+    this.expiresAt = this.getStoredExpiresAt();
 
     if (this.expiresAt && this.expiresAt < new Date()) {
       const refreshed = await this.triggerRefresh();
       if (!refreshed) {
         this.authFlowCallbacks.onLoginRequired?.(this);
         return;
+      } else {
+        this.createResetTimer(this.expiresAt.getTime() - Date.now());
       }
     } else if (this.expiresAt) {
       this.createResetTimer(this.expiresAt.getTime() - Date.now());
@@ -1016,11 +1017,7 @@ import { Passkey } from './passkey';
   private createResetTimer(expiresInMs: number | null) {
     if (!expiresInMs) return;
     clearTimeout(this.refreshTimer);
-    const self = this;
-    this.refreshTimer = setTimeout(
-      this.triggerRefresh.bind(self),
-      expiresInMs,
-    );
+    this.refreshTimer = setTimeout(this.triggerRefresh.bind(this), expiresInMs);
   }
 
   private updateTokens(tokens: ExchangeSuccess | RefreshSuccess) {
@@ -1028,9 +1025,9 @@ import { Passkey } from './passkey';
       this.token = tokens.tokens?.access;
       this.storeToken(tokens.tokens.access);
       if (tokens.tokens?.expiresIn) {
-        this.expiresAt = new Date(tokens.tokens?.expiresIn * 1000 + Date.now());
-        this.storeExpiresAt(this.expiresAt);
-        this.createResetTimer(tokens.tokens.expiresIn * 1000);
+        const expTimeStamp = tokens.tokens?.expiresIn * 1000 + Date.now();
+        this.expiresAt = new Date(expTimeStamp);
+        this.storeExpiresAt(expTimeStamp);
       }
     }
     if (tokens.tokens?.refresh) {
@@ -1113,9 +1110,9 @@ import { Passkey } from './passkey';
    *
    * **Browser Only**
    */
-  private storeExpiresAt(expiresAt: Date) {
+  private storeExpiresAt(expiresAt: number) {
     if (typeof window === "undefined") return;
-    localStorage.setItem("oa_expires_at", expiresAt.getTime().toString());
+    localStorage.setItem("oa_expires_at", expiresAt.toString());
   }
   private removeStoredExpiresAt() {
     if (typeof window === "undefined") return;
