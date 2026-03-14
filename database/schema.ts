@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-import { drizzle } from "./drizzle";
+import { drizzle, name } from "./drizzle";
 import type { OTFUsersType, OTFUsersParsedType } from "./types";
 import type { Project, CopyDataSelection } from "..";
 export * from "./types";
@@ -175,16 +175,20 @@ export const WebHookTable = sqliteTable("openauth_webui_webhooks", {
 export const emailTemplatesTable = sqliteTable(
   "openauth_webui_email_templates",
   {
-    name: text().primaryKey(),
+    id: integer().primaryKey({ autoIncrement: true }),
+    name: text().notNull(),
     body: text().notNull(),
     subject: text().notNull(),
+    owner: text().notNull(),
     created_at: text().notNull(),
     updated_at: text().notNull(),
   },
 );
 
 export const uiStyleTable = sqliteTable("openauth_webui_ui_styles", {
-  id: text().primaryKey(),
+  id: integer().primaryKey({ autoIncrement: true }),
+  name: text().notNull(),
+  owner: text().notNull(),
   themeData: text({
     mode: "json",
   }).notNull(),
@@ -239,12 +243,10 @@ export function parseDBCopyTemplate(
   data: typeof WebUiCopyTemplateTable.$inferSelect,
 ) {
   return {
-    name: String(data.name),
+    ...data,
     copyData: (typeof data.copyData === "string"
       ? JSON.parse(data.copyData)
       : data.copyData) as Partial<CopyDataSelection>,
-    created_at: String(data.created_at),
-    updated_at: String(data.updated_at),
   };
 }
 
@@ -256,6 +258,7 @@ export const WebUiCopyTemplateTable = sqliteTable(
     copyData: text({
       mode: "json",
     }).notNull(),
+    owner: text().notNull(),
     created_at: text().notNull(),
     updated_at: text().notNull(),
   },
