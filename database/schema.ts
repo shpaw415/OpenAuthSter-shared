@@ -1,7 +1,7 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { drizzle } from "./drizzle";
 import type { OTFUsersType, OTFUsersParsedType } from "./types";
-import type { Project, CopyData } from "..";
+import type { Project, CopyDataSelection } from "..";
 export * from "./types";
 
 export const reservedTableNames = [
@@ -235,13 +235,14 @@ export function parseDBTOTP(
 
 export const WebUiProjectUserTable = OTFusersTable("openauth_webui");
 
-export function parseDBCopyTemplate<T extends CopyData>(data: any) {
+export function parseDBCopyTemplate(
+  data: typeof WebUiCopyTemplateTable.$inferSelect,
+) {
   return {
     name: String(data.name),
-    providerType: String(data.providerType),
     copyData: (typeof data.copyData === "string"
       ? JSON.parse(data.copyData)
-      : data.copyData) as T,
+      : data.copyData) as Partial<CopyDataSelection>,
     created_at: String(data.created_at),
     updated_at: String(data.updated_at),
   };
@@ -250,8 +251,8 @@ export function parseDBCopyTemplate<T extends CopyData>(data: any) {
 export const WebUiCopyTemplateTable = sqliteTable(
   "openauth_webui_copy_templates",
   {
-    name: text().primaryKey(),
-    providerType: text().notNull(),
+    id: integer().primaryKey({ autoIncrement: true }),
+    name: text().notNull(),
     copyData: text({
       mode: "json",
     }).notNull(),

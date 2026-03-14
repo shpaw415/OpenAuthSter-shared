@@ -182,8 +182,10 @@ export function QRProvider(
           if (!schema) {
             return c.text("Invalid token: unknown subject type", 401);
           }
-
-          const validated = v.safeParse(schema, result.payload.properties);
+          const validated = v.safeParse(
+            schema as v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>,
+            result.payload.properties,
+          );
           if (!validated.success) {
             return c.text("Invalid token: invalid subject properties", 401);
           }
