@@ -1,5 +1,5 @@
 import { DEFAULT_COPY, type QRProviderConfig } from ".";
-import CSS from "./index.css" assert { type: "text" };
+import CSS from "./index.css" with { type: "text" };
 import { encode } from "uqr";
 
 type QrUIConfig = Omit<QRProviderConfig, "UI">;

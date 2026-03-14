@@ -4319,7 +4319,7 @@ function QRProvider(config) {
         const id = config.binding.idFromName(handshakeId);
         const stub = config.binding.get(id);
         await stub.init(authData);
-        const qrURL = new URL(config.appURI);
+        const qrURL = new URL(authData.redirect_uri);
         qrURL.searchParams.set("id", handshakeId);
         qrURL.searchParams.set("flow", "qr");
         const wsURL = new URL(`${config.issuerURI}/qr/ws`);

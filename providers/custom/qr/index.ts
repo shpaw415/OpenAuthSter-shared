@@ -8,6 +8,7 @@ import type { SubjectSchema } from "@openauthjs/openauth/subject";
 import { createLocalJWKSet, jwtVerify, type JSONWebKeySet } from "jose";
 import type { ProviderType } from "openauth-webui-shared-types";
 import * as v from "valibot";
+import type { AuthorizationState } from "@openauthjs/openauth/issuer";
 
 export const DEFAULT_COPY = {
   title: "Sign in with QR Code",
@@ -23,13 +24,6 @@ export interface QRProviderConfig {
    * L'URL de base de l'issuer (ex: https://auth.example.com)
    */
   issuerURI: string;
-  /**
-   * Application URI (ex: https://app.example.com) used to generate the QR code start the authentication flow.
-   * This URI should point to a route in your application that can handle the validation logic and interact with OpenAuth.
-   *
-   * **Openauthster** already provides a verification when `client.init` is triggerd in your application.
-   */
-  appURI: string;
 
   copy?: Partial<typeof DEFAULT_COPY>;
 
@@ -105,7 +99,10 @@ export function QRProvider(
 
         // Retrieve the authorization state (client_id, redirect_uri, state, etc.)
         // stored by OpenAuth in the PC's cookie.
-        const authData = await options.get(c, "authorization");
+        const authData = await options.get<AuthorizationState | undefined>(
+          c,
+          "authorization",
+        );
         if (!authData) {
           return c.text("Authorization session not found or expired", 400);
         }
@@ -118,7 +115,7 @@ export function QRProvider(
         await stub.init(authData);
 
         // Return an HTML/UI page that displays the QR Code and opens the WebSocket
-        const qrURL = new URL(config.appURI);
+        const qrURL = new URL(authData.redirect_uri);
         qrURL.searchParams.set("id", handshakeId);
         qrURL.searchParams.set("flow", "qr");
 

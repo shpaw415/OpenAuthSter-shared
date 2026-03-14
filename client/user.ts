@@ -127,7 +127,7 @@ export type ClientProps<
    *
    * **Server side only.**
    */
-  subject?: SubjectSchema;
+  subject?: typeof defaultSubjectSchema;
   authFlowCallbacks?: Partial<
     AuthFlowCallbacks<PublicSessionData, PrivateSessionData>
   >;
@@ -197,7 +197,7 @@ export class OpenAuthsterClient<
     string,
     CallbackType<PublicSessionData, PrivateSessionData, UserInfo>
   > = new Map();
-  private subject: SubjectSchema = defaultSubjectSchema;
+  private subject: typeof defaultSubjectSchema = defaultSubjectSchema;
   private authFlowCallbacks: Partial<
     AuthFlowCallbacks<PublicSessionData, PrivateSessionData>
   >;
@@ -219,7 +219,7 @@ export class OpenAuthsterClient<
     this.clientID = props.clientID;
     this.redirectURI = props.redirectURI;
     if (props.subject) {
-      this.subject = props.subject;
+      this.subject = props.subject as typeof defaultSubjectSchema;
     }
     this.authFlowCallbacks = props.authFlowCallbacks ?? {};
     this.onError = props.onError;
@@ -482,6 +482,12 @@ export class OpenAuthsterClient<
     callback: CallbackType<PublicSessionData, PrivateSessionData, UserInfo>,
   ) {
     this.initListeners.set(key, callback);
+  }
+  /**
+   * Removes a previously registered initialization listener identified by the given key. After calling this method, the specified listener will no longer be invoked when the client is initialized or updated. This can be useful for cleaning up listeners when components unmount or when you no longer need to react to client updates in certain parts of the application.
+   */
+  removeInitializationListener(key: string) {
+    this.initListeners.delete(key);
   }
   /**
    * Extracts the Bearer token from the Authorization header of a Request object.
@@ -815,6 +821,30 @@ import { Passkey } from './passkey';
     return this.token || this.getStoredToken();
   }
   /**
+   * Returns lightweight metadata for the current user (`id`, `identifier`, `provider`)
+   * by verifying the token and extracting its subject claims, without loading session blobs.
+   * Useful for lightweight presence checks.
+   *
+   * **`Client or Server Side`**
+   */
+  async getMetaData(): Promise<{
+    id: string | null;
+    identifier: string | null;
+    provider: string | null;
+  }> {
+    const token = this.getToken();
+    if (!token) return { id: null, identifier: null, provider: null };
+    const result = await this.verifyToken(token);
+    if (result.err || !result.subject)
+      return { id: null, identifier: null, provider: null };
+    const props = result.subject.properties;
+    return {
+      id: props?.id ?? null,
+      identifier: props?.identifier ?? null,
+      provider: props?.provider ?? null,
+    };
+  }
+  /**
    * - **Provide a token directly**: ensure it is valid
    *
    * - **No token provided**: verify the current client token and update authentication state accordingly. If verification fails, the token will be rejected and an error will be logged in the console. This is a security measure to prevent unauthorized access with invalid tokens.
@@ -894,7 +924,10 @@ import { Passkey } from './passkey';
   }
 
   private verifyToken(token: string) {
-    return this.openAuthClient.verify(this.subject, token);
+    return this.openAuthClient.verify<typeof defaultSubjectSchema>(
+      this.subject,
+      token,
+    );
   }
 
   private async _init() {
