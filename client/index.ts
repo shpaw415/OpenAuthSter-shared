@@ -2,24 +2,17 @@ import { createClient as _createClient } from "@openauthjs/openauth/client";
 import { COOKIE_NAME, COOKIE_COPY_TEMPLATE_ID } from "..";
 import { createCookieContent } from "../utils";
 
-const fetcher = (clientID: string, copyID: string | null) => {
+const fetcher = (clientID: string) => {
   return async (input: RequestInfo, init?: RequestInit) => {
     const headers = new Headers(init?.headers || {});
 
     const url = new URL(input.toString());
     url.searchParams.set("client_id", clientID);
-    if (copyID) url.searchParams.set("copy_id", copyID);
 
     headers.append(
       "Cookie",
       createCookieContent(COOKIE_NAME, clientID, { path: "/" }),
     );
-    if (copyID) {
-      headers.append(
-        "Cookie",
-        createCookieContent(COOKIE_COPY_TEMPLATE_ID, copyID, { path: "/" }),
-      );
-    }
 
     return await fetch(url.toString(), {
       ...init,
@@ -32,16 +25,14 @@ const fetcher = (clientID: string, copyID: string | null) => {
 export const createClient = ({
   clientID,
   issuer,
-  copyID,
 }: {
   clientID: string;
   issuer: string;
-  copyID: string | null;
 }) =>
   _createClient({
     clientID,
     issuer,
-    fetch: fetcher(clientID, copyID),
+    fetch: fetcher(clientID),
   });
 
 export function createServerClient({
@@ -55,11 +46,10 @@ export function createServerClient({
 }) {
   const url = new URL(request.url);
   const client_id = url.searchParams.get("client_id") || clientID;
-  const copy_id = url.searchParams.get("copy_id") || null;
 
   return _createClient({
     clientID,
     issuer,
-    fetch: fetcher(client_id, copy_id),
+    fetch: fetcher(client_id),
   });
 }

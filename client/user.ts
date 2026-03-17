@@ -82,7 +82,6 @@ export type UpdateUserByIdData = Partial<
 >;
 
 export type OpenAuthsterOptions = {
-  copyID?: string | null;
   secret?: string;
 };
 
@@ -211,7 +210,6 @@ export class OpenAuthsterClient<
     this.openAuthClient = createClient({
       clientID: props.clientID,
       issuer: props.issuerURI,
-      copyID: props.copyID ?? null,
     });
     this.secret = props.secret;
     this.token = props.token ?? this.getStoredToken();
@@ -363,7 +361,7 @@ export class OpenAuthsterClient<
    * @returns A promise that resolves to the authorization URL the user is being redirected to. This can be used for custom handling of the login flow.
    */
   async login(
-    options?: AuthorizeOptions & { autoNavigate?: boolean },
+    options?: AuthorizeOptions & { autoNavigate?: boolean; copyID?: string },
   ): Promise<string> {
     const { autoNavigate = true, ...authorizedOptions } = options || {};
 
@@ -375,8 +373,8 @@ export class OpenAuthsterClient<
         const currentURI = new URL(window.location.href);
         const inviteId = currentURI.searchParams.get("invite_id");
         inviteId && authURL.searchParams.set("invite_id", inviteId);
-        const copyID = currentURI.searchParams.get("copyID");
-        copyID && authURL.searchParams.set("copyID", copyID);
+        const copyID = authorizedOptions.copyID;
+        copyID && authURL.searchParams.set("copy_id", copyID);
         if (autoNavigate) {
           window.location.href = authURL.toString();
         }
@@ -446,13 +444,6 @@ export class OpenAuthsterClient<
   }
 
   updateOptions(options: OpenAuthsterOptions) {
-    if (options.copyID) {
-      this.openAuthClient = createClient({
-        clientID: this.clientID,
-        issuer: this.issuerURI,
-        copyID: options.copyID,
-      });
-    }
     if (options.secret) {
       this.secret = options.secret;
     }
