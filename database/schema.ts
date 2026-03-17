@@ -175,7 +175,7 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
 
 export const projectInviteTable = sqliteTable("openauth_webui_project_invites", {
   id: text().primaryKey(),
-  clientID: text().notNull(),
+  clientID: text().notNull().references(() => projectTable.clientID),
   user_id: text().notNull(),
   code: text().notNull(),
   expiresAt: text().notNull(),
@@ -184,7 +184,7 @@ export const projectInviteTable = sqliteTable("openauth_webui_project_invites", 
 
 export const WebHookTable = sqliteTable("openauth_webui_webhooks", {
   id: text().primaryKey(),
-  clientID: text().notNull(),
+  clientID: text().notNull().references(() => projectTable.clientID),
   event: text().notNull(),
   url: text().notNull(),
   method: text().notNull(),
@@ -212,9 +212,9 @@ export const emailTemplateInviteTable = sqliteTable(
   "openauth_webui_email_template_invites",
   {
     id: text().primaryKey(),
-    template_id: integer().notNull(),
+    template_id: integer().notNull().references(() => emailTemplatesTable.id),
     user_id: text().notNull(),
-    clientID: text().notNull(),
+    clientID: text().notNull().references(() => projectTable.clientID),
     code: text().notNull(),
     expiresAt: text().notNull(),
     created_at: text().notNull(),
@@ -229,7 +229,7 @@ export const webuiProjectTable = sqliteTable("openauth_webui", {
 
 export const totpTable = sqliteTable("openauth_totp", {
   user_id: text().primaryKey(),
-  clientID: text().notNull(),
+  clientID: text().notNull().references(() => projectTable.clientID),
   secret: text().notNull(),
   is_verified: integer({
     mode: "boolean",
@@ -243,7 +243,7 @@ export const totpTable = sqliteTable("openauth_totp", {
 export const totpTokenTable = sqliteTable("openauth_totp_tokens", {
   token: text().primaryKey(),
   user_id: text().notNull(),
-  clientID: text().notNull(),
+  clientID: text().notNull().references(() => projectTable.clientID),
   token_expires_at: text().notNull(),
   created_at: text().notNull(),
 });
@@ -296,9 +296,9 @@ export const copyTemplateInviteTable = sqliteTable(
   "openauth_webui_copy_template_invites",
   {
     id: text().primaryKey(),
-    template_id: integer().notNull(),
+    template_id: integer().notNull().references(() => emailTemplatesTable.id),
     user_id: text().notNull(),
-    clientID: text().notNull(),
+    clientID: text().notNull().references(() => projectTable.clientID),
     code: text().notNull(),
     expiresAt: text().notNull(),
     created_at: text().notNull(),
@@ -307,7 +307,7 @@ export const copyTemplateInviteTable = sqliteTable(
 
 export const WebUiInviteLinkTable = sqliteTable("openauth_webui_invite_links", {
   id: text().primaryKey(),
-  clientID: text().notNull(),
+  clientID: text().notNull().references(() => projectTable.clientID),
   link: text().notNull(),
   expiresAt: text().notNull(),
   created_at: text().notNull(),
@@ -315,7 +315,7 @@ export const WebUiInviteLinkTable = sqliteTable("openauth_webui_invite_links", {
 
 export const LogsTable = sqliteTable("openauth_webui_logs", {
   id: text().primaryKey(),
-  clientID: text().notNull(),
+  clientID: text().notNull().references(() => projectTable.clientID),
   type: text().notNull(),
   message: text().notNull(),
   context: text({
