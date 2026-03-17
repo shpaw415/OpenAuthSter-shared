@@ -383,10 +383,11 @@ type EnsureKeys<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 export type Project = EnsureKeys<
   {
     clientID: string;
+    owner_id: string;
     created_at: string;
     active: boolean;
     providers_data: ProviderConfig[];
-    themeId?: string | null;
+    theme_id?: number | null;
     emailTemplateId?: string | null;
     codeMode: "email" | "phone";
     projectData?: ProjectData;

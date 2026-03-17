@@ -121,7 +121,7 @@ export function parseDBProject(
       typeof data.providers_data === "string"
         ? JSON.parse(data.providers_data)
         : data.providers_data,
-    themeId: data.themeId || null,
+    theme_id: data.theme_id || null,
     emailTemplateId: data.emailTemplateId || null,
     codeMode: String(data.codeMode) === "phone" ? "phone" : "email",
     projectData:
@@ -136,8 +136,18 @@ export function parseDBProject(
   } satisfies Project;
 }
 
+export const uiStyleTable = sqliteTable("openauth_webui_ui_styles", {
+  id: integer().primaryKey({ autoIncrement: true }),
+  name: text().notNull(),
+  owner_id: text().notNull(),
+  themeData: text({
+    mode: "json",
+  }).notNull(),
+});
+
 export const projectTable = sqliteTable("openauth_webui_projects", {
   clientID: text().primaryKey(),
+  owner_id: text().notNull(),
   created_at: text().notNull(),
   active: integer({
     mode: "boolean",
@@ -145,7 +155,7 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
   providers_data: text({
     mode: "json",
   }).default("[]"),
-  themeId: text(),
+  theme_id: integer().references(() => uiStyleTable.id),
   codeMode: text(),
   emailTemplateId: text(),
   projectData: text({
@@ -179,20 +189,11 @@ export const emailTemplatesTable = sqliteTable(
     name: text().notNull(),
     body: text().notNull(),
     subject: text().notNull(),
-    owner: text().notNull(),
+    owner_id: text().notNull(),
     created_at: text().notNull(),
     updated_at: text().notNull(),
   },
 );
-
-export const uiStyleTable = sqliteTable("openauth_webui_ui_styles", {
-  id: integer().primaryKey({ autoIncrement: true }),
-  name: text().notNull(),
-  owner: text().notNull(),
-  themeData: text({
-    mode: "json",
-  }).notNull(),
-});
 
 export const webuiProjectTable = sqliteTable("openauth_webui", {
   key: text().primaryKey(),
@@ -258,7 +259,7 @@ export const WebUiCopyTemplateTable = sqliteTable(
     copyData: text({
       mode: "json",
     }).notNull(),
-    owner: text().notNull(),
+    owner_id: text().notNull(),
     created_at: text().notNull(),
     updated_at: text().notNull(),
   },
