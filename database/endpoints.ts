@@ -48,15 +48,32 @@ export const UserListSchemaValidation = object({
   error: nullable(string()),
 });
 
-export type UserResponseSchemaType = InferInput<
-  typeof UserListSchemaValidation
->;
+export type UserResponseSchemaType<
+  PublicSessionData = any,
+  PrivateSessionData = any,
+  UserInfo = any,
+> = InferInput<typeof UserListSchemaValidation> & {
+  data: {
+    users: Array<{
+      id: string;
+      identifier: string;
+      data: UserInfo;
+      created_at: string;
+      session_public: PublicSessionData;
+      session_private: PrivateSessionData;
+    }>;
+    total: number;
+  };
+};
 
 export type UserResponseSchemaInferdType<
   PublicSessionData,
   PrivateSessionData,
   UserInfo,
-> = Omit<UserResponseSchemaType, "data"> & {
+> = Omit<
+  UserResponseSchemaType<PublicSessionData, PrivateSessionData, UserInfo>,
+  "data"
+> & {
   data: {
     users: Array<{
       id: string;

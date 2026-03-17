@@ -719,7 +719,16 @@ import { Passkey } from './passkey';
    *
    * **`need secret to be set`**
    */
-  getUserById(user_id: string) {
+  getUserById(
+    user_id: string,
+  ): Promise<
+    | UserResponseSchemaInferdType<
+        PublicSessionData,
+        PrivateSessionData,
+        UserInfo
+      >
+    | Error
+  > {
     return this.fetchWithOptions(
       `${this.issuerURI}/user/${this.clientID}/${user_id}`,
       {
@@ -736,7 +745,17 @@ import { Passkey } from './passkey';
             >
           >,
       )
-      .then((_json) => v.parse(UserListSchemaValidation, _json))
+      .then(
+        (_json) =>
+          v.parse(
+            UserListSchemaValidation,
+            _json,
+          ) as UserResponseSchemaInferdType<
+            PublicSessionData,
+            PrivateSessionData,
+            UserInfo
+          >,
+      )
       .catch((err) => new Error(`Failed to fetch user by ID: ${err.message}`));
   }
   /**
@@ -744,7 +763,16 @@ import { Passkey } from './passkey';
    *
    *  **`need secret to be set`**
    */
-  getUsers(filters?: GetUserListFilters) {
+  getUsers(
+    filters?: GetUserListFilters,
+  ): Promise<
+    | UserResponseSchemaInferdType<
+        PublicSessionData,
+        PrivateSessionData,
+        UserInfo
+      >
+    | Error
+  > {
     const url = new URL(`${this.issuerURI}/users/${this.clientID}`);
     if (filters?.page) url.searchParams.set("page", filters.page.toString());
     if (filters?.limit) url.searchParams.set("limit", filters.limit.toString());
@@ -752,7 +780,17 @@ import { Passkey } from './passkey';
       method: "GET",
     })
       .then((res) => res.json() as Promise<UserResponseSchemaType>)
-      .then((_json) => v.parse(UserListSchemaValidation, _json))
+      .then(
+        (_json) =>
+          v.parse(
+            UserListSchemaValidation,
+            _json,
+          ) as UserResponseSchemaInferdType<
+            PublicSessionData,
+            PrivateSessionData,
+            UserInfo
+          >,
+      )
       .catch((err) => new Error(`Failed to fetch users: ${err.message}`));
   }
   /**
