@@ -565,6 +565,11 @@ import { Passkey } from './passkey';
           cause: res.err,
         });
       }
+      if (res.subject.properties.clientID !== this.clientID) {
+        throw new Error(
+          "Token client id does not match this project client id.",
+        );
+      }
       if (token) {
         this.token = token;
         this.isAuthenticated = true;
