@@ -384,7 +384,7 @@ export type Project = EnsureKeys<
   {
     clientID: string;
     owner_id: string;
-    owner_group_id: string;
+    owner_group_id: Array<string>;
     active: boolean;
     providers_data: ProviderConfig[];
     theme_id: number | null;
