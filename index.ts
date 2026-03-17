@@ -382,6 +382,7 @@ type EnsureKeys<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 // Project type
 export type Project = EnsureKeys<
   {
+    name: string;
     clientID: string;
     owner_id: string;
     owner_group_id: string;
