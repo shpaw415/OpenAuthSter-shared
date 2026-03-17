@@ -1,4 +1,3 @@
-import { type OTFUsersParsedType } from "./types";
 import {
   array,
   boolean,

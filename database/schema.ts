@@ -173,6 +173,15 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
   created_at: text().notNull(),
 });
 
+export const projectInviteTable = sqliteTable("openauth_webui_project_invites", {
+  id: text().primaryKey(),
+  clientID: text().notNull(),
+  user_id: text().notNull(),
+  code: text().notNull(),
+  expiresAt: text().notNull(),
+  created_at: text().notNull(),
+});
+
 export const WebHookTable = sqliteTable("openauth_webui_webhooks", {
   id: text().primaryKey(),
   clientID: text().notNull(),
@@ -196,6 +205,19 @@ export const emailTemplatesTable = sqliteTable(
     owner_group_id: text().notNull(),
     created_at: text().notNull(),
     updated_at: text().notNull(),
+  },
+);
+
+export const emailTemplateInviteTable = sqliteTable(
+  "openauth_webui_email_template_invites",
+  {
+    id: text().primaryKey(),
+    template_id: integer().notNull(),
+    user_id: text().notNull(),
+    clientID: text().notNull(),
+    code: text().notNull(),
+    expiresAt: text().notNull(),
+    created_at: text().notNull(),
   },
 );
 
@@ -267,6 +289,19 @@ export const WebUiCopyTemplateTable = sqliteTable(
     owner_group_id: text().notNull(),
     created_at: text().notNull(),
     updated_at: text().notNull(),
+  },
+);
+
+export const copyTemplateInviteTable = sqliteTable(
+  "openauth_webui_copy_template_invites",
+  {
+    id: text().primaryKey(),
+    template_id: integer().notNull(),
+    user_id: text().notNull(),
+    clientID: text().notNull(),
+    code: text().notNull(),
+    expiresAt: text().notNull(),
+    created_at: text().notNull(),
   },
 );
 
