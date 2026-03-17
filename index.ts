@@ -384,10 +384,9 @@ export type Project = EnsureKeys<
   {
     clientID: string;
     owner_id: string;
-    created_at: string;
     active: boolean;
     providers_data: ProviderConfig[];
-    theme_id?: number | null;
+    theme_id: number | null;
     emailTemplateId?: string | null;
     codeMode: "email" | "phone";
     projectData?: ProjectData;
@@ -396,6 +395,7 @@ export type Project = EnsureKeys<
     cloudflareDomaineID: string;
     registerOnInvite: boolean;
     secret: string;
+    created_at: string;
   },
   keyof typeof projectTable.$inferSelect
 >;
