@@ -1,5 +1,5 @@
 import { Fragment } from "hono/jsx";
-import CSS from "./style.css" assert { type: "text" };
+import CSS from "./style.css" with { type: "text" };
 //@ts-ignore
 import { PASSKEY_DEFAULT_COPY } from "./";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/server";

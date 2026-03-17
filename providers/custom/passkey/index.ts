@@ -14,7 +14,7 @@ import {
 import { jsxRenderer } from "hono/jsx-renderer";
 import { Layout } from "@openauthjs/openauth/ui/base";
 import { PassKeyUI } from "./passkey_ui";
-import ClientScript from "../../build/passkey/client.js" assert { type: "text" };
+import ClientScript from "../../build/passkey/client.js" with { type: "text" };
 import type { ProviderType } from "openauth-webui-shared-types";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { webAuthnTokenAccessTable } from "../../../database/schema";

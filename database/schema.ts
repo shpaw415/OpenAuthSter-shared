@@ -91,6 +91,7 @@ export const OTFusersTable = (clientID: string) =>
     }).notNull(),
     session_private: text(),
     session_public: text(),
+    role: text(),
     created_at: text().notNull(),
   });
 
@@ -148,7 +149,7 @@ export const uiStyleTable = sqliteTable("openauth_webui_ui_styles", {
 export const projectTable = sqliteTable("openauth_webui_projects", {
   clientID: text().primaryKey(),
   owner_id: text().notNull(),
-  created_at: text().notNull(),
+  owner_group_id: text().notNull(),
   active: integer({
     mode: "boolean",
   }).default(true),
@@ -168,6 +169,7 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
   secret: text().notNull(),
   authEndpointURL: text().notNull(),
   cloudflareDomaineID: text().notNull(),
+  created_at: text().notNull(),
 });
 
 export const WebHookTable = sqliteTable("openauth_webui_webhooks", {
@@ -190,6 +192,7 @@ export const emailTemplatesTable = sqliteTable(
     body: text().notNull(),
     subject: text().notNull(),
     owner_id: text().notNull(),
+    owner_group_id: text().notNull(),
     created_at: text().notNull(),
     updated_at: text().notNull(),
   },
@@ -260,6 +263,7 @@ export const WebUiCopyTemplateTable = sqliteTable(
       mode: "json",
     }).notNull(),
     owner_id: text().notNull(),
+    owner_group_id: text().notNull(),
     created_at: text().notNull(),
     updated_at: text().notNull(),
   },

@@ -36,3 +36,7 @@
 - **`hashWithSecretKey` double-serialization documented** — The undocumented behavior of `JSON.stringify`-wrapping string inputs before HMAC is now explicitly noted in the JSDoc to prevent signature mismatches in new callers. (`security/encryption.ts`)
 - **Large commented-out OAuth passkey callback block removed** — ~70 lines of dead code have been deleted and the chosen custom redirect flow is now formally documented. (`providers/custom/passkey/`)
 - **QR provider default copy strings changed from French to English** — `title: "Connexion par QR Code"` and related strings were the only French defaults in the codebase. All defaults are now English. (`providers/custom/qr/index.ts`)
+
+### Typescript Type
+
+- **getUSers & getUserById** - Returns correctly typed public_session and private_session
