@@ -124,10 +124,6 @@ export function parseDBProject(
         : data.providers_data,
     theme_id: data.theme_id || null,
     emailTemplateId: data.emailTemplateId || null,
-    owner_group_id:
-      typeof data.owner_group_id === "string"
-        ? JSON.parse(data.owner_group_id)
-        : data.owner_group_id || [],
     codeMode: String(data.codeMode) === "phone" ? "phone" : "email",
     projectData:
       typeof data.projectData === "string"
@@ -153,7 +149,7 @@ export const uiStyleTable = sqliteTable("openauth_webui_ui_styles", {
 export const projectTable = sqliteTable("openauth_webui_projects", {
   clientID: text().primaryKey(),
   owner_id: text().notNull(),
-  owner_group_id: text({ mode: "json" }).notNull(),
+  owner_group_id: text().notNull(),
   active: integer({
     mode: "boolean",
   }).default(true),
@@ -196,7 +192,7 @@ export const emailTemplatesTable = sqliteTable(
     body: text().notNull(),
     subject: text().notNull(),
     owner_id: text().notNull(),
-    owner_group_id: text({ mode: "json" }).notNull(),
+    owner_group_id: text().notNull(),
     created_at: text().notNull(),
     updated_at: text().notNull(),
   },
@@ -267,7 +263,7 @@ export const WebUiCopyTemplateTable = sqliteTable(
       mode: "json",
     }).notNull(),
     owner_id: text().notNull(),
-    owner_group_id: text({ mode: "json" }).notNull(),
+    owner_group_id: text().notNull(),
     created_at: text().notNull(),
     updated_at: text().notNull(),
   },
