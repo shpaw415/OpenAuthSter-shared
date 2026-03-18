@@ -1,49 +1,49 @@
 {
-  "name": "openauthster-shared",
-  "module": "index.ts",
-  "version": "0.3.1",
-  "type": "module",
-  "private": false,
-  "devDependencies": {
-    "@types/bun": "^1.3.9",
-    "@types/mustache": "^4.2.6"
-  },
-  "peerDependencies": {
-    "typescript": "^5",
-    "drizzle-orm": "^0.45.1",
-    "hono": "^4.12.2"
-  },
-  "dependencies": {
-    "@openauthjs/openauth": "^0.4.3",
-    "@simplewebauthn/browser": "^13.2.2",
-    "@simplewebauthn/server": "^13.2.3",
-    "cloudflare": "^5.2.0",
-    "mustache": "^4.2.0",
-    "openauth-webui-shared-types": ".",
-    "uqr": "^0.1.2",
-    "valibot": "^1.2.0"
-  },
-  "exports": {
-    ".": "./index.ts",
-    "./database": "./database/schema.ts",
-    "./database/types": "./database/types.ts",
-    "./drizzle": "./database/drizzle.ts",
-    "./endpoints": "./database/endpoints.ts",
-    "./client": "./client/index.ts",
-    "./client/user": "./client/user.ts",
-    "./client/mfa": "./client/mfa/index.ts",
-    "./client/errors": "./client/errors.ts",
-    "./utils": "./utils.ts",
-    "./providers": "./providers/index.ts",
-    "./providers/utils": "./providers/utils.ts",
-    "./providers/custom/*": "./providers/custom/*",
-    "./providers/custom/out/*": "./providers/custom/build/*",
-    "./webhook/types": "./webhook/types.ts",
-    "./webhook": "./webhook/index.ts",
-    "./security": "./security/index.ts"
-  },
-  "scripts": {
-    "build:ui": "bun bin/build_ui.ts",
-    "git:push": "bun run build:ui && git add . && git commit -m 'update UI' && git push"
-  }
+	"name": "openauthster-shared",
+	"module": "index.ts",
+	"version": "0.3.1",
+	"type": "module",
+	"private": false,
+	"devDependencies": {
+		"@types/bun": "^1.3.9",
+		"@types/mustache": "^4.2.6"
+	},
+	"peerDependencies": {
+		"typescript": "^5",
+		"drizzle-orm": "^0.45.1",
+		"hono": "^4.12.2"
+	},
+	"dependencies": {
+		"@kagii/openauth": "^0.5.2",
+		"@simplewebauthn/browser": "^13.2.2",
+		"@simplewebauthn/server": "^13.2.3",
+		"cloudflare": "^5.2.0",
+		"mustache": "^4.2.0",
+		"openauth-webui-shared-types": ".",
+		"uqr": "^0.1.2",
+		"valibot": "^1.2.0"
+	},
+	"exports": {
+		".": "./index.ts",
+		"./database": "./database/schema.ts",
+		"./database/types": "./database/types.ts",
+		"./drizzle": "./database/drizzle.ts",
+		"./endpoints": "./database/endpoints.ts",
+		"./client": "./client/index.ts",
+		"./client/user": "./client/user.ts",
+		"./client/mfa": "./client/mfa/index.ts",
+		"./client/errors": "./client/errors.ts",
+		"./utils": "./utils.ts",
+		"./providers": "./providers/index.ts",
+		"./providers/utils": "./providers/utils.ts",
+		"./providers/custom/*": "./providers/custom/*",
+		"./providers/custom/out/*": "./providers/custom/build/*",
+		"./webhook/types": "./webhook/types.ts",
+		"./webhook": "./webhook/index.ts",
+		"./security": "./security/index.ts"
+	},
+	"scripts": {
+		"build:ui": "bun bin/build_ui.ts",
+		"git:push": "bun run build:ui && git add . && git commit -m 'update UI' && git push"
+	}
 }
