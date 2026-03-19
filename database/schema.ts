@@ -406,6 +406,10 @@ export const inviteTable = sqliteTable("openauth_webui_ui_invites", {
 	 * A unique code associated with the invite, which can be used to identify and validate the invite when a user attempts to accept it. This code should be securely generated to prevent unauthorized access.
 	 */
 	code: text().notNull(),
+	/**
+	 * the type of the invite, which can be "project", "email_template", "copy_template", or "ui_style". This field is used to categorize the invite and determine how it should be processed when accepted. For example, a "project" invite would grant access to a specific project, while an "email_template" invite would grant access to a specific email template. This categorization allows for more efficient handling of invites and ensures that the correct resources and permissions are granted to the user upon acceptance.
+	 */
+	type: text().notNull(),
 	expiresAt: text().notNull(),
 	created_at: text().notNull(),
 });
