@@ -184,23 +184,6 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
 	created_at: text().notNull(),
 });
 
-export const projectInviteTable = sqliteTable(
-	"openauth_webui_project_invites",
-	{
-		id: text().primaryKey(),
-		from_user_id: text().notNull(),
-		from_user_name: text().notNull(),
-		label: text().notNull(),
-		clientID: text()
-			.notNull()
-			.references(() => projectTable.clientID),
-		user_id: text().notNull(),
-		code: text().notNull(),
-		expiresAt: text().notNull(),
-		created_at: text().notNull(),
-	},
-);
-
 export const WebHookTable = sqliteTable("openauth_webui_webhooks", {
 	id: text().primaryKey(),
 	clientID: text()
@@ -226,26 +209,6 @@ export const emailTemplatesTable = sqliteTable(
 		owner_group_id: text().notNull(),
 		created_at: text().notNull(),
 		updated_at: text().notNull(),
-	},
-);
-
-export const emailTemplateInviteTable = sqliteTable(
-	"openauth_webui_email_template_invites",
-	{
-		id: text().primaryKey(),
-		template_id: integer()
-			.notNull()
-			.references(() => emailTemplatesTable.id),
-		from_user_id: text().notNull(),
-		from_user_name: text().notNull(),
-		user_id: text().notNull(),
-		label: text().notNull(),
-		clientID: text()
-			.notNull()
-			.references(() => projectTable.clientID),
-		code: text().notNull(),
-		expiresAt: text().notNull(),
-		created_at: text().notNull(),
 	},
 );
 
@@ -321,26 +284,6 @@ export const WebUiCopyTemplateTable = sqliteTable(
 		owner_group_id: text().notNull(),
 		created_at: text().notNull(),
 		updated_at: text().notNull(),
-	},
-);
-
-export const copyTemplateInviteTable = sqliteTable(
-	"openauth_webui_copy_template_invites",
-	{
-		id: text().primaryKey(),
-		template_id: integer()
-			.notNull()
-			.references(() => emailTemplatesTable.id),
-		from_user_id: text().notNull(),
-		from_user_name: text().notNull(),
-		user_id: text().notNull(),
-		label: text().notNull(),
-		clientID: text()
-			.notNull()
-			.references(() => projectTable.clientID),
-		code: text().notNull(),
-		expiresAt: text().notNull(),
-		created_at: text().notNull(),
 	},
 );
 
@@ -434,5 +377,35 @@ export const webAuthnTokenAccessTable = sqliteTable("webauthn_token_access", {
 	user_id: text().notNull(),
 	clientID: text().notNull(),
 	expires_at: text().notNull(),
+	created_at: text().notNull(),
+});
+
+export const inviteTable = sqliteTable("openauth_webui_ui_invites", {
+	id: integer().primaryKey({ autoIncrement: true }),
+	/**
+	 * User-friendly label for the invite, such as "Invite to Project X" or "Invite to Copy Template Y". This field is used to provide a clear and descriptive name for the invite, making it easier for recipients to understand the purpose of the invite when they receive it. The label can be displayed in the UI alongside other invite details to enhance the user experience and provide context about what the invite is for.
+	 */
+	label: text().notNull(),
+	/**
+	 * The ID of the user who sent the invite. This field is used to identify the sender of the invite, allowing for proper attribution and management of invites. When a user receives an invite, this field can be used to display information about who sent the invite and to track the origin of the invite within the system.
+	 */
+	from_user_id: text().notNull(),
+	/**
+	 * The name of the user who sent the invite. This field is used to provide a more user-friendly representation of the sender of the invite, allowing recipients to easily recognize who sent the invite without needing to reference the user ID. It can be displayed in the UI alongside the invite details to enhance the user experience and provide context about the invite's origin.
+	 */
+	from_user_name: text().notNull(),
+	/**
+	 * Specific data related to the invite, such as project_id, email_template_id, copy_template_id, or ui_style_id. This field can be used to store the relevant information needed to process the invite when accepted.
+	 */
+	data: text().notNull(),
+	/**
+	 * The ID of the user who is being invited. This field is used to associate the invite with a specific user in the system, allowing for proper tracking and management of invites. When a user attempts to accept an invite, this field can be used to verify that the invite is intended for them and to grant access to the appropriate resources or permissions.
+	 */
+	user_id: text().notNull(),
+	/**
+	 * A unique code associated with the invite, which can be used to identify and validate the invite when a user attempts to accept it. This code should be securely generated to prevent unauthorized access.
+	 */
+	code: text().notNull(),
+	expiresAt: text().notNull(),
 	created_at: text().notNull(),
 });
