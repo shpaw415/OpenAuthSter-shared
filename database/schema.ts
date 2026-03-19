@@ -190,6 +190,7 @@ export const projectInviteTable = sqliteTable(
 		id: text().primaryKey(),
 		from_user_id: text().notNull(),
 		from_user_name: text().notNull(),
+		label: text().notNull(),
 		clientID: text()
 			.notNull()
 			.references(() => projectTable.clientID),
@@ -238,6 +239,7 @@ export const emailTemplateInviteTable = sqliteTable(
 		from_user_id: text().notNull(),
 		from_user_name: text().notNull(),
 		user_id: text().notNull(),
+		label: text().notNull(),
 		clientID: text()
 			.notNull()
 			.references(() => projectTable.clientID),
@@ -332,6 +334,7 @@ export const copyTemplateInviteTable = sqliteTable(
 		from_user_id: text().notNull(),
 		from_user_name: text().notNull(),
 		user_id: text().notNull(),
+		label: text().notNull(),
 		clientID: text()
 			.notNull()
 			.references(() => projectTable.clientID),
