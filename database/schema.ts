@@ -395,10 +395,6 @@ export const inviteTable = sqliteTable("openauth_webui_ui_invites", {
 	 */
 	from_user_name: text().notNull(),
 	/**
-	 * Specific data related to the invite, such as project_id, email_template_id, copy_template_id, or ui_style_id. This field can be used to store the relevant information needed to process the invite when accepted.
-	 */
-	data: text().notNull(),
-	/**
 	 * The ID of the user who is being invited. This field is used to associate the invite with a specific user in the system, allowing for proper tracking and management of invites. When a user attempts to accept an invite, this field can be used to verify that the invite is intended for them and to grant access to the appropriate resources or permissions.
 	 */
 	user_id: text().notNull(),
@@ -410,6 +406,10 @@ export const inviteTable = sqliteTable("openauth_webui_ui_invites", {
 	 * the type of the invite, which can be "project", "email_template", "copy_template", or "ui_style". This field is used to categorize the invite and determine how it should be processed when accepted. For example, a "project" invite would grant access to a specific project, while an "email_template" invite would grant access to a specific email template. This categorization allows for more efficient handling of invites and ensures that the correct resources and permissions are granted to the user upon acceptance.
 	 */
 	type: text().notNull(),
+	/**
+	 * the specified group ID that will be assigned to the user upon accepting the invite. This field is used to manage user permissions and access levels within the system. By associating an invite with a specific group ID, administrators can control which resources and functionalities the invited user will have access to once they accept the invite and join the system.
+	 */
+	owner_group_id: text().notNull(),
 	expiresAt: text().notNull(),
 	created_at: text().notNull(),
 });
