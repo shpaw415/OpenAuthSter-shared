@@ -151,6 +151,7 @@ export const uiStyleTable = sqliteTable("openauth_webui_ui_styles", {
 	id: integer().primaryKey({ autoIncrement: true }),
 	name: text().notNull(),
 	owner_id: text().notNull(),
+	owner_group_id: text().notNull(),
 	themeData: text({
 		mode: "json",
 	}).notNull(),
@@ -426,17 +427,3 @@ export const webAuthnTokenAccessTable = sqliteTable("webauthn_token_access", {
 	expires_at: text().notNull(),
 	created_at: text().notNull(),
 });
-
-export function ownerGroupConditions<
-	Column extends SQLiteColumn,
-	OtherEq extends SQL<unknown>,
->(
-	user_group_ids: string[],
-	ownerGroupIdColumn: Column,
-	otherEq: Array<OtherEq> = [],
-) {
-	return or(
-		...otherEq,
-		...user_group_ids.map((groupId) => eq(ownerGroupIdColumn, groupId)),
-	);
-}
