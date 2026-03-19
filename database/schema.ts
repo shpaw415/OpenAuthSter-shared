@@ -427,11 +427,16 @@ export const webAuthnTokenAccessTable = sqliteTable("webauthn_token_access", {
 	created_at: text().notNull(),
 });
 
-export function ownerGroupConditions(
+export function ownerGroupConditions<
+	Column extends SQLiteColumn,
+	OtherEq extends SQL<unknown>,
+>(
 	user_group_ids: string[],
-	ownerGroupIdColumn: SQLiteColumn,
+	ownerGroupIdColumn: Column,
+	otherEq: Array<OtherEq> = [],
 ) {
 	return or(
+		...otherEq,
 		...user_group_ids.map((groupId) => eq(ownerGroupIdColumn, groupId)),
 	);
 }
