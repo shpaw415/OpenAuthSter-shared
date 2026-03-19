@@ -4,7 +4,7 @@ import {
 	integer,
 	SQLiteColumn,
 } from "drizzle-orm/sqlite-core";
-import { drizzle, eq, or } from "./drizzle";
+import { drizzle, eq, or, SQL } from "./drizzle";
 import type { OTFUsersType, OTFUsersParsedType } from "./types";
 import type { Project, CopyDataSelection } from "..";
 export * from "./types";
