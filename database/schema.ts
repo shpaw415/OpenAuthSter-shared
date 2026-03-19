@@ -188,6 +188,7 @@ export const projectInviteTable = sqliteTable(
 	"openauth_webui_project_invites",
 	{
 		id: text().primaryKey(),
+		from_user_id: text().notNull(),
 		clientID: text()
 			.notNull()
 			.references(() => projectTable.clientID),
@@ -233,6 +234,7 @@ export const emailTemplateInviteTable = sqliteTable(
 		template_id: integer()
 			.notNull()
 			.references(() => emailTemplatesTable.id),
+		from_user_id: text().notNull(),
 		user_id: text().notNull(),
 		clientID: text()
 			.notNull()
@@ -325,6 +327,7 @@ export const copyTemplateInviteTable = sqliteTable(
 		template_id: integer()
 			.notNull()
 			.references(() => emailTemplatesTable.id),
+		from_user_id: text().notNull(),
 		user_id: text().notNull(),
 		clientID: text()
 			.notNull()
