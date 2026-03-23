@@ -407,6 +407,10 @@ export const inviteTable = sqliteTable("openauth_webui_ui_invites", {
 	 * the specified group ID that will be assigned to the user upon accepting the invite. This field is used to manage user permissions and access levels within the system. By associating an invite with a specific group ID, administrators can control which resources and functionalities the invited user will have access to once they accept the invite and join the system.
 	 */
 	owner_group_id: text().notNull(),
-	expiresAt: text().notNull(),
+	expires_at: text().notNull(),
 	created_at: text().notNull(),
+	/**
+	 * the current status of the invite, which can be "pending", "accepted", or "declined".
+	 */
+	status: text().default("pending"), // pending, accepted, declined
 });
