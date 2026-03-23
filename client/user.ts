@@ -865,21 +865,24 @@ import { Passkey } from './passkey';
 	 *
 	 * **`Client or Server Side`**
 	 */
-	async getMetaData(): Promise<{
-		id: string | null;
-		identifier: string | null;
-		provider: string | null;
-	}> {
+	async getMetaData<
+		UserData extends Record<string, unknown> = Record<string, unknown>,
+	>(): Promise<{
+		id: string;
+		identifier: string;
+		provider: string;
+		data: UserData;
+	} | null> {
 		const token = this.getToken();
-		if (!token) return { id: null, identifier: null, provider: null };
+		if (!token) return null;
 		const result = await this.verifyToken(token);
-		if (result.err || !result.subject)
-			return { id: null, identifier: null, provider: null };
+		if (result.err || !result.subject) return null;
 		const props = result.subject.properties;
 		return {
 			id: props?.id ?? null,
 			identifier: props?.identifier ?? null,
 			provider: props?.provider ?? null,
+			data: props?.data as UserData,
 		};
 	}
 	/**
