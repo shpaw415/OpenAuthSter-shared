@@ -1,23 +1,22 @@
-import type { PasswordUIOptions } from "@kagii/openauth/ui/password";
-import type { CodeUICopy } from "@kagii/openauth/ui/code";
-import type { CodeProviderConfig as CodeConfig } from "@kagii/openauth/provider/code";
-import type { CognitoConfig } from "@kagii/openauth/provider/cognito";
-import type { KeycloakConfig } from "@kagii/openauth/provider/keycloak";
-import type { MicrosoftConfig } from "@kagii/openauth/provider/microsoft";
-import type { projectTable } from "./database/schema";
 import type { OnSuccessResponder, Prettify } from "@kagii/openauth/issuer";
 import type {
 	AppleConfig,
 	AppleOidcConfig,
 } from "@kagii/openauth/provider/apple";
+import type { CodeProviderConfig as CodeConfig } from "@kagii/openauth/provider/code";
+import type { CognitoConfig } from "@kagii/openauth/provider/cognito";
 import type { GoogleConfig } from "@kagii/openauth/provider/google";
-import type { SlackConfig } from "@kagii/openauth/provider/slack";
-import type { OidcConfig } from "@kagii/openauth/provider/oidc";
+import type { KeycloakConfig } from "@kagii/openauth/provider/keycloak";
+import type { MicrosoftConfig } from "@kagii/openauth/provider/microsoft";
 import type { Oauth2Config } from "@kagii/openauth/provider/oauth2";
-
+import type { OidcConfig } from "@kagii/openauth/provider/oidc";
+import type { SlackConfig } from "@kagii/openauth/provider/slack";
+import type { CodeUICopy } from "@kagii/openauth/ui/code";
+import type { PasswordUIOptions } from "@kagii/openauth/ui/password";
+import type { projectTable } from "./database/schema";
+import type { PASSKEY_DEFAULT_COPY } from "./providers/custom/passkey/index";
 // custom Provider types
 import type { DEFAULT_COPY as QR_DEFAULT_COPY } from "./providers/custom/qr";
-import type { PASSKEY_DEFAULT_COPY } from "./providers/custom/passkey/index";
 
 export * from "./database/schema";
 

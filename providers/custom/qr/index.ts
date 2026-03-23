@@ -1,15 +1,15 @@
+import type { AuthorizationState } from "@kagii/openauth/issuer";
 import type { Provider } from "@kagii/openauth/provider/provider";
-import { jsxRenderer } from "hono/jsx-renderer";
-import type { JSX } from "hono/jsx/jsx-runtime";
-import type { QRHandshake } from "../DurableObject";
-import { Layout } from "@kagii/openauth/ui/base";
-import type { Hono } from "hono";
 import type { SubjectSchema } from "@kagii/openauth/subject";
-import { createLocalJWKSet, jwtVerify, type JSONWebKeySet } from "jose";
+import { Layout } from "@kagii/openauth/ui/base";
+import type { UnixSocketListener } from "bun";
+import type { Hono } from "hono";
+import type { JSX } from "hono/jsx/jsx-runtime";
+import { jsxRenderer } from "hono/jsx-renderer";
+import { createLocalJWKSet, type JSONWebKeySet, jwtVerify } from "jose";
 import type { ProviderType } from "openauth-webui-shared-types";
 import * as v from "valibot";
-import type { AuthorizationState } from "@kagii/openauth/issuer";
-import type { UnixSocketListener } from "bun";
+import type { QRHandshake } from "../DurableObject";
 
 export const DEFAULT_COPY = {
 	title: "Sign in with QR Code",

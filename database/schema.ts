@@ -1,12 +1,13 @@
 import {
-	sqliteTable,
-	text,
 	integer,
 	SQLiteColumn,
+	sqliteTable,
+	text,
 } from "drizzle-orm/sqlite-core";
+import type { CopyDataSelection, Project } from "..";
 import { drizzle, eq, or, SQL } from "./drizzle";
-import type { OTFUsersType, OTFUsersParsedType } from "./types";
-import type { Project, CopyDataSelection } from "..";
+import type { OTFUsersParsedType, OTFUsersType } from "./types";
+
 export * from "./types";
 
 export const reservedTableNames = [

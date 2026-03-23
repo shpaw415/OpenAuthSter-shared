@@ -1,21 +1,21 @@
 import type {
+	AuthorizeOptions,
 	Challenge,
 	Client,
 	ExchangeSuccess,
 	RefreshSuccess,
-	AuthorizeOptions,
 } from "@kagii/openauth/client";
-import * as v from "valibot";
-import type { InferOutput } from "valibot";
-import { createClient } from ".";
 import { createSubjects } from "@kagii/openauth/subject";
+import type { InferOutput } from "valibot";
+import * as v from "valibot";
 import {
-	UserListSchemaValidation,
 	type GetUserListFilters,
-	type UserResponseSchemaType,
+	UserListSchemaValidation,
 	type UserResponseSchemaInferdType,
+	type UserResponseSchemaType,
 } from "../database/endpoints";
 import type { OTFUsersParsedType } from "../database/schema";
+import { createClient } from ".";
 import OpenAuthsterErrors, { type ErrorList } from "./errors";
 import { MFAmanager } from "./mfa";
 import { Passkey } from "./passkey";
@@ -496,7 +496,7 @@ export class OpenAuthsterClient<
 	 */
 	getTokenFromRequest(request: Request): string | null {
 		const authHeader = request.headers.get("Authorization");
-		if (authHeader && authHeader.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ")) {
 			return authHeader.substring(7); // Remove "Bearer " prefix
 		}
 		const tokenFromCookie = request.headers
@@ -573,11 +573,6 @@ import { Passkey } from './passkey';
 				throw new Error("Failed to verify token from request.", {
 					cause: res.err,
 				});
-			}
-			if (res.subject.properties.clientID !== this.clientID) {
-				throw new Error(
-					"Token client id does not match this project client id.",
-				);
 			}
 			if (token) {
 				this.token = token;
@@ -1178,8 +1173,8 @@ import { Passkey } from './passkey';
 				? localStorage.getItem("oa_expires_at")
 				: null;
 		if (!stored) return null;
-		const expiresAt = parseInt(stored);
-		return isNaN(expiresAt) ? null : new Date(expiresAt);
+		const expiresAt = parseInt(stored, 10);
+		return Number.isNaN(expiresAt) ? null : new Date(expiresAt);
 	}
 	/**
 	 * Store the expiration time as a timestamp in milliseconds in local storage. The client will use this to determine when to attempt token refreshes. If the client is closed and reopened, it will check the stored expiration time to determine if the token is still valid or if it needs to be refreshed immediately.
@@ -1245,8 +1240,14 @@ import { Passkey } from './passkey';
  * @typeParam UserInfo - The type of the user info data returned by the provider depending on the scopes you setted. Defaults to `any`.
  */
 export function createOpenAuthsterClient<
-	PublicSessionData extends RequiredResponseData["public"] = {},
-	PrivateSessionData extends RequiredResponseData["private"] = {},
+	PublicSessionData extends RequiredResponseData["public"] = Record<
+		string,
+		unknown
+	>,
+	PrivateSessionData extends RequiredResponseData["private"] = Record<
+		string,
+		unknown
+	>,
 	UserInfo extends RequiredResponseData["userInfo"] = {
 		provider: string;
 	},

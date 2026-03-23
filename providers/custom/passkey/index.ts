@@ -1,23 +1,23 @@
+import type { AuthorizationState } from "@kagii/openauth/issuer";
 import type { Provider } from "@kagii/openauth/provider/provider";
+import { Layout } from "@kagii/openauth/ui/base";
+import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import {
+	type AuthenticatorTransportFuture,
 	generateAuthenticationOptions,
 	verifyAuthenticationResponse,
-	type AuthenticatorTransportFuture,
 } from "@simplewebauthn/server";
-import { eq, desc, and } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+import { jsxRenderer } from "hono/jsx-renderer";
 import {
+	OTFusersTable,
+	webAuthnTokenAccessTable,
 	webauthnChallengesTable,
 	webauthnCredentialsTable,
-	OTFusersTable,
 } from "../../../database/schema";
-import { jsxRenderer } from "hono/jsx-renderer";
-import { Layout } from "@kagii/openauth/ui/base";
-import { PassKeyUI } from "./passkey_ui";
 import ClientScript from "../../build/passkey/client.js" with { type: "text" };
-import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
-import { webAuthnTokenAccessTable } from "../../../database/schema";
-import type { AuthorizationState } from "@kagii/openauth/issuer";
+import { PassKeyUI } from "./passkey_ui";
 
 export const PASSKEY_DEFAULT_COPY = {
 	title: "Sign in with Passkey",

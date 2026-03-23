@@ -1,40 +1,40 @@
 export function getCookiesFromRequest(
-  request: Request,
+	request: Request,
 ): Record<string, string> {
-  const cookieHeader = request.headers.get("cookie");
-  const cookies: Record<string, string> = {};
+	const cookieHeader = request.headers.get("cookie");
+	const cookies: Record<string, string> = {};
 
-  if (cookieHeader) {
-    const cookiePairs = cookieHeader.split("; ");
-    for (const pair of cookiePairs) {
-      const eqIdx = pair.indexOf("=");
-      const name = pair.slice(0, eqIdx);
-      const value = pair.slice(eqIdx + 1);
-      cookies[name] = decodeURIComponent(value);
-    }
-  }
+	if (cookieHeader) {
+		const cookiePairs = cookieHeader.split("; ");
+		for (const pair of cookiePairs) {
+			const eqIdx = pair.indexOf("=");
+			const name = pair.slice(0, eqIdx);
+			const value = pair.slice(eqIdx + 1);
+			cookies[name] = decodeURIComponent(value);
+		}
+	}
 
-  return cookies;
+	return cookies;
 }
 
 export function createCookieContent(
-  name: string,
-  value: string,
-  options?: { path?: string; maxAge?: number; httpOnly?: boolean },
+	name: string,
+	value: string,
+	options?: { path?: string; maxAge?: number; httpOnly?: boolean },
 ): string {
-  let cookieString = `${name}=${encodeURIComponent(value)}`;
+	let cookieString = `${name}=${encodeURIComponent(value)}`;
 
-  if (options?.path) {
-    cookieString += `; Path=${options.path}`;
-  }
+	if (options?.path) {
+		cookieString += `; Path=${options.path}`;
+	}
 
-  if (options?.maxAge !== undefined) {
-    cookieString += `; Max-Age=${options.maxAge}`;
-  }
+	if (options?.maxAge !== undefined) {
+		cookieString += `; Max-Age=${options.maxAge}`;
+	}
 
-  if (options?.httpOnly) {
-    cookieString += `; HttpOnly`;
-  }
+	if (options?.httpOnly) {
+		cookieString += `; HttpOnly`;
+	}
 
-  return cookieString;
+	return cookieString;
 }

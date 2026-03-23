@@ -1,12 +1,12 @@
+import { encode } from "uqr";
 import { DEFAULT_COPY, type QRProviderConfig } from ".";
 import CSS from "./index.css" with { type: "text" };
-import { encode } from "uqr";
 
 type QrUIConfig = Omit<QRProviderConfig, "UI">;
 
 export function renderQrCode(data: string) {
-  const { data: matrix } = encode(data);
-  return matrix; // Retourne un tableau de tableaux (boolean[][])
+	const { data: matrix } = encode(data);
+	return matrix; // Retourne un tableau de tableaux (boolean[][])
 }
 
 const InsertedScript = ({ wsUrl, qrUrl }: { wsUrl: string; qrUrl: string }) => `
@@ -30,54 +30,54 @@ const InsertedScript = ({ wsUrl, qrUrl }: { wsUrl: string; qrUrl: string }) => `
       };`;
 
 const QrUIBody: QRProviderConfig["UI"] = ({ wsUrl, qrUrl, copy }) => {
-  const mergedCopy = {
-    ...DEFAULT_COPY,
-    ...copy,
-  };
+	const mergedCopy = {
+		...DEFAULT_COPY,
+		...copy,
+	};
 
-  const qrMatrix = renderQrCode(qrUrl);
-  const size = qrMatrix.length;
+	const qrMatrix = renderQrCode(qrUrl);
+	const size = qrMatrix.length;
 
-  return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <script
-        dangerouslySetInnerHTML={{
-          __html: InsertedScript({ wsUrl, qrUrl }),
-        }}
-      />
-      <div className="qr-container">
-        <div className="qr-header">
-          <h1 className="qr-title">{mergedCopy.title}</h1>
-          <p className="qr-description">{mergedCopy.description}</p>
-        </div>
+	return (
+		<>
+			<style dangerouslySetInnerHTML={{ __html: CSS }} />
+			<script
+				dangerouslySetInnerHTML={{
+					__html: InsertedScript({ wsUrl, qrUrl }),
+				}}
+			/>
+			<div className="qr-container">
+				<div className="qr-header">
+					<h1 className="qr-title">{mergedCopy.title}</h1>
+					<p className="qr-description">{mergedCopy.description}</p>
+				</div>
 
-        <div className="qr-canvas-wrapper">
-          <svg viewBox={`0 0 ${size} ${size}`} className="qr-canvas">
-            {qrMatrix.map((row, y) =>
-              row.map((active, x) =>
-                active ? (
-                  <rect
-                    key={`${x}-${y}`}
-                    x={x}
-                    y={y}
-                    width="1.1"
-                    height="1.1"
-                    className="qr-pixel"
-                  />
-                ) : null,
-              ),
-            )}
-          </svg>
-        </div>
-      </div>
-    </>
-  );
+				<div className="qr-canvas-wrapper">
+					<svg viewBox={`0 0 ${size} ${size}`} className="qr-canvas">
+						{qrMatrix.map((row, y) =>
+							row.map((active, x) =>
+								active ? (
+									<rect
+										key={`${x}-${y}`}
+										x={x}
+										y={y}
+										width="1.1"
+										height="1.1"
+										className="qr-pixel"
+									/>
+								) : null,
+							),
+						)}
+					</svg>
+				</div>
+			</div>
+		</>
+	);
 };
 
 export function QrUI(opt: QrUIConfig): QRProviderConfig {
-  return {
-    UI: QrUIBody,
-    ...opt,
-  };
+	return {
+		UI: QrUIBody,
+		...opt,
+	};
 }
