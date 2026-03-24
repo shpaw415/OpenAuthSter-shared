@@ -388,7 +388,7 @@ export type Project = EnsureKeys<
 		active: boolean;
 		providers_data: ProviderConfig[];
 		theme_id: number | null;
-		emailTemplateId?: string | null;
+		emailTemplateId?: number | null;
 		codeMode: "email" | "phone";
 		projectData?: ProjectData;
 		originURL?: string | null;

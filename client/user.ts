@@ -624,6 +624,10 @@ export class OpenAuthsterClient<
 
 		// 2. Set authentication headers
 		if (this.token) {
+			if (this.expiresAt && new Date() > this.expiresAt) {
+				if (!(await this.triggerRefresh()))
+					throw new Error("Token expired and refresh failed");
+			}
 			mergedHeaders.set("Authorization", `Bearer ${this.token}`);
 		}
 		if (this.secret) {
