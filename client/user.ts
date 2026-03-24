@@ -361,7 +361,7 @@ export class OpenAuthsterClient<
 	 * @param options - Optional authorization options.
 	 *   - `autoNavigate` (default `true`): set to `false` to get the URL without redirecting.
 	 *   - `copyID`: display the login UI with a copy template
-	 * @returns A promise that resolves to the authorization URL.
+	 * @returns The authorization URL the user is being redirected to.
 	 */
 	async login(
 		options?: AuthorizeOptions & { autoNavigate?: boolean; copyID?: string },
@@ -763,15 +763,9 @@ export class OpenAuthsterClient<
 		ids.forEach((id) => {
 			url.searchParams.append("user_id", id);
 		});
-		return this.fetchWithOptions(
-			url.toString(),
-			{
-				method: "GET",
-			},
-			{
-				noClientId: true,
-			},
-		)
+		return this.fetchWithOptions(url.toString(), {
+			method: "GET",
+		})
 			.then((res) => res.json() as Promise<UserResponseSchemaType>)
 			.then(
 				(_json) =>
@@ -917,7 +911,7 @@ export class OpenAuthsterClient<
 	 *
 	 * - **No token provided**: verify the current client token and update authentication state accordingly. If verification fails, the token will be rejected and an error will be logged in the console. This is a security measure to prevent unauthorized access with invalid tokens.
 	 *
-	 * @returns A promise that resolves to `true` if the token is valid and the client is authenticated, or `false` if the token is invalid or verification fails.
+	 * @returns `true` if valid, `false` if verification fails.
 	 *
 	 * **`Client or Server Side`**
 	 */
