@@ -74,8 +74,11 @@ export type UserFetchResponse<
 
 export type ResponseData = InferOutput<typeof UserEndpointResponseValidation>;
 
-export type UpdateUserByIdData = Partial<
-	Omit<OTFUsersParsedType, "created_at" | "id" | "identifier">
+export type UpdateUserByIdData<
+	Public extends Record<string, unknown> | null,
+	Private extends Record<string, unknown> | null,
+> = Partial<
+	Omit<OTFUsersParsedType<Public, Private>, "created_at" | "id" | "identifier">
 >;
 
 export type OpenAuthsterOptions = {
@@ -265,27 +268,18 @@ export class OpenAuthsterClient<
 			.then(() => this);
 	}
 	/**
-	 * Triggers an update by calling all registered initialization listeners. This can be used to notify any components or parts of the application that are listening for updates to re-render or fetch new data after changes to authentication state or session data. The listeners will be called in the order they were registered, and can be asynchronous if needed.
+	 * Notifies all registered initialization listeners of the current client state. Use this to manually trigger a re-render or data refresh in components that track auth state.
 	 *
 	 * **Browser Only**
 	 * @example
 	 * ```ts
-	 *
-	 * type ErrorType = {
-	 *   error: string;
-	 *  error_description: string | null;
-	 * };
-	 *
-	 * // React example of a component listening for updates
+	 * // React example — listen for client state changes
 	 * useEffect(() => {
-	 *   const updateData = (client: OpenAuthsterClient, error?: ErrorType) => {
-	 *     // Fetch new data or trigger re-render
+	 *   const onUpdate = (client: OpenAuthsterClient, error?: { error: string; error_description: string | null }) => {
+	 *     // handle updated auth state
 	 *   };
-	 *   openAuthsterClient.addInitializationListener("myComponent", updateData);
-	 *   return () => {
-	 *     // Cleanup listener on unmount if needed
-	 *     openAuthsterClient.removeInitializationListener("myComponent");
-	 *   };
+	 *   openAuthsterClient.addInitializationListener("myComponent", onUpdate);
+	 *   return () => openAuthsterClient.removeInitializationListener("myComponent");
 	 * }, []);
 	 * ```
 	 */
@@ -297,20 +291,17 @@ export class OpenAuthsterClient<
 		) as unknown as Promise<void>;
 	}
 	/**
-	 * Fetches the user's session data from the user endpoint. Requires the client to be authenticated and have a valid token.
+	 * Fetches the authenticated user's session data. Pass `"public"` for public data or `"private"` for server-only private data (requires `secret`).
 	 *
-	 * Private session data can only be accessed if the client was initialized with a secret, as the user endpoint requires the secret to authenticate requests for private session data. If the client was not initialized with a secret, attempts to fetch private session data will result in an error.
+	 * **`Client or Server Side`** — on the server, call `setTokenFromRequest` first.
 	 *
-	 * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
+	 * @param type - `"public"` or `"private"`.
 	 */
 	getUserSession(type: RequestData["type"]) {
 		this.ensureReady();
-		return this.fetchWithOptions(
-			`${this.issuerURI}/session/${type}/${this.clientID}`,
-			{
-				method: "GET",
-			},
-		)
+		return this.fetchWithOptions(`${this.issuerURI}/session/${type}`, {
+			method: "GET",
+		})
 			.then(
 				(res) =>
 					res.json() as Promise<
@@ -326,11 +317,12 @@ export class OpenAuthsterClient<
 			});
 	}
 	/**
-	 * Updates the user's session data on the user endpoint. Requires the client to be authenticated and have a valid token.
+	 * Merges the provided `data` into the user's session (PATCH semantics). Pass `"public"` or `"private"` to target the respective store. Updating `"private"` requires `secret` to be set.
 	 *
-	 * Private session data can only be updated if the client was initialized with a secret, as the user endpoint requires the secret to authenticate requests for private session data. If the client was not initialized with a secret, attempts to update private session data will result in an error.
+	 * **`Client or Server Side`** — on the server, call `setTokenFromRequest` first.
 	 *
-	 * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
+	 * @param type - `"public"` or `"private"`.
+	 * @param data - Partial session data to merge in.
 	 */
 	updateUserSession<SessionData extends PublicSessionData | PrivateSessionData>(
 		type: RequestData["type"],
@@ -338,16 +330,13 @@ export class OpenAuthsterClient<
 	) {
 		this.ensureReady();
 
-		return this.fetchWithOptions(
-			`${this.issuerURI}/session/${type}/${this.clientID}`,
-			{
-				method: "PATCH",
-				body: JSON.stringify(data),
-				headers: {
-					"Content-Type": "application/json",
-				},
+		return this.fetchWithOptions(`${this.issuerURI}/session/${type}`, {
+			method: "PATCH",
+			body: JSON.stringify(data),
+			headers: {
+				"Content-Type": "application/json",
 			},
-		)
+		})
 			.then(
 				(res) =>
 					res.json() as Promise<
@@ -363,11 +352,16 @@ export class OpenAuthsterClient<
 	}
 
 	/**
-	 * Initiates the login process by redirecting the user to the authorization URL provided by the OpenAuth client. The client will generate a PKCE challenge and store it in local storage before redirecting. After the user completes the login flow and is redirected back to the application, the `callback` method should be called to complete the authentication process and exchange the authorization code for tokens.
+	 * Initiates the login flow by generating a PKCE challenge and redirecting the user to the authorization URL.
+	 *
+	 * After the user authenticates, they will be redirected to `redirectURI`. Call `callback()` on that page to complete the exchange.
 	 *
 	 * **Browser Only**
 	 *
-	 * @returns A promise that resolves to the authorization URL the user is being redirected to. This can be used for custom handling of the login flow.
+	 * @param options - Optional authorization options.
+	 *   - `autoNavigate` (default `true`): set to `false` to get the URL without redirecting.
+	 *   - `copyID`: display the login UI with a copy template
+	 * @returns A promise that resolves to the authorization URL.
 	 */
 	async login(
 		options?: AuthorizeOptions & { autoNavigate?: boolean; copyID?: string },
@@ -392,9 +386,11 @@ export class OpenAuthsterClient<
 	}
 
 	/**
-	 * Logs the user out by clearing tokens, session data, and authentication state. Also clears any stored tokens and challenges from local storage to ensure a complete logout. After calling this method, the client will no longer be authenticated and will need to go through the login process again to obtain new tokens.
+	 * Clears all tokens, session data, and authentication state, then notifies all registered listeners.
 	 *
-	 * **`Browser only`**
+	 * Removes `oa_token`, `oa_refresh_token`, `oa_challenge`, and `oa_expires_at` from localStorage. The user must log in again to obtain new tokens.
+	 *
+	 * **Browser Only**
 	 */
 	logout() {
 		this.token = null;
@@ -414,6 +410,13 @@ export class OpenAuthsterClient<
 		return this.triggerUpdate();
 	}
 
+	/**
+	 * Completes the OAuth authorization flow by exchanging the authorization code in the current URL for access and refresh tokens.
+	 *
+	 * Call this on your redirect/callback page immediately after the user is sent back from the authorization server. Cleans up the `code` and `state` query params from the URL after a successful exchange.
+	 *
+	 * **Browser Only**
+	 */
 	async callback() {
 		const challenge = this.getChallenge();
 		const code = this.getCode();
@@ -452,6 +455,11 @@ export class OpenAuthsterClient<
 			});
 	}
 
+	/**
+	 * Updates runtime client options. Currently supports updating `secret`, which is required for accessing private session data and admin endpoints.
+	 *
+	 * @param options - Options to update.
+	 */
 	updateOptions(options: OpenAuthsterOptions) {
 		if (options.secret) {
 			this.secret = options.secret;
@@ -459,7 +467,7 @@ export class OpenAuthsterClient<
 	}
 
 	/**
-	 * Registers a listener callback that will be invoked whenever the client is initialized or updated. This allows components or parts of the application to react to changes in authentication state or session data by re-rendering or fetching new data as needed. The listener is identified by a unique key, which can be used to remove the listener later if needed.
+	 * Registers a callback invoked whenever the client state changes (auth, session data). Use a unique `key` to identify the listener so it can be removed later.
 	 *
 	 * **`Browser Only`**
 	 * @example
@@ -484,15 +492,15 @@ export class OpenAuthsterClient<
 		this.initListeners.set(key, callback);
 	}
 	/**
-	 * Removes a previously registered initialization listener identified by the given key. After calling this method, the specified listener will no longer be invoked when the client is initialized or updated. This can be useful for cleaning up listeners when components unmount or when you no longer need to react to client updates in certain parts of the application.
+	 * Removes a previously registered listener by key. The listener will no longer be called on client state changes.
 	 */
 	removeInitializationListener(key: string) {
 		this.initListeners.delete(key);
 	}
 	/**
-	 * Extracts the Bearer token from the Authorization header of a Request object.
+	 * Extracts the Bearer token from the `Authorization` header of an incoming `Request`, falling back to the `access_token` cookie. Returns `null` if neither is present.
 	 *
-	 * **`Server side only`**
+	 * **`Server Side Only`**
 	 */
 	getTokenFromRequest(request: Request): string | null {
 		const authHeader = request.headers.get("Authorization");
@@ -509,12 +517,9 @@ export class OpenAuthsterClient<
 		return tokenFromCookie || null;
 	}
 	/**
-	 * Stores the token in a cookie for persistence across page reloads. This method can be used to manually set the token after obtaining it from an external source, such as after a successful login or token refresh.
+	 * Writes the current access token into a browser cookie (`access_token`). After calling this, server-side middleware can read the token via `getTokenFromRequest`.
 	 *
-	 * API call will be authenticated after calling
-	 *
-	 * **`Browser side only`**
-	 *
+	 * **`Browser Side Only`**
 	 */
 	setTokenToCookie() {
 		if (typeof window === "undefined" || !this.token)
@@ -524,43 +529,28 @@ export class OpenAuthsterClient<
 		document.cookie = `access_token=${this.token}; path=/; secure; samesite=lax;`;
 	}
 
-	/** Sets the client's token based on the Authorization header of a Request object. Also updates authentication state accordingly.
-   *
-   * Verify the token authenticity using the client's subject schema. If verification fails, the token will be rejected and an error will be logged in the console. This is a security measure to prevent unauthorized access with invalid tokens.
-   *
-   * **`Server side only`**
-   *
-   * ```ts
-   * // Example usage in a server-side context
-   * import { OpenAuthsterClient } from "openauthster-shared";
-import { OTFusersTable } from '../database/schema';
-import { USerResponseSchemaInferdType, UserResponseSchemaInferdType } from '../database/endpoints';
-import { TotpClient } from './totp';
-import { Passkey } from './passkey';
-   *
-   * const client = new OpenAuthsterClient({
-   *   issuerURI: "https://your-issuer.com",
-   *   clientID: "your-client-id",
-   *   secret: "your-client-secret",
-   *   redirectURI: "https://your-app.com/",
-   *   subject: yourCustomSubjectSchema, // Optional custom subject schema
-   * });
-   *
-   * async function handleRequest(request: Request) {
-   *   try {
-   *     await client.setTokenFromRequest(request);
-   *     if (client.isAuthenticated) {
-   *       // Proceed with authenticated actions
-   *     } else {
-   *       // Handle unauthenticated state
-   *     }
-   *   } catch (error) {
-   *     console.error("Error setting token from request:", error);
-   *     // Handle error appropriately
-   *   }
-   * }
-   * ```
-   */
+	/**
+	 * Sets the client's token from the `Authorization: Bearer` header (or `access_token` cookie) of an incoming `Request`. Verifies the token using the configured subject schema before accepting it — invalid tokens are rejected and `isAuthenticated` is set to `false`.
+	 *
+	 * **`Server side only`**
+	 *
+	 * @example
+	 * ```ts
+	 * const client = new OpenAuthsterClient({
+	 *   issuerURI: "https://your-issuer.com",
+	 *   clientID: "your-client-id",
+	 *   secret: "your-client-secret",
+	 *   redirectURI: "https://your-app.com/",
+	 * });
+	 *
+	 * async function handleRequest(request: Request) {
+	 *   await client.setTokenFromRequest(request);
+	 *   if (client.isAuthenticated) {
+	 *     // proceed with authenticated logic
+	 *   }
+	 * }
+	 * ```
+	 */
 	setTokenFromRequest(request: Request): Promise<this> {
 		const token = this.getTokenFromRequest(request);
 		if (!token) {
@@ -582,15 +572,21 @@ import { Passkey } from './passkey';
 		});
 	}
 
+	/**
+	 * Authenticated fetch wrapper. Adds Bearer token (and secret HMAC headers if configured), but does **not** append `client_id` to the URL.
+	 *
+	 * Use `fetchWithOptions` directly if you need `client_id` appended automatically.
+	 *
+	 * **`Client or Server Side`**
+	 */
 	async fetch(input: RequestInfo, init?: RequestInit) {
 		return this.fetchWithOptions(input, init, { noClientId: true });
 	}
 
 	/**
-	 * Make Authenticated fetch request to an endpoint needing user authentication.
-	 * Automatically adds the Bearer token to the Authorization header and Secret Headers ( X-Client-Timestamp, X-Client-Signature ) if secret is provided in client initialization.
+	 * Authenticated fetch wrapper that appends `client_id` as a query param and injects Bearer token + HMAC secret headers (`X-Client-Timestamp`, `X-Client-Signature`) when configured.
 	 *
-	 * **`Can be called both on client and server side, but token must be set first using setTokenFromRequest when calling from server side.`**
+	 * **`Client or Server Side`** — on the server, call `setTokenFromRequest` first.
 	 */
 	async fetchWithOptions(
 		input: RequestInfo,
@@ -670,17 +666,14 @@ import { Passkey } from './passkey';
 		return fetch(url.toString(), authInit);
 	}
 	/**
-	 * Clears the user's public session data by sending a request to the user endpoint with an empty data object. This will not merge with existing data, but will replace it entirely with an empty object.
+	 * Resets the user's public session data to an empty object (DELETE, not a merge).
 	 *
-	 * **`Can be called both on client and server side.`**
+	 * **`Client or Server Side`**
 	 */
 	clearPublicSession() {
-		return this.fetchWithOptions(
-			`${this.issuerURI}/session/public/${this.clientID}`,
-			{
-				method: "DELETE",
-			},
-		)
+		return this.fetchWithOptions(`${this.issuerURI}/session/public`, {
+			method: "DELETE",
+		})
 			.then(
 				(res) =>
 					res.json() as Promise<
@@ -695,20 +688,14 @@ import { Passkey } from './passkey';
 			);
 	}
 	/**
-	 * Clears the user's private session data by sending a request to the user endpoint with an empty data object. This will not merge with existing data, but will replace it entirely with an empty object.
+	 * Resets the user's private session data to an empty object (DELETE, not a merge). Requires `secret` to be set.
 	 *
-	 * **`Server side only.`**
-	 *
-	 * **Note: Secret is required to update private session, so this method will throw an error if the client was not initialized with a secret.**
-	 *
+	 * **`Server Side Only`**
 	 */
 	clearPrivateSession() {
-		return this.fetchWithOptions(
-			`${this.issuerURI}/session/private/${this.clientID}`,
-			{
-				method: "DELETE",
-			},
-		)
+		return this.fetchWithOptions(`${this.issuerURI}/session/private`, {
+			method: "DELETE",
+		})
 			.then(
 				(res) =>
 					res.json() as Promise<
@@ -724,9 +711,9 @@ import { Passkey } from './passkey';
 	}
 
 	/**
-	 * Fetches a list of users from the issuer's user endpoint, with optional pagination filters. This method requires the client to be authenticated and have a valid token, as well as access to the user endpoint which may require a secret for private session data. The response is validated against the UserListSchemaValidation schema to ensure it conforms to the expected format.
+	 * Fetches a single user by their ID from the issuer's user endpoint.
 	 *
-	 * **`need secret to be set`**
+	 * **`Requires secret to be set.`**
 	 */
 	getUserById(
 		user_id: string,
@@ -738,12 +725,9 @@ import { Passkey } from './passkey';
 		  >
 		| Error
 	> {
-		return this.fetchWithOptions(
-			`${this.issuerURI}/user/${this.clientID}/${user_id}`,
-			{
-				method: "GET",
-			},
-		)
+		return this.fetchWithOptions(`${this.issuerURI}/user/${user_id}`, {
+			method: "GET",
+		})
 			.then(
 				(res) =>
 					res.json() as Promise<
@@ -768,9 +752,48 @@ import { Passkey } from './passkey';
 			.catch((err) => new Error(`Failed to fetch user by ID: ${err.message}`));
 	}
 	/**
-	 * Fetches a list of users from the issuer's user endpoint, with optional pagination filters. The response is validated against the UserListSchemaValidation schema to ensure it conforms to the expected format.
+	 * Fetches multiple users by their IDs in a single request.
 	 *
-	 *  **`need secret to be set`**
+	 * **`Requires secret to be set.`**
+	 *
+	 * @param ids - Array of user IDs to fetch.
+	 */
+	getManyUserById(ids: string[]) {
+		const url = new URL(`${this.issuerURI}/users/specific`);
+		ids.forEach((id) => {
+			url.searchParams.append("user_id", id);
+		});
+		return this.fetchWithOptions(
+			url.toString(),
+			{
+				method: "GET",
+			},
+			{
+				noClientId: true,
+			},
+		)
+			.then((res) => res.json() as Promise<UserResponseSchemaType>)
+			.then(
+				(_json) =>
+					v.parse(
+						UserListSchemaValidation,
+						_json,
+					) as UserResponseSchemaInferdType<
+						PublicSessionData,
+						PrivateSessionData,
+						UserInfo
+					>,
+			)
+			.catch(
+				(err) => new Error(`Failed to fetch users by IDs: ${err.message}`),
+			);
+	}
+	/**
+	 * Fetches a paginated list of users for this project from the issuer's user endpoint.
+	 *
+	 * **`Requires secret to be set.`**
+	 *
+	 * @param filters - Optional pagination filters (`page`, `limit`).
 	 */
 	getUsers(
 		filters?: GetUserListFilters,
@@ -782,7 +805,7 @@ import { Passkey } from './passkey';
 		  >
 		| Error
 	> {
-		const url = new URL(`${this.issuerURI}/users/${this.clientID}`);
+		const url = new URL(`${this.issuerURI}/users`);
 		if (filters?.page) url.searchParams.set("page", filters.page.toString());
 		if (filters?.limit) url.searchParams.set("limit", filters.limit.toString());
 		return this.fetchWithOptions(url.toString(), {
@@ -803,19 +826,18 @@ import { Passkey } from './passkey';
 			.catch((err) => new Error(`Failed to fetch users: ${err.message}`));
 	}
 	/**
-	 * Deletes a user by their ID by sending a DELETE request to the issuer's user endpoint.
+	 * Deletes a user by their ID.
 	 *
-	 * **`need secret to be set`**
+	 * **`Requires secret to be set.`**
+	 *
+	 * @param user_id - The ID of the user to delete.
 	 */
 	deleteUserById(
 		user_id: string,
 	): Promise<{ success: boolean; error: null | string }> {
-		return this.fetchWithOptions(
-			`${this.issuerURI}/user/${this.clientID}/${user_id}`,
-			{
-				method: "DELETE",
-			},
-		)
+		return this.fetchWithOptions(`${this.issuerURI}/user/${user_id}`, {
+			method: "DELETE",
+		})
 			.then((res) => res.json() as Promise<UserResponseSchemaType>)
 			.then((json) => {
 				if (!json.success) {
@@ -829,22 +851,24 @@ import { Passkey } from './passkey';
 			}));
 	}
 	/**
-	 * Update user by ID
+	 * Updates a user's record by their ID. Only the fields provided in `data` will be updated; omitted fields are left unchanged.
+	 *
+	 * **`Requires secret to be set.`**
+	 *
+	 * @param user_id - The ID of the user to update.
+	 * @param data - Partial user fields to update. `id`, `identifier`, and `created_at` cannot be changed.
 	 */
 	updateUserById(
 		user_id: string,
-		data: UpdateUserByIdData,
+		data: UpdateUserByIdData<PublicSessionData, PrivateSessionData>,
 	): Promise<UserResponseSchemaType["data"] | Error> {
-		return this.fetchWithOptions(
-			`${this.issuerURI}/user/${this.clientID}/${user_id}`,
-			{
-				method: "PUT",
-				body: JSON.stringify(data),
-				headers: {
-					"Content-Type": "application/json",
-				},
+		return this.fetchWithOptions(`${this.issuerURI}/user/${user_id}`, {
+			method: "PUT",
+			body: JSON.stringify(data),
+			headers: {
+				"Content-Type": "application/json",
 			},
-		)
+		})
 			.then((res) => res.json() as Promise<UserResponseSchemaType>)
 			.then((json) => {
 				if (!json.success) {
@@ -855,6 +879,9 @@ import { Passkey } from './passkey';
 			.catch((err) => new Error(`Failed to update user by ID: ${err.message}`));
 	}
 
+	/**
+	 * Returns the current access token, falling back to the value stored in localStorage. Returns `null` if no token is available.
+	 */
 	getToken() {
 		return this.token || this.getStoredToken();
 	}
@@ -916,7 +943,7 @@ import { Passkey } from './passkey';
 	}
 
 	/**
-	 * Attempts to refresh the access token using the refresh token. If the refresh attempt fails, it will retry up to 3 times with exponential backoff (2s, 4s, 6s) between attempts. If all attempts fail, it will return false, indicating that the user needs to log in again. If a refresh is successful, it will update the client's token and expiration time accordingly.
+	 * Attempts to refresh the access token using the stored refresh token. Retries up to 3 times with exponential backoff (2 s, 4 s, 6 s). Returns `true` on success, `false` if all attempts fail (which triggers logout or `onLoginRequired`).
 	 *
 	 * **`Client Side`**
 	 */

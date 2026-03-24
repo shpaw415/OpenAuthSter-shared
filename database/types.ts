@@ -6,11 +6,14 @@ export type OTFUsersType = {
 	insert: ReturnType<typeof OTFusersTable>["$inferInsert"];
 };
 
-export type OTFUsersParsedType = Omit<
+export type OTFUsersParsedType<
+	Public extends Record<string, unknown> | null = Record<string, unknown>,
+	Private extends Record<string, unknown> | null = Record<string, unknown>,
+> = Omit<
 	OTFUsersType["select"],
 	"data" | "session_private" | "session_public"
 > & {
-	data: Record<string, any> & { provider: Omit<ProviderType, "qr"> };
-	session_private: Record<string, any> | null;
-	session_public: Record<string, any> | null;
+	data: Record<string, unknown> & { provider: Omit<ProviderType, "qr"> };
+	session_private: Private | null;
+	session_public: Public | null;
 };
