@@ -415,7 +415,7 @@ export type CopyDataSelection = {
 };
 
 // Global configuration for external integrations
-export type ExternalGlobalProjectConfig<CTXProperties = any> = {
+export type ExternalGlobalProjectConfig<CTXProperties = unknown> = {
 	register: {
 		fallbackEmailFrom: string;
 		onSuccessfulRegistration?: (
@@ -425,7 +425,7 @@ export type ExternalGlobalProjectConfig<CTXProperties = any> = {
 					properties: CTXProperties;
 				}>
 			>,
-			value: Record<string, any>,
+			value: Record<string, unknown>,
 			request: Request,
 		) => Promise<void> | void;
 		strategy: Partial<{
@@ -457,7 +457,7 @@ export type EGPCPhone =
 			sendSMSFunction: (to: string, code: string) => Promise<void> | void;
 	  };
 
-export function createExternalGlobalProjectConfig<CTXProperties = any>(
+export function createExternalGlobalProjectConfig<CTXProperties = unknown>(
 	config: ExternalGlobalProjectConfig<CTXProperties>,
 ): ExternalGlobalProjectConfig<CTXProperties> {
 	return config;

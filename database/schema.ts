@@ -167,7 +167,7 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
 	}).default("[]"),
 	theme_id: integer().references(() => uiStyleTable.id),
 	codeMode: text(),
-	emailTemplateId: text(),
+	emailTemplateId: integer().references(() => emailTemplatesTable.id),
 	projectData: text({
 		mode: "json",
 	}).default("{}"),
