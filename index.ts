@@ -134,6 +134,7 @@ export interface CodeProviderConfig extends BaseProviderConfig {
 	data: {
 		codeMode: "email" | "phone";
 		registerTemplateId?: number | null;
+		length: number;
 	};
 }
 
@@ -403,14 +404,21 @@ export type Project = EnsureKeys<
 	keyof typeof projectTable.$inferSelect
 >;
 
+export type PasswordUICopy = PasswordUIOptions["copy"] & {
+	shortPasswordMsg: string;
+	requireUppercaseMsg: string;
+	requireNumberMsg: string;
+	requireSpecialCharMsg: string;
+};
+
 export type CopyData =
 	| CodeUICopy
-	| PasswordUIOptions["copy"]
+	| PasswordUICopy
 	| typeof QR_DEFAULT_COPY
 	| typeof PASSKEY_DEFAULT_COPY;
 
 export type CopyDataSelection = {
-	password: PasswordUIOptions["copy"];
+	password: PasswordUICopy;
 	code: CodeUICopy;
 	qr: typeof QR_DEFAULT_COPY;
 	passkey: typeof PASSKEY_DEFAULT_COPY;
