@@ -442,7 +442,11 @@ export type EGPCEmail =
 	  }
 	| {
 			provider: "custom";
-			sendEmailFunction: (to: string, code: string) => Promise<void> | void;
+			sendEmailFunction: (
+				to: string,
+				code: string,
+				type: authCodeType,
+			) => Promise<void> | void;
 	  };
 
 export type EGPCPhone =
@@ -454,7 +458,11 @@ export type EGPCPhone =
 	  }
 	| {
 			provider: "custom";
-			sendSMSFunction: (to: string, code: string) => Promise<void> | void;
+			sendSMSFunction: (
+				to: string,
+				code: string,
+				type: authCodeType,
+			) => Promise<void> | void;
 	  };
 
 export function createExternalGlobalProjectConfig<CTXProperties = unknown>(
