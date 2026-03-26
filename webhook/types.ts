@@ -4,8 +4,8 @@ export type WebHookEvents = (typeof WebHookEventsList)[number];
 export const WebHookEventsList = [
 	"registration_success",
 	"login_success",
-	"login_attempt",
-	"password_reset",
+	//"login_attempt",
+	//"password_reset",
 	"code_sent",
 	"mfa_setup",
 	"mfa_update",
@@ -28,6 +28,7 @@ export const WebHookEventsDetails: Array<{
 		description: "Triggered when a user successfully logs in.",
 		label: "Login Success",
 	},
+	/*
 	{
 		event: "login_attempt",
 		description: "Triggered when a user attempts to log in.",
@@ -38,6 +39,7 @@ export const WebHookEventsDetails: Array<{
 		description: "Triggered when a user resets their password.",
 		label: "Password Reset",
 	},
+	*/
 	{
 		event: "code_sent",
 		description: "Triggered when a verification code is sent to a user.",
@@ -81,7 +83,7 @@ export type ExtendedWebHookConfig = WebHookConfig & {
 
 export type WebHookPayLoad<
 	Event extends WebHookEvents,
-	Data extends Record<string, unknown> = {},
+	Data extends Record<string, unknown> = Record<string, unknown>,
 > = {
 	event: Event;
 	clientID: string;
@@ -100,6 +102,7 @@ export type WebHookPayloadCodeSent = WebHookPayLoad<
 		code: string;
 		method: "email" | "phone";
 		send_to: string;
+		provider: ProviderType;
 	}
 >;
 
@@ -120,12 +123,14 @@ export type WebHookPayloadRegistrationSuccess = WebHookPayLoad<
 >;
 
 // not implemented yet, but can be used in the future to send additional data related to password reset events
+/*
 export type WebHookPayloadPasswordReset = WebHookPayLoad<
 	"password_reset",
 	{
 		userID: string;
 	}
 >;
+*/
 
 export type WebHookPayloadMFASetup = WebHookPayLoad<
 	"mfa_setup",
@@ -161,7 +166,7 @@ export type WebHooksPayloads = {
 	code_sent: WebHookPayloadCodeSent["data"];
 	login_success: WebHookPayloadLoginSuccess["data"];
 	registration_success: WebHookPayloadRegistrationSuccess["data"];
-	password_reset: WebHookPayloadPasswordReset["data"];
+	//password_reset: WebHookPayloadPasswordReset["data"];
 	mfa_setup: WebHookPayloadMFASetup["data"];
 	mfa_confirmed: WebHookPayloadMFAConfirmed["data"];
 	mfa_removed: WebHookPayloadMFARemoved["data"];
