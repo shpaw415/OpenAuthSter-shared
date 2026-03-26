@@ -132,7 +132,10 @@ export interface KeycloakProviderConfig extends BaseProviderConfig {
 // Code provider configuration (email/SMS pin code)
 export interface CodeProviderConfig extends BaseProviderConfig {
 	type: "code";
-	data: CodeConfig<any> & { mode: "email" | "phone" };
+	data: {
+		codeMode: "email" | "phone";
+		registerTemplateId?: number | null;
+	};
 }
 
 // Password provider configuration
@@ -147,6 +150,8 @@ export interface PasswordProviderConfig extends BaseProviderConfig {
 		requireNumberMsg?: string;
 		requireSpecialChar?: boolean;
 		requireSpecialCharMsg?: string;
+		resetPasswordTemplateId?: number | null;
+		registerTemplateId?: number | null;
 	};
 }
 
