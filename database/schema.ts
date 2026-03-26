@@ -130,8 +130,6 @@ export function parseDBProject(
 				? JSON.parse(data.providers_data)
 				: data.providers_data,
 		theme_id: data.theme_id || null,
-		emailTemplateId: data.emailTemplateId || null,
-		codeMode: String(data.codeMode) === "phone" ? "phone" : "email",
 		projectData:
 			typeof data.projectData === "string"
 				? JSON.parse(data.projectData)
@@ -166,8 +164,6 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
 		mode: "json",
 	}).default("[]"),
 	theme_id: integer().references(() => uiStyleTable.id),
-	codeMode: text(),
-	emailTemplateId: integer().references(() => emailTemplatesTable.id),
 	projectData: text({
 		mode: "json",
 	}).default("{}"),

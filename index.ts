@@ -3,7 +3,6 @@ import type {
 	AppleConfig,
 	AppleOidcConfig,
 } from "@kagii/openauth/provider/apple";
-import type { CodeProviderConfig as CodeConfig } from "@kagii/openauth/provider/code";
 import type { CognitoConfig } from "@kagii/openauth/provider/cognito";
 import type { GoogleConfig } from "@kagii/openauth/provider/google";
 import type { KeycloakConfig } from "@kagii/openauth/provider/keycloak";
@@ -393,8 +392,6 @@ export type Project = EnsureKeys<
 		active: boolean;
 		providers_data: ProviderConfig[];
 		theme_id: number | null;
-		emailTemplateId?: number | null;
-		codeMode: "email" | "phone";
 		projectData?: ProjectData;
 		originURL?: string | null;
 		authEndpointURL: string;
