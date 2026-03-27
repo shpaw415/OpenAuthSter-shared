@@ -16,6 +16,7 @@ import type { projectTable } from "./database/schema";
 import type { PASSKEY_DEFAULT_COPY } from "./providers/custom/passkey/index";
 // custom Provider types
 import type { DEFAULT_COPY as QR_DEFAULT_COPY } from "./providers/custom/qr";
+import type { Context } from "hono";
 
 export * from "./database/schema";
 
@@ -472,7 +473,7 @@ export type EGPCPhone =
 				to: string,
 				code: string,
 				type: authCodeType,
-				ctx: ExecutionContext,
+				ctx: Context,
 			) => Promise<void> | void;
 	  };
 
