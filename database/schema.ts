@@ -22,7 +22,7 @@ const ensureTableisValid = (name: string) => {
 
 export function isClientIdValid(name: string) {
 	// SQLite table name safe: must start with letter/underscore, only alphanumeric + underscore
-	const regex = /^[a-zA-Z_][a-zA-Z0-9_]{2,29}$/;
+	const regex = /^[a-zA-Z_][a-zA-Z0-9_]{2,250}$/;
 	return regex.test(name);
 }
 
