@@ -40,7 +40,8 @@
 		"./providers/custom/out/*": "./providers/custom/build/*",
 		"./webhook/types": "./webhook/types.ts",
 		"./webhook": "./webhook/index.ts",
-		"./security": "./security/index.ts"
+		"./security": "./security/index.ts",
+		"./user/delete": "./database/delete-user.ts"
 	},
 	"scripts": {
 		"build:ui": "bun bin/build_ui.ts",
