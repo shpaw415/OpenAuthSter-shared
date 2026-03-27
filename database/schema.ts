@@ -1,5 +1,10 @@
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import type { CopyDataSelection, Project } from "..";
+import {
+	PUBLIC_CLIENT_ID,
+	type CopyDataSelection,
+	type Project,
+	type ProviderConfig,
+} from "..";
 import { drizzle } from "./drizzle";
 import type { OTFUsersParsedType, OTFUsersType } from "./types";
 
@@ -408,3 +413,36 @@ export const inviteTable = sqliteTable("openauth_webui_ui_invites", {
 	 */
 	status: text().default("pending"), // pending, accepted, declined
 });
+
+export function createWebUiProject({
+	secret,
+	originURL,
+	providers,
+}: {
+	secret: string;
+	originURL: string;
+	providers?: Array<ProviderConfig>;
+}): Project {
+	return {
+		theme_id: null,
+		name: "openauthster webui",
+		owner_id: "admin",
+		owner_group_id: "admin",
+		projectData: {},
+		active: true,
+		clientID: PUBLIC_CLIENT_ID,
+		created_at: new Date().toISOString(),
+		registerOnInvite: false,
+		secret,
+		authEndpointURL: "",
+		cloudflareDomaineID: "",
+		originURL,
+		providers_data: providers || [
+			{
+				type: "password",
+				enabled: true,
+				data: {},
+			},
+		],
+	};
+}
