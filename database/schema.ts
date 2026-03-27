@@ -292,9 +292,7 @@ export const WebUiInviteLinkTable = sqliteTable("openauth_webui_invite_links", {
 
 export const LogsTable = sqliteTable("openauth_webui_logs", {
 	id: text().primaryKey(),
-	clientID: text()
-		.notNull()
-		.references(() => projectTable.clientID),
+	clientID: text().notNull(),
 	type: text().notNull(),
 	message: text().notNull(),
 	context: text({
