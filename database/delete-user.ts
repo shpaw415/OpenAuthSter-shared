@@ -14,15 +14,15 @@ import { D1Storage } from "@kagii/openauth/storage/d1";
 export async function deleteUserWithAuthState({
 	userID,
 	clientID,
-	env,
+	d1db,
 }: {
 	userID: string;
 	clientID: string;
-	env: Env;
+	d1db: D1Database;
 }): Promise<
 	{ success: true } | { success: false; error: string; status: 404 | 400 }
 > {
-	const db = drizzle(env.AUTH_DB);
+	const db = drizzle(d1db);
 	const userTable = OTFusersTable(clientID);
 	const rawUser = await db
 		.select()
@@ -43,12 +43,12 @@ export async function deleteUserWithAuthState({
 	await cleanupOpenAuthStateForUser({
 		user,
 		clientID,
-		env,
+		d1db,
 	});
 	await cleanupUserLinkedRecords({
 		userID,
 		clientID,
-		env,
+		d1db,
 	});
 
 	const deleteResult = await db
@@ -70,13 +70,13 @@ export async function deleteUserWithAuthState({
 async function cleanupUserLinkedRecords({
 	userID,
 	clientID,
-	env,
+	d1db,
 }: {
 	userID: string;
 	clientID: string;
-	env: Env;
+	d1db: D1Database;
 }) {
-	const db = drizzle(env.AUTH_DB);
+	const db = drizzle(d1db);
 
 	await db
 		.delete(totpTable)
@@ -117,18 +117,18 @@ async function cleanupUserLinkedRecords({
 async function cleanupOpenAuthStateForUser({
 	user,
 	clientID,
-	env,
+	d1db,
 }: {
 	user: OTFUsersParsedType;
 	clientID: string;
-	env: Env;
+	d1db: D1Database;
 }) {
-	if (!(await openAuthTableExists({ clientID, env }))) {
+	if (!(await openAuthTableExists({ clientID, d1db }))) {
 		return;
 	}
 
 	const storage = D1Storage({
-		database: env.AUTH_DB,
+		database: d1db,
 		table: clientID,
 	}) as StorageAdapter;
 	const storageKeysToRemove = new Map<string, string[]>();
@@ -254,14 +254,13 @@ function isOpenAuthRecordOwnedByUser({
 
 async function openAuthTableExists({
 	clientID,
-	env,
+	d1db,
 }: {
 	clientID: string;
-	env: Env;
+	d1db: D1Database;
 }): Promise<boolean> {
-	const result = await env.AUTH_DB.prepare(
-		"SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
-	)
+	const result = await d1db
+		.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
 		.bind(clientID)
 		.first();
 
