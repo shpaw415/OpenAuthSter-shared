@@ -472,6 +472,7 @@ export type EGPCPhone =
 				to: string,
 				code: string,
 				type: authCodeType,
+				ctx: ExecutionContext,
 			) => Promise<void> | void;
 	  };
 
