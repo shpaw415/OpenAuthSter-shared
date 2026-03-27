@@ -11,16 +11,30 @@ import type { WebHookEvents } from "../../webhook/types";
 
 // ── DB mock (must be set up before WebHook is imported) ───────────────────────
 
-let mockDbReturnValue: any;
+type MockChain = {
+	insert: () => MockChain;
+	update: () => MockChain;
+	delete: () => MockChain;
+	select: () => MockChain;
+	values: () => MockChain;
+	set: () => MockChain;
+	where: () => MockChain;
+	from: () => MockChain;
+	all: () => Promise<unknown>;
+	returning: () => Promise<unknown>;
+	run: () => Promise<void>;
+};
+
+let mockDbReturnValue: unknown;
 
 mock.module("../../database/drizzle", () => ({
 	drizzle: () => buildChain(),
-	eq: (_col: any, _val: any) => ({}),
-	and: (..._args: any[]) => ({}),
+	eq: (_col: unknown, _val: unknown) => ({}),
+	and: (..._args: unknown[]) => ({}),
 }));
 
-function buildChain(): any {
-	const chain: any = {
+function buildChain(): MockChain {
+	const chain: MockChain = {
 		insert: () => chain,
 		update: () => chain,
 		delete: () => chain,
@@ -29,13 +43,8 @@ function buildChain(): any {
 		set: () => chain,
 		where: () => chain,
 		from: () => chain,
-		// .all() is awaited directly (trigger) or chained with .then() (getWebHooks)
 		all: () => Promise.resolve(mockDbReturnValue),
-		// .returning().then(callback) pattern (register / update)
-		returning: () => ({
-			then: (fn: (v: any) => any) => Promise.resolve(fn(mockDbReturnValue)),
-		}),
-		// .run() is awaited directly (deleteWebHook)
+		returning: () => Promise.resolve(mockDbReturnValue),
 		run: () => Promise.resolve(),
 	};
 	return chain;
@@ -43,6 +52,8 @@ function buildChain(): any {
 
 import { hashWithSecretKey } from "../../security/encryption";
 import { WebHook, WebHookUnAuthorizedError } from "../../webhook/index";
+
+type RawWebHookRow = Parameters<WebHook["parseWebHookConfig"]>[0];
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +76,13 @@ const RAW_WEBHOOK_NO_HEADERS = {
 	headers: null,
 };
 
+const REQUEST = new Request("https://example.com/login", {
+	headers: {
+		"cf-connecting-ip": "203.0.113.10",
+		"user-agent": "bun-test",
+	},
+});
+
 function makeWebHook() {
 	return new WebHook({ db: {} as D1Database });
 }
@@ -75,17 +93,19 @@ describe("parseWebHookConfig", () => {
 	const wh = makeWebHook();
 
 	it("parses headers JSON string into an object", () => {
-		const result = wh.parseWebHookConfig(RAW_WEBHOOK as any);
+		const result = wh.parseWebHookConfig(RAW_WEBHOOK as RawWebHookRow);
 		expect(result.headers).toEqual({ "x-api-key": "token" });
 	});
 
 	it("returns undefined headers when null", () => {
-		const result = wh.parseWebHookConfig(RAW_WEBHOOK_NO_HEADERS as any);
+		const result = wh.parseWebHookConfig(
+			RAW_WEBHOOK_NO_HEADERS as RawWebHookRow,
+		);
 		expect(result.headers).toBeUndefined();
 	});
 
 	it("maps all fields correctly", () => {
-		const result = wh.parseWebHookConfig(RAW_WEBHOOK as any);
+		const result = wh.parseWebHookConfig(RAW_WEBHOOK as RawWebHookRow);
 		expect(result).toMatchObject({
 			id: "wh-001",
 			clientID: CLIENT_ID,
@@ -179,7 +199,7 @@ describe("getWebHooks", () => {
 		const results = await wh.getWebHooks(CLIENT_ID);
 
 		expect(results).toHaveLength(2);
-		expect(results[0]!.id).toBe("wh-001");
+		expect(results[0]?.id).toBe("wh-001");
 	});
 
 	it("returns webhooks filtered by event", async () => {
@@ -189,7 +209,7 @@ describe("getWebHooks", () => {
 		const results = await wh.getWebHooks(CLIENT_ID, { event: "login_success" });
 
 		expect(results).toHaveLength(1);
-		expect(results[0]!.event).toBe("login_success");
+		expect(results[0]?.event).toBe("login_success");
 	});
 
 	it("returns a webhook filtered by id", async () => {
@@ -198,7 +218,7 @@ describe("getWebHooks", () => {
 
 		const results = await wh.getWebHooks(CLIENT_ID, { id: "wh-001" });
 
-		expect(results[0]!.id).toBe("wh-001");
+		expect(results[0]?.id).toBe("wh-001");
 	});
 
 	it("parses headers for each returned row", async () => {
@@ -207,7 +227,7 @@ describe("getWebHooks", () => {
 
 		const results = await wh.getWebHooks(CLIENT_ID);
 
-		expect(results[0]!.headers).toEqual({ "x-api-key": "token" });
+		expect(results[0]?.headers).toEqual({ "x-api-key": "token" });
 	});
 });
 
@@ -216,7 +236,9 @@ describe("getWebHooks", () => {
 describe("deleteWebHook", () => {
 	it("resolves without throwing", async () => {
 		const wh = makeWebHook();
-		await expect(wh.deleteWebHook("wh-001")).resolves.toBeUndefined();
+		await expect(
+			wh.deleteWebHook("wh-001", CLIENT_ID),
+		).resolves.toBeUndefined();
 	});
 });
 
@@ -227,7 +249,7 @@ describe("trigger", () => {
 
 	beforeEach(() => {
 		fetchSpy = spyOn(globalThis, "fetch").mockResolvedValue(
-			new Response(null, { status: 200 }) as any,
+			new Response(null, { status: 200 }),
 		);
 	});
 
@@ -244,7 +266,7 @@ describe("trigger", () => {
 			event: "login_success",
 			secret: SECRET,
 			data: { userID: "user-1", provider: "google" },
-			request: new Request("https://example.com/login"),
+			request: REQUEST,
 		});
 
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
@@ -258,10 +280,15 @@ describe("trigger", () => {
 			clientID: CLIENT_ID,
 			event: "login_success",
 			secret: SECRET,
-			data: { claim: {} },
+			data: { userID: "user-1", provider: "google" },
+			request: REQUEST,
 		});
 
-		const [url, init] = fetchSpy.mock.calls[0]!;
+		const firstCall = fetchSpy.mock.calls[0];
+		if (!firstCall) {
+			throw new Error("Expected fetch to be called");
+		}
+		const [url, init] = firstCall;
 		expect(String(url)).toContain("https://example.com/webhook");
 		expect((init as RequestInit).method).toBe("POST");
 		expect(
@@ -278,10 +305,15 @@ describe("trigger", () => {
 			clientID: CLIENT_ID,
 			event: "login_success",
 			secret: SECRET,
-			data: { claim: {} },
+			data: { userID: "user-1", provider: "google" },
+			request: REQUEST,
 		});
 
-		const [url, init] = fetchSpy.mock.calls[0]!;
+		const firstCall = fetchSpy.mock.calls[0];
+		if (!firstCall) {
+			throw new Error("Expected fetch to be called");
+		}
+		const [url, init] = firstCall;
 		expect(String(url)).toContain("payload=");
 		expect((init as RequestInit).method).toBe("GET");
 		expect((init as RequestInit).body).toBeUndefined();
@@ -295,7 +327,8 @@ describe("trigger", () => {
 			clientID: CLIENT_ID,
 			event: "login_success",
 			secret: SECRET,
-			data: {},
+			data: { userID: "user-1", provider: "google" },
+			request: REQUEST,
 		});
 
 		expect(results[0]).toMatchObject({ success: true, id: "wh-001" });
@@ -306,7 +339,7 @@ describe("trigger", () => {
 			new Response(null, {
 				status: 500,
 				statusText: "Internal Server Error",
-			}) as any,
+			}),
 		);
 		mockDbReturnValue = [RAW_WEBHOOK];
 		const wh = makeWebHook();
@@ -315,7 +348,8 @@ describe("trigger", () => {
 			clientID: CLIENT_ID,
 			event: "login_success",
 			secret: SECRET,
-			data: {},
+			data: { userID: "user-1", provider: "google" },
+			request: REQUEST,
 		});
 
 		expect(results[0]).toMatchObject({ success: false, id: "wh-001" });
@@ -330,7 +364,8 @@ describe("trigger", () => {
 			clientID: CLIENT_ID,
 			event: "login_success",
 			secret: SECRET,
-			data: {},
+			data: { userID: "user-1", provider: "google" },
+			request: REQUEST,
 		});
 
 		expect(results[0]).toMatchObject({ success: false, id: "wh-001" });
@@ -344,11 +379,36 @@ describe("trigger", () => {
 			clientID: CLIENT_ID,
 			event: "login_success",
 			secret: SECRET,
-			data: {},
+			data: { userID: "user-1", provider: "google" },
+			request: REQUEST,
 		});
 
 		expect(fetchSpy).not.toHaveBeenCalled();
 		expect(results).toHaveLength(0);
+	});
+
+	it("includes request metadata in the generated payload body", async () => {
+		mockDbReturnValue = [RAW_WEBHOOK];
+		const wh = makeWebHook();
+
+		await wh.trigger({
+			clientID: CLIENT_ID,
+			event: "login_success",
+			secret: SECRET,
+			data: { userID: "user-1", provider: "google" },
+			request: REQUEST,
+		});
+
+		const firstCall = fetchSpy.mock.calls[0];
+		if (!firstCall) {
+			throw new Error("Expected fetch to be called");
+		}
+		const [, init] = firstCall;
+		const payload = JSON.parse(String((init as RequestInit).body));
+		expect(payload.meta).toEqual({
+			ip: "203.0.113.10",
+			userAgent: "bun-test",
+		});
 	});
 });
 
@@ -397,7 +457,8 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
 		clientID: CLIENT_ID,
 		event: "login_success" as WebHookEvents,
 		timestamp: new Date().toISOString(),
-		data: { claim: { sub: "user-1" } },
+		data: { userID: "user-1", provider: "google" },
+		meta: { ip: "127.0.0.1", userAgent: "bun-test" },
 	});
 
 	it("parses a valid POST request and returns the payload", async () => {
@@ -409,7 +470,7 @@ describe("WebHook.getWebHookPayloadFromRequest", () => {
 		);
 		expect(result.event).toBe("login_success");
 		expect(result.clientID).toBe(CLIENT_ID);
-		expect(result.data).toEqual({ claim: { sub: "user-1" } });
+		expect(result.data).toEqual({ userID: "user-1", provider: "google" });
 	});
 
 	it("parses a valid GET request and returns the payload", async () => {

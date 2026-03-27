@@ -7,24 +7,25 @@ import {
 	startRegistration,
 } from "@simplewebauthn/browser";
 import type { OpenAuthsterClient } from "./user";
+
+type PasskeyClientAdapter = Pick<
+	OpenAuthsterClient,
+	"fetchWithOptions" | "login"
+>;
+
 export type PasskeyRegistrationOptions = {
 	userDisplayName?: string;
-	flow?: "app" | "auth";
+	flow?: "app";
 };
 
 export class Passkey {
 	constructor(
 		private issuerURI: string,
-		private client: OpenAuthsterClient,
+		private client: PasskeyClientAdapter,
 	) {}
 
 	async register(options?: PasskeyRegistrationOptions) {
-		const { flow = "app" } = options || {};
-		if (flow === "app") {
-			return this.registerPasskeyAppFlow(options);
-		} else {
-			throw new Error("Not implemented yet");
-		}
+		return this.registerPasskeyAppFlow(options);
 	}
 
 	private async registerPasskeyAppFlow(
@@ -61,19 +62,23 @@ export class Passkey {
 
 			// Étape 2 : L'interaction avec l'OS du navigateur
 			// C'est ici que la petite fenêtre système s'ouvre pour demander l'empreinte
-			let attestationResponse;
+			let attestationResponse: Awaited<ReturnType<typeof startRegistration>>;
 			try {
 				attestationResponse = await startRegistration({
 					optionsJSON: options,
 				});
-			} catch (domError: any) {
+			} catch (domError: unknown) {
 				// Gestion des erreurs UX très importante ici
-				if (domError.name === "NotAllowedError") {
+				if (domError instanceof Error && domError.name === "NotAllowedError") {
 					return {
 						success: false,
 						error: "Vous avez annulé la création du Passkey.",
 					};
-				} else if (domError.name === "NotSupportedError") {
+				}
+				if (
+					domError instanceof Error &&
+					domError.name === "NotSupportedError"
+				) {
 					return {
 						success: false,
 						error: "Cet appareil ne supporte pas les Passkeys.",
@@ -106,10 +111,13 @@ export class Passkey {
 			}
 
 			return { success: true, message: "Passkey enregistré avec succès !" };
-		} catch (error: any) {
+		} catch (error: unknown) {
 			return {
 				success: false,
-				error: error.message || "Une erreur inattendue est survenue.",
+				error:
+					error instanceof Error
+						? error.message
+						: "Une erreur inattendue est survenue.",
 			};
 		}
 	}

@@ -83,6 +83,12 @@ export type UpdateUserByIdData<
 
 export type OpenAuthsterOptions = {
 	secret?: string;
+	copyID?: string | null;
+};
+
+export type DeleteUserResult = {
+	success: boolean;
+	error: null | string;
 };
 
 type AuthFlowCallbacks<
@@ -199,11 +205,13 @@ export class OpenAuthsterClient<
 
 	private issuerURI: string;
 	private clientID: string;
+	private copyID: string | null = null;
 	private secret?: string;
 	private token: string | null = null;
 	private refreshToken: string | null = null;
 	private redirectURI: string;
 	private refreshTimer: Timer | undefined;
+	private refreshPromise: Promise<boolean> | null = null;
 	private initListeners: Map<
 		string,
 		CallbackType<PublicSessionData, PrivateSessionData, UserInfo>
@@ -219,14 +227,12 @@ export class OpenAuthsterClient<
 	constructor(props: ClientProps<PublicSessionData, PrivateSessionData>) {
 		this.verifyProps(props);
 		this.issuerURI = props.issuerURI;
-		this.openAuthClient = createClient({
-			clientID: props.clientID,
-			issuer: props.issuerURI,
-		});
+		this.clientID = props.clientID;
+		this.copyID = props.copyID ?? null;
+		this.openAuthClient = this.createOpenAuthClient();
 		this.secret = props.secret;
 		this.token = props.token ?? this.getStoredToken();
 		this.refreshToken = props.refreshToken ?? this.getStoredRefreshToken();
-		this.clientID = props.clientID;
 		this.redirectURI = props.redirectURI;
 		if (props.subject) {
 			this.subject = props.subject as typeof defaultSubjectSchema;
@@ -364,9 +370,16 @@ export class OpenAuthsterClient<
 	 * @returns The authorization URL the user is being redirected to.
 	 */
 	async login(
-		options?: AuthorizeOptions & { autoNavigate?: boolean; copyID?: string },
+		options?: AuthorizeOptions & {
+			autoNavigate?: boolean;
+			copyID?: string | null;
+		},
 	): Promise<string> {
-		const { autoNavigate = true, ...authorizedOptions } = options || {};
+		const { autoNavigate = true, copyID, ...authorizedOptions } = options || {};
+		if (typeof copyID !== "undefined") {
+			this.setCopyID(copyID ?? null);
+		}
+		const effectiveCopyID = copyID ?? this.copyID ?? undefined;
 
 		return this.openAuthClient
 			.authorize(this.redirectURI, "code", authorizedOptions)
@@ -376,8 +389,7 @@ export class OpenAuthsterClient<
 				const currentURI = new URL(window.location.href);
 				const inviteId = currentURI.searchParams.get("invite_id");
 				inviteId && authURL.searchParams.set("invite_id", inviteId);
-				const copyID = authorizedOptions.copyID;
-				copyID && authURL.searchParams.set("copy_id", copyID);
+				effectiveCopyID && authURL.searchParams.set("copy_id", effectiveCopyID);
 				if (autoNavigate) {
 					window.location.href = authURL.toString();
 				}
@@ -396,6 +408,7 @@ export class OpenAuthsterClient<
 		this.token = null;
 		this.refreshToken = null;
 		this.expiresAt = null;
+		this.refreshPromise = null;
 		this.clearRefreshTimer();
 		this.removeToken();
 		this.removeRefreshToken();
@@ -408,6 +421,16 @@ export class OpenAuthsterClient<
 			private: {} as PrivateSessionData,
 		};
 		return this.triggerUpdate();
+	}
+	/**
+	 * Releases timers and listeners held by the client.
+	 *
+	 * Useful in tests and long-lived applications that recreate client instances.
+	 */
+	dispose() {
+		this.refreshPromise = null;
+		this.clearRefreshTimer();
+		this.initListeners.clear();
 	}
 
 	/**
@@ -456,13 +479,16 @@ export class OpenAuthsterClient<
 	}
 
 	/**
-	 * Updates runtime client options. Currently supports updating `secret`, which is required for accessing private session data and admin endpoints.
+	 * Updates runtime client options. Supports updating `secret` and `copyID`.
 	 *
 	 * @param options - Options to update.
 	 */
 	updateOptions(options: OpenAuthsterOptions) {
-		if (options.secret) {
+		if ("secret" in options) {
 			this.secret = options.secret;
+		}
+		if ("copyID" in options) {
+			this.setCopyID(options.copyID ?? null);
 		}
 	}
 
@@ -830,9 +856,7 @@ export class OpenAuthsterClient<
 	 *
 	 * @param user_id - The ID of the user to delete.
 	 */
-	deleteUserById(
-		user_id: string,
-	): Promise<{ success: boolean; error: null | string }> {
+	deleteUserById(user_id: string): Promise<DeleteUserResult> {
 		return this.fetchWithOptions(`${this.issuerURI}/user/${user_id}`, {
 			method: "DELETE",
 		})
@@ -846,6 +870,32 @@ export class OpenAuthsterClient<
 			.catch((err) => ({
 				success: false,
 				error: `Failed to delete user by ID: ${err.message}`,
+			}));
+	}
+	/**
+	 * Deletes the currently authenticated user using the active JWT.
+	 *
+	 * On success, local authentication state is cleared because the access and refresh tokens are no longer valid.
+	 *
+	 * **`Client or Server Side`** — on the server, call `setTokenFromRequest` first.
+	 */
+	async deleteCurrentUser(): Promise<DeleteUserResult> {
+		this.ensureReady();
+
+		return this.fetchWithOptions(`${this.issuerURI}/manage/user`, {
+			method: "DELETE",
+		})
+			.then((res) => res.json() as Promise<UserResponseSchemaType>)
+			.then(async (json) => {
+				if (!json.success) {
+					throw new Error(json.error || "Failed to delete current user.");
+				}
+				await this.logout();
+				return { success: true, error: null };
+			})
+			.catch((err) => ({
+				success: false,
+				error: `Failed to delete current user: ${err.message}`,
 			}));
 	}
 	/**
@@ -946,6 +996,18 @@ export class OpenAuthsterClient<
 	 * **`Client Side`**
 	 */
 	async triggerRefresh(): Promise<boolean> {
+		if (this.refreshPromise) {
+			return this.refreshPromise;
+		}
+
+		this.refreshPromise = this.runRefreshFlow().finally(() => {
+			this.refreshPromise = null;
+		});
+
+		return this.refreshPromise;
+	}
+
+	private async runRefreshFlow(): Promise<boolean> {
 		const refreshToken = this.refreshToken || this.getStoredRefreshToken();
 		let count = 0;
 		if (!refreshToken) return Promise.resolve(false);
@@ -1040,9 +1102,9 @@ export class OpenAuthsterClient<
 		if (this.expiresAt && this.expiresAt < new Date()) {
 			const refreshed = await this.triggerRefresh();
 			if (!refreshed) {
-				this.authFlowCallbacks.onLoginRequired?.(this);
 				return;
-			} else {
+			}
+			if (this.expiresAt) {
 				this.createResetTimer(this.expiresAt.getTime() - Date.now());
 			}
 		} else if (this.expiresAt) {
@@ -1114,7 +1176,7 @@ export class OpenAuthsterClient<
 	 * expiresIn must be in Ms
 	 */
 	private createResetTimer(expiresInMs: number | null) {
-		if (!expiresInMs) return;
+		if (!expiresInMs || expiresInMs <= 0) return;
 		clearTimeout(this.refreshTimer);
 		this.refreshTimer = setTimeout(this.triggerRefresh.bind(this), expiresInMs);
 	}
@@ -1127,6 +1189,7 @@ export class OpenAuthsterClient<
 				const expTimeStamp = tokens.tokens?.expiresIn * 1000 + Date.now();
 				this.expiresAt = new Date(expTimeStamp);
 				this.storeExpiresAt(expTimeStamp);
+				this.createResetTimer(expTimeStamp - Date.now());
 			}
 		}
 		if (tokens.tokens?.refresh) {
@@ -1140,6 +1203,20 @@ export class OpenAuthsterClient<
 			clearTimeout(this.refreshTimer);
 			this.refreshTimer = undefined;
 		}
+	}
+
+	private createOpenAuthClient() {
+		return createClient({
+			clientID: this.clientID,
+			issuer: this.issuerURI,
+			copyID: this.copyID,
+		});
+	}
+
+	private setCopyID(copyID: string | null) {
+		if (this.copyID === copyID) return;
+		this.copyID = copyID;
+		this.openAuthClient = this.createOpenAuthClient();
 	}
 
 	private getCode(): string | null {
