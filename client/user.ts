@@ -763,7 +763,8 @@ export class OpenAuthsterClient<
 		| UserResponseSchemaInferdType<
 				PublicSessionData,
 				PrivateSessionData,
-				UserInfo
+				UserInfo,
+				Roles
 		  >
 		| Error
 	> {
@@ -776,7 +777,8 @@ export class OpenAuthsterClient<
 						UserResponseSchemaInferdType<
 							PublicSessionData,
 							PrivateSessionData,
-							UserInfo
+							UserInfo,
+							Roles
 						>
 					>,
 			)
@@ -788,7 +790,8 @@ export class OpenAuthsterClient<
 					) as UserResponseSchemaInferdType<
 						PublicSessionData,
 						PrivateSessionData,
-						UserInfo
+						UserInfo,
+						Roles
 					>,
 			)
 			.catch((err) => new Error(`Failed to fetch user by ID: ${err.message}`));
@@ -808,7 +811,17 @@ export class OpenAuthsterClient<
 		return this.fetchWithOptions(url.toString(), {
 			method: "GET",
 		})
-			.then((res) => res.json() as Promise<UserResponseSchemaType>)
+			.then(
+				(res) =>
+					res.json() as Promise<
+						UserResponseSchemaType<
+							PublicSessionData,
+							PrivateSessionData,
+							UserInfo,
+							Roles
+						>
+					>,
+			)
 			.then(
 				(_json) =>
 					v.parse(
@@ -817,7 +830,8 @@ export class OpenAuthsterClient<
 					) as UserResponseSchemaInferdType<
 						PublicSessionData,
 						PrivateSessionData,
-						UserInfo
+						UserInfo,
+						Roles
 					>,
 			)
 			.catch(
@@ -837,7 +851,8 @@ export class OpenAuthsterClient<
 		| UserResponseSchemaInferdType<
 				PublicSessionData,
 				PrivateSessionData,
-				UserInfo
+				UserInfo,
+				Roles
 		  >
 		| Error
 	> {
@@ -847,7 +862,17 @@ export class OpenAuthsterClient<
 		return this.fetchWithOptions(url.toString(), {
 			method: "GET",
 		})
-			.then((res) => res.json() as Promise<UserResponseSchemaType>)
+			.then(
+				(res) =>
+					res.json() as Promise<
+						UserResponseSchemaType<
+							PublicSessionData,
+							PrivateSessionData,
+							UserInfo,
+							Roles
+						>
+					>,
+			)
 			.then(
 				(_json) =>
 					v.parse(
@@ -856,7 +881,8 @@ export class OpenAuthsterClient<
 					) as UserResponseSchemaInferdType<
 						PublicSessionData,
 						PrivateSessionData,
-						UserInfo
+						UserInfo,
+						Roles
 					>,
 			)
 			.catch((err) => new Error(`Failed to fetch users: ${err.message}`));
@@ -872,7 +898,17 @@ export class OpenAuthsterClient<
 		return this.fetchWithOptions(`${this.issuerURI}/user/${user_id}`, {
 			method: "DELETE",
 		})
-			.then((res) => res.json() as Promise<UserResponseSchemaType>)
+			.then(
+				(res) =>
+					res.json() as Promise<
+						UserResponseSchemaType<
+							PublicSessionData,
+							PrivateSessionData,
+							UserInfo,
+							Roles
+						>
+					>,
+			)
 			.then((json) => {
 				if (!json.success) {
 					throw new Error(json.error || "Failed to delete user.");
@@ -897,7 +933,17 @@ export class OpenAuthsterClient<
 		return this.fetchWithOptions(`${this.issuerURI}/manage/user`, {
 			method: "DELETE",
 		})
-			.then((res) => res.json() as Promise<UserResponseSchemaType>)
+			.then(
+				(res) =>
+					res.json() as Promise<
+						UserResponseSchemaType<
+							PublicSessionData,
+							PrivateSessionData,
+							UserInfo,
+							Roles
+						>
+					>,
+			)
 			.then(async (json) => {
 				if (!json.success) {
 					throw new Error(json.error || "Failed to delete current user.");
@@ -921,7 +967,15 @@ export class OpenAuthsterClient<
 	updateUserById(
 		user_id: string,
 		data: UpdateUserByIdData<PublicSessionData, PrivateSessionData>,
-	): Promise<UserResponseSchemaType["data"] | Error> {
+	): Promise<
+		| UserResponseSchemaType<
+				PublicSessionData,
+				PrivateSessionData,
+				UserInfo,
+				Roles
+		  >["data"]
+		| Error
+	> {
 		return this.fetchWithOptions(`${this.issuerURI}/user/${user_id}`, {
 			method: "PUT",
 			body: JSON.stringify(data),
@@ -929,7 +983,17 @@ export class OpenAuthsterClient<
 				"Content-Type": "application/json",
 			},
 		})
-			.then((res) => res.json() as Promise<UserResponseSchemaType>)
+			.then(
+				(res) =>
+					res.json() as Promise<
+						UserResponseSchemaType<
+							PublicSessionData,
+							PrivateSessionData,
+							UserInfo,
+							Roles
+						>
+					>,
+			)
 			.then((json) => {
 				if (!json.success) {
 					throw new Error(json.error || "Failed to update user.");
@@ -951,7 +1015,15 @@ export class OpenAuthsterClient<
 	setUserRoleById(
 		user_id: string,
 		role: Roles,
-	): Promise<UserResponseSchemaType["data"] | Error> {
+	): Promise<
+		| UserResponseSchemaType<
+				PublicSessionData,
+				PrivateSessionData,
+				UserInfo,
+				Roles
+		  >["data"]
+		| Error
+	> {
 		return this.fetchWithOptions(`${this.issuerURI}/user/${user_id}/role`, {
 			method: "PUT",
 			body: JSON.stringify({ role }),
@@ -959,7 +1031,17 @@ export class OpenAuthsterClient<
 				"Content-Type": "application/json",
 			},
 		})
-			.then((res) => res.json() as Promise<UserResponseSchemaType>)
+			.then(
+				(res) =>
+					res.json() as Promise<
+						UserResponseSchemaType<
+							PublicSessionData,
+							PrivateSessionData,
+							UserInfo,
+							Roles
+						>
+					>,
+			)
 			.then((json) => {
 				if (!json.success) {
 					throw new Error(json.error || "Failed to update user role.");

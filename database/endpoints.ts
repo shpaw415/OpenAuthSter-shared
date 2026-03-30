@@ -37,6 +37,7 @@ export const UserListSchemaValidation = object({
 					identifier: string(),
 					data: looseObject({}),
 					created_at: string(),
+					role: nullable(string()),
 					session_public: nullable(looseObject({})),
 					session_private: nullable(looseObject({})),
 				}),
@@ -48,14 +49,16 @@ export const UserListSchemaValidation = object({
 });
 
 export type UserResponseSchemaType<
-	PublicSessionData = any,
-	PrivateSessionData = any,
-	UserInfo = any,
+	PublicSessionData extends Record<string, unknown> | null,
+	PrivateSessionData extends Record<string, unknown> | null,
+	UserInfo extends Record<string, unknown>,
+	Roles extends string,
 > = InferInput<typeof UserListSchemaValidation> & {
 	data: {
 		users: Array<{
 			id: string;
 			identifier: string;
+			role: Roles;
 			data: UserInfo;
 			created_at: string;
 			session_public: PublicSessionData;
@@ -66,17 +69,24 @@ export type UserResponseSchemaType<
 };
 
 export type UserResponseSchemaInferdType<
-	PublicSessionData,
-	PrivateSessionData,
-	UserInfo,
+	PublicSessionData extends Record<string, unknown> | null,
+	PrivateSessionData extends Record<string, unknown> | null,
+	UserInfo extends Record<string, unknown>,
+	Roles extends string,
 > = Omit<
-	UserResponseSchemaType<PublicSessionData, PrivateSessionData, UserInfo>,
+	UserResponseSchemaType<
+		PublicSessionData,
+		PrivateSessionData,
+		UserInfo,
+		Roles
+	>,
 	"data"
 > & {
 	data: {
 		users: Array<{
 			id: string;
 			identifier: string;
+			role: Roles;
 			data: UserInfo;
 			created_at: string;
 			session_public: PublicSessionData;
