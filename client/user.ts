@@ -101,7 +101,10 @@ export type DeleteUserResult = {
 type AuthFlowCallbacks<
 	Public extends RequiredResponseData["public"],
 	Private extends RequiredResponseData["private"],
-	UserInfo extends RequiredResponseData["userInfo"],
+	UserInfo extends RequiredResponseData["userInfo"] & {
+		provider: ProviderType;
+		role: Roles;
+	},
 	Roles extends string,
 > = {
 	/**
@@ -109,7 +112,7 @@ type AuthFlowCallbacks<
 	 * @returns true for prceeding with the authentication flow, false to abort. Can also return a Promise resolving to true or false for asynchronous operations.
 	 */
 	onQRAuthFlowStart: (
-		client: OpenAuthsterClient<Public, Private, UserInfo, Roles>,
+		client: OpenAuthsterClient<Public, Private, Roles, UserInfo>,
 	) => boolean | Promise<boolean>;
 	/**
 	 * Event triggered when the token is expired and a refresh attempt as failed.
@@ -117,15 +120,27 @@ type AuthFlowCallbacks<
 	 * The callback must return true for redirecting the user to the login page, false to manage it yourself.
 	 */
 	onLoginRequired: (
-		client: OpenAuthsterClient<Public, Private, UserInfo, Roles>,
+		client: OpenAuthsterClient<Public, Private, Roles, UserInfo>,
 	) => void;
+};
+
+export type CacheStoreData<
+	Roles extends string,
+	UserData extends RequiredResponseData["userInfo"] & {
+		provider: ProviderType;
+	},
+> = {
+	meta: UserMetaData<Roles, UserData>;
 };
 
 export type ClientProps<
 	PublicSessionData extends RequiredResponseData["public"],
 	PrivateSessionData extends RequiredResponseData["private"],
-	UserInfo extends RequiredResponseData["userInfo"],
 	Roles extends string,
+	UserInfo extends RequiredResponseData["userInfo"] & {
+		provider: ProviderType;
+		role: Roles;
+	},
 > = {
 	issuerURI: string;
 	clientID: string;
@@ -150,12 +165,31 @@ export type ClientProps<
 		AuthFlowCallbacks<PublicSessionData, PrivateSessionData, UserInfo, Roles>
 	>;
 	onError?: (err: ErrorList) => void;
+	/**
+	 * Optional cache provider for storing User metaData and token
+	 * Originaly designed for reducing the number of calls to the user endpoint in server side environments by caching the user meta data associated with a token, but can be used for any custom caching strategy you want to implement.
+	 */
+	cache_provider?: {
+		get: (key: string) => Promise<CacheStoreData<Roles, UserInfo> | null>;
+		set: (
+			key: string,
+			value: CacheStoreData<Roles, UserInfo>,
+			expires_at: Date,
+		) => Promise<void>;
+		delete: (key: string) => Promise<void>;
+	};
 } & OpenAuthsterOptions;
 
-export type USerMetaData<Roles extends string> = {
-	user_id: string | null;
-	user_identifier: string | null;
+export type UserMetaData<
+	Roles extends string,
+	UserData extends RequiredResponseData["userInfo"] & {
+		provider: ProviderType;
+	},
+> = {
+	id: string | null;
+	identifier: string | null;
 	role: Roles | null;
+	data: UserData | null;
 };
 
 type RequiredResponseData = Exclude<ResponseData["data"], undefined>;
@@ -168,14 +202,17 @@ type ErrorType = {
 type CallbackType<
 	PublicSessionData extends RequiredResponseData["public"],
 	PrivateSessionData extends RequiredResponseData["private"],
-	UserInfo extends RequiredResponseData["userInfo"],
 	Roles extends string,
+	UserInfo extends RequiredResponseData["userInfo"] & {
+		provider: ProviderType;
+		role: Roles;
+	},
 > = (
 	client: OpenAuthsterClient<
 		PublicSessionData,
 		PrivateSessionData,
-		UserInfo,
-		Roles
+		Roles,
+		UserInfo
 	>,
 	error?: ErrorType,
 ) => void | Promise<void>;
@@ -186,12 +223,16 @@ type CallbackType<
  * @typeParam PublicSessionData - The type of the public session data. Defaults to `any`.
  * @typeParam PrivateSessionData - The type of the private session data. Defaults to `any`.
  * @typeParam UserInfo - The type of the user info data returned by the provider depending on the scopes you setted. Defaults to `any`.
+ * @typeParam Roles - The type of the roles. Defaults to `string`.
  */
 export class OpenAuthsterClient<
 	PublicSessionData extends RequiredResponseData["public"],
 	PrivateSessionData extends RequiredResponseData["private"],
-	UserInfo extends RequiredResponseData["userInfo"],
-	Roles extends string = "user",
+	Roles extends string,
+	UserInfo extends RequiredResponseData["userInfo"] & {
+		provider: ProviderType;
+		role: Roles;
+	},
 > {
 	public openAuthClient: Client;
 	public expiresAt: Date | null = null;
@@ -204,10 +245,11 @@ export class OpenAuthsterClient<
 		public: {} as PublicSessionData,
 		private: {} as PrivateSessionData,
 	};
-	public userMeta: USerMetaData<Roles> = {
-		user_id: null,
-		user_identifier: null,
+	public userMeta: UserMetaData<Roles, UserInfo> = {
+		id: null,
+		identifier: null,
 		role: null,
+		data: null,
 	};
 	public userInfo: UserInfo | null = null;
 	public error: { error: string; error_description: string | null } | null =
@@ -224,20 +266,26 @@ export class OpenAuthsterClient<
 	private refreshPromise: Promise<boolean> | null = null;
 	private initListeners: Map<
 		string,
-		CallbackType<PublicSessionData, PrivateSessionData, UserInfo, Roles>
+		CallbackType<PublicSessionData, PrivateSessionData, Roles, UserInfo>
 	> = new Map();
 	private subject: typeof defaultSubjectSchema = defaultSubjectSchema;
 	private authFlowCallbacks: Partial<
 		AuthFlowCallbacks<PublicSessionData, PrivateSessionData, UserInfo, Roles>
 	>;
 	private onError?: (err: ErrorList) => void;
+	private cacheProvider?: ClientProps<
+		PublicSessionData,
+		PrivateSessionData,
+		Roles,
+		UserInfo
+	>["cache_provider"];
 	public mfa: MFAmanager;
 	public passkey: Passkey<
-		OpenAuthsterClient<PublicSessionData, PrivateSessionData, UserInfo, Roles>
+		OpenAuthsterClient<PublicSessionData, PrivateSessionData, Roles, UserInfo>
 	>;
 
 	constructor(
-		props: ClientProps<PublicSessionData, PrivateSessionData, UserInfo, Roles>,
+		props: ClientProps<PublicSessionData, PrivateSessionData, Roles, UserInfo>,
 	) {
 		this.verifyProps(props);
 		this.issuerURI = props.issuerURI;
@@ -259,6 +307,7 @@ export class OpenAuthsterClient<
 			onError: this.onError ?? (() => {}),
 		});
 		this.passkey = new Passkey(this.issuerURI, this);
+		this.cacheProvider = props.cache_provider;
 	}
 	/**
 	 * Trigger client initialization. Must be called after the first page load, for SSR compatibility.
@@ -332,10 +381,6 @@ export class OpenAuthsterClient<
 				if (!_json.success)
 					throw new Error(_json.error || "Failed to fetch user session");
 				return _json;
-			})
-			.then((e) => {
-				console.log(e);
-				return e;
 			})
 			.then((_json) =>
 				this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
@@ -449,9 +494,10 @@ export class OpenAuthsterClient<
 			private: {} as PrivateSessionData,
 		};
 		this.userMeta = {
-			user_id: null,
-			user_identifier: null,
+			id: null,
+			identifier: null,
 			role: null,
+			data: null,
 		};
 		return this.triggerUpdate();
 	}
@@ -549,8 +595,8 @@ export class OpenAuthsterClient<
 		callback: CallbackType<
 			PublicSessionData,
 			PrivateSessionData,
-			UserInfo,
-			Roles
+			Roles,
+			UserInfo
 		>,
 	) {
 		this.initListeners.set(key, callback);
@@ -1118,31 +1164,37 @@ export class OpenAuthsterClient<
 	 *
 	 * **`Client or Server Side`**
 	 */
-	async getMetaData<
-		UserData extends Record<string, unknown> = Record<string, unknown>,
-	>(): Promise<{
-		id: string;
-		identifier: string;
-		provider: string;
-		role: Roles | null;
-		data: UserData;
-	} | null> {
+	async getMetaData(): Promise<UserMetaData<Roles, UserInfo> | null> {
 		const token = this.getToken();
 		if (!token) return null;
+		const meta = await this.retriveUserMeta(token);
+
+		if (meta && this.cacheProvider?.set && token) {
+			await this.cacheProvider.set(
+				token,
+				{ meta },
+				this.expiresAt ? this.expiresAt : new Date(Date.now() + 1 * 60 * 1000),
+			);
+		}
+		return meta;
+	}
+	private async retriveUserMeta(
+		token: string,
+	): Promise<UserMetaData<Roles, UserInfo> | null> {
+		if (this.cacheProvider?.get && token) {
+			const cachedMeta = await this.cacheProvider.get(token);
+			if (cachedMeta) {
+				return cachedMeta.meta;
+			}
+		}
 		const result = await this.verifyToken(token);
 		if (result.err || !result.subject) return null;
 		const props = result.subject.properties;
-
-		this.userMeta.role = props.role as Roles | null;
-		this.userMeta.user_id = props.id;
-		this.userMeta.user_identifier = props.identifier;
-
 		return {
 			id: props.id ?? null,
 			identifier: props.identifier,
-			provider: props.provider,
 			role: props.role as Roles | null,
-			data: props.data as UserData,
+			data: props.data as UserInfo,
 		};
 	}
 	/**
@@ -1345,9 +1397,9 @@ export class OpenAuthsterClient<
 			this.data.private = data.data.private as PrivateSessionData;
 		if (data.data.public)
 			this.data.public = data.data.public as PublicSessionData;
-		if (data.data.user_id) this.userMeta.user_id = data.data.user_id;
+		if (data.data.user_id) this.userMeta.id = data.data.user_id;
 		if (data.data.user_identifier)
-			this.userMeta.user_identifier = data.data.user_identifier;
+			this.userMeta.identifier = data.data.user_identifier;
 		if (data.data.userInfo) this.userInfo = data.data.userInfo as UserInfo;
 		if (data.data.userInfo?.role)
 			this.userMeta.role = data.data.userInfo.role as Roles;
@@ -1512,7 +1564,7 @@ export class OpenAuthsterClient<
 			.join("");
 	}
 	private verifyProps(
-		props: ClientProps<PublicSessionData, PrivateSessionData, UserInfo, Roles>,
+		props: ClientProps<PublicSessionData, PrivateSessionData, Roles, UserInfo>,
 	) {
 		if (!props.issuerURI.startsWith("http")) {
 			throw new Error("Invalid issuer URI. Must start with http or https.");
@@ -1530,29 +1582,24 @@ export class OpenAuthsterClient<
  *
  * @typeParam PublicSessionData - The type of the public session data. Defaults to `any`.
  * @typeParam PrivateSessionData - The type of the private session data. Defaults to `any`.
+ * @typeParam Roles - The type of the roles..
  * @typeParam UserInfo - The type of the user info data returned by the provider depending on the scopes you setted. Defaults to `any`.
  */
 export function createOpenAuthsterClient<
-	PublicSessionData extends RequiredResponseData["public"] = Record<
-		string,
-		unknown
-	>,
-	PrivateSessionData extends RequiredResponseData["private"] = Record<
-		string,
-		unknown
-	>,
-	Roles extends string = "user",
-	UserInfo extends RequiredResponseData["userInfo"] = {
-		provider: string;
+	PublicSessionData extends RequiredResponseData["public"],
+	PrivateSessionData extends RequiredResponseData["private"],
+	Roles extends string,
+	UserInfo extends RequiredResponseData["userInfo"] & {
+		provider: ProviderType;
 		role: Roles;
 	},
 >(
-	props: ClientProps<PublicSessionData, PrivateSessionData, UserInfo, Roles>,
-): OpenAuthsterClient<PublicSessionData, PrivateSessionData, UserInfo, Roles> {
+	props: ClientProps<PublicSessionData, PrivateSessionData, Roles, UserInfo>,
+): OpenAuthsterClient<PublicSessionData, PrivateSessionData, Roles, UserInfo> {
 	return new OpenAuthsterClient<
 		PublicSessionData,
 		PrivateSessionData,
-		UserInfo,
-		Roles
+		Roles,
+		UserInfo
 	>(props);
 }
