@@ -19,6 +19,7 @@ import { createClient } from ".";
 import OpenAuthsterErrors, { type ErrorList } from "./errors";
 import { MFAmanager } from "./mfa";
 import { Passkey } from "./passkey";
+import type { ProviderType } from "openauth-webui-shared-types";
 
 export const userEndpointURI = "/session" as const;
 
@@ -62,6 +63,7 @@ export const UserEndpointResponseValidation = v.object({
 export type UserFetchResponse<
 	PublicSessionData = unknown,
 	PrivateSessionData = unknown,
+	Roles extends string = string,
 > = {
 	success: boolean;
 	data?: {
@@ -69,6 +71,10 @@ export type UserFetchResponse<
 		public: PublicSessionData;
 		user_id: string;
 		user_identifier: string;
+		userInfo: {
+			provider: ProviderType;
+			role: Roles | null;
+		};
 	};
 	error?: string;
 };
@@ -322,6 +328,11 @@ export class OpenAuthsterClient<
 						UserFetchResponse<PublicSessionData, PrivateSessionData>
 					>,
 			)
+			.then((_json) => {
+				if (!_json.success)
+					throw new Error(_json.error || "Failed to fetch user session");
+				return _json;
+			})
 			.then((_json) =>
 				this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
 			)
@@ -357,6 +368,11 @@ export class OpenAuthsterClient<
 						UserFetchResponse<PublicSessionData, PrivateSessionData>
 					>,
 			)
+			.then((_json) => {
+				if (!_json.success)
+					throw new Error(_json.error || "Failed to update user session");
+				return _json;
+			})
 			.then((_json) =>
 				this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
 			)
@@ -728,6 +744,11 @@ export class OpenAuthsterClient<
 						UserFetchResponse<PublicSessionData, PrivateSessionData>
 					>,
 			)
+			.then((_json) => {
+				if (!_json.success)
+					throw new Error(_json.error || "Failed to clear public session");
+				return _json;
+			})
 			.then((_json) =>
 				this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
 			)
@@ -750,6 +771,11 @@ export class OpenAuthsterClient<
 						UserFetchResponse<PublicSessionData, PrivateSessionData>
 					>,
 			)
+			.then((_json) => {
+				if (!_json.success)
+					throw new Error(_json.error || "Failed to clear private session");
+				return _json;
+			})
 			.then((_json) =>
 				this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
 			)
@@ -788,6 +814,12 @@ export class OpenAuthsterClient<
 						>
 					>,
 			)
+			.then((json) => {
+				if (!json.success) {
+					throw new Error(json.error || "Failed to fetch user by ID.");
+				}
+				return json;
+			})
 			.then(
 				(_json) =>
 					v.parse(
@@ -828,6 +860,12 @@ export class OpenAuthsterClient<
 						>
 					>,
 			)
+			.then((json) => {
+				if (!json.success) {
+					throw new Error(json.error || "Failed to fetch users by IDs.");
+				}
+				return json;
+			})
 			.then(
 				(_json) =>
 					v.parse(
@@ -879,6 +917,12 @@ export class OpenAuthsterClient<
 						>
 					>,
 			)
+			.then((json) => {
+				if (!json.success) {
+					throw new Error(json.error || "Failed to fetch users.");
+				}
+				return json;
+			})
 			.then(
 				(_json) =>
 					v.parse(
@@ -1032,7 +1076,7 @@ export class OpenAuthsterClient<
 	> {
 		return this.fetchWithOptions(`${this.issuerURI}/user/${user_id}/role`, {
 			method: "PUT",
-			body: JSON.stringify({ role }),
+			body: JSON.stringify({ user_id, role }),
 			headers: {
 				"Content-Type": "application/json",
 			},
