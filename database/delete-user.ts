@@ -1,14 +1,14 @@
+import { D1Storage } from "@kagii/openauth/storage/d1";
+import type { StorageAdapter } from "@kagii/openauth/storage/storage";
+import { and, drizzle, eq } from "./drizzle";
 import {
+	type OTFUsersParsedType,
 	OTFusersTable,
 	totpTable,
 	totpTokenTable,
-	webauthnCredentialsTable,
 	webAuthnTokenAccessTable,
-	type OTFUsersParsedType,
+	webauthnCredentialsTable,
 } from "./schema";
-import { and, drizzle, eq } from "./drizzle";
-import type { StorageAdapter } from "@kagii/openauth/storage/storage";
-import { D1Storage } from "@kagii/openauth/storage/d1";
 
 export async function deleteUserWithAuthState({
 	userID,

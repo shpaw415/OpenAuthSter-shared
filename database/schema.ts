@@ -1,15 +1,15 @@
+import type { Theme } from "@kagii/openauth/ui/theme";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import {
-	PUBLIC_CLIENT_ID,
 	type CopyDataSelection,
 	type Project,
 	type ProjectData,
 	type ProviderConfig,
 	type ProviderType,
+	PUBLIC_CLIENT_ID,
 } from "..";
 import { drizzle } from "./drizzle";
 import type { OTFUsersParsedType, OTFUsersType } from "./types";
-import type { Theme } from "@kagii/openauth/ui/theme";
 
 export * from "./types";
 

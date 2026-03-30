@@ -6,6 +6,7 @@ import type {
 	RefreshSuccess,
 } from "@kagii/openauth/client";
 import { createSubjects } from "@kagii/openauth/subject";
+import type { ProviderType } from "openauth-webui-shared-types";
 import type { InferOutput } from "valibot";
 import * as v from "valibot";
 import {
@@ -19,7 +20,6 @@ import { createClient } from ".";
 import OpenAuthsterErrors, { type ErrorList } from "./errors";
 import { MFAmanager } from "./mfa";
 import { Passkey } from "./passkey";
-import type { ProviderType } from "openauth-webui-shared-types";
 
 export const userEndpointURI = "/session" as const;
 
@@ -1589,17 +1589,27 @@ export function createOpenAuthsterClient<
 	PublicSessionData extends RequiredResponseData["public"],
 	PrivateSessionData extends RequiredResponseData["private"],
 	Roles extends string,
-	UserInfo extends RequiredResponseData["userInfo"] & {
-		provider: ProviderType;
-		role: Roles;
-	},
+	UserInfo extends Omit<
+		RequiredResponseData["userInfo"],
+		"provider" | "role"
+	> = Record<string, unknown>,
 >(
-	props: ClientProps<PublicSessionData, PrivateSessionData, Roles, UserInfo>,
-): OpenAuthsterClient<PublicSessionData, PrivateSessionData, Roles, UserInfo> {
+	props: ClientProps<
+		PublicSessionData,
+		PrivateSessionData,
+		Roles,
+		UserInfo & { role: Roles; provider: ProviderType }
+	>,
+): OpenAuthsterClient<
+	PublicSessionData,
+	PrivateSessionData,
+	Roles,
+	UserInfo & { role: Roles; provider: ProviderType }
+> {
 	return new OpenAuthsterClient<
 		PublicSessionData,
 		PrivateSessionData,
 		Roles,
-		UserInfo
+		UserInfo & { role: Roles; provider: ProviderType }
 	>(props);
 }

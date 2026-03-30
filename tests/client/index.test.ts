@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { OpenAuthsterClient } from "../../client/user";
 import type { ProviderType } from "openauth-webui-shared-types";
+import { OpenAuthsterClient } from "../../client/user";
 
 function createRefreshSuccess() {
 	return {
@@ -43,8 +43,8 @@ describe("OpenAuthsterClient Token Refresh Flow", () => {
 	let client: OpenAuthsterClient<
 		Record<string, unknown>,
 		Record<string, unknown>,
-		{ provider: ProviderType; role: "admin" | "user" },
-		"admin" | "user"
+		"admin" | "user",
+		{ provider: ProviderType; role: "admin" | "user" }
 	>;
 	let mockLocalStorage: Record<string, string> = {};
 	const originalFetch = global.fetch;
@@ -225,9 +225,10 @@ describe("OpenAuthsterClient Token Refresh Flow", () => {
 		expect(client.data.public).toEqual({ theme: "amber" });
 		expect(client.data.private).toEqual({ featureFlag: true });
 		expect(client.userMeta).toEqual({
-			user_id: "user-123",
-			user_identifier: "alice@example.com",
+			id: "user-123",
+			identifier: "alice@example.com",
 			role: "admin",
+			data: null,
 		});
 		expect(client.userInfo).toEqual({ provider: "password", role: "admin" });
 	});

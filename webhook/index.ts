@@ -151,7 +151,7 @@ export class WebHook {
 								request.headers.get("x-real-ip") ||
 								request.headers
 									.get("x-forwarded-for")
-									?.split(",") 
+									?.split(",")
 									.at(0)
 									?.trim() ||
 								"unknown",
