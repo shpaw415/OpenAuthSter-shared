@@ -371,7 +371,9 @@ export function getProvidersByCategory(
 }
 
 // Project data for email templates and customization
-export interface ProjectData {
+export type ProjectData<
+	CTXProperties extends Record<string, unknown> = Record<string, unknown>,
+> = {
 	appName?: string;
 	companyName?: string;
 	supportEmail?: string;
@@ -380,30 +382,10 @@ export interface ProjectData {
 	primaryColor?: string;
 	emailFrom?: string;
 	[key: string]: string | undefined;
-}
-
-type EnsureKeys<T, K extends keyof T> = T & { [P in K]-?: T[P] };
+} & CTXProperties;
 
 // Project type
-export type Project = EnsureKeys<
-	{
-		name: string;
-		clientID: string;
-		owner_id: string;
-		owner_group_id: string;
-		active: boolean;
-		providers_data: ProviderConfig[];
-		theme_id: number | null;
-		projectData?: ProjectData;
-		originURL?: string | null;
-		authEndpointURL: string;
-		cloudflareDomaineID: string;
-		registerOnInvite: boolean;
-		secret: string;
-		created_at: string;
-	},
-	keyof typeof projectTable.$inferSelect
->;
+export type Project = typeof projectTable.$inferSelect;
 
 export type PasswordUICopy = PasswordUIOptions["copy"] & {
 	shortPasswordMsg: string;

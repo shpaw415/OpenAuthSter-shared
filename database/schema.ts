@@ -114,7 +114,7 @@ export const uiStyleTable = sqliteTable("openauth_webui_ui_styles", {
 
 export const projectTable = sqliteTable("openauth_webui_projects", {
 	clientID: text().primaryKey(),
-	name: text().notNull().default("Project Name"),
+	name: text().notNull(),
 	owner_id: text().notNull(),
 	owner_group_id: text().notNull(),
 	active: integer({
