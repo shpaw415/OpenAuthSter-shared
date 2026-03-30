@@ -5,6 +5,7 @@ import {
 	type Project,
 	type ProjectData,
 	type ProviderConfig,
+	type ProviderType,
 } from "..";
 import { drizzle } from "./drizzle";
 import type { OTFUsersParsedType, OTFUsersType } from "./types";
@@ -88,7 +89,7 @@ export const OTFusersTable = (clientID: string) => {
 			mode: "json",
 		})
 			.notNull()
-			.$type<Record<string, unknown>>(),
+			.$type<Record<string, unknown> & { provider: ProviderType }>(),
 		session_private: text({
 			mode: "json",
 		}).$type<Record<string, unknown> | null>(),
