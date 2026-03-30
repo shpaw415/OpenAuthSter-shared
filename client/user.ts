@@ -226,7 +226,9 @@ export class OpenAuthsterClient<
 	>;
 	private onError?: (err: ErrorList) => void;
 	public mfa: MFAmanager;
-	public passkey: Passkey;
+	public passkey: Passkey<
+		OpenAuthsterClient<PublicSessionData, PrivateSessionData, UserInfo, Roles>
+	>;
 
 	constructor(
 		props: ClientProps<PublicSessionData, PrivateSessionData, UserInfo, Roles>,

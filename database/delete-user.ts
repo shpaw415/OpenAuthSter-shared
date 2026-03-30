@@ -1,6 +1,5 @@
 import {
 	OTFusersTable,
-	parseDBUser,
 	totpTable,
 	totpTokenTable,
 	webauthnCredentialsTable,
@@ -24,21 +23,19 @@ export async function deleteUserWithAuthState({
 > {
 	const db = drizzle(d1db);
 	const userTable = OTFusersTable(clientID);
-	const rawUser = await db
+	const user = await db
 		.select()
 		.from(userTable)
 		.where(eq(userTable.id, userID))
 		.get();
 
-	if (!rawUser) {
+	if (!user) {
 		return {
 			success: false,
 			error: "User not found",
 			status: 404,
 		};
 	}
-
-	const user = parseDBUser(rawUser) as OTFUsersParsedType;
 
 	await cleanupOpenAuthStateForUser({
 		user,

@@ -8,20 +8,21 @@ import {
 } from "@simplewebauthn/browser";
 import type { OpenAuthsterClient } from "./user";
 
-type PasskeyClientAdapter = Pick<
-	OpenAuthsterClient,
-	"fetchWithOptions" | "login"
->;
+type PasskeyClientAdapter<
+	OpenAuthsterClientType extends OpenAuthsterClient<any, any, any, any>,
+> = Pick<OpenAuthsterClientType, "fetchWithOptions" | "login">;
 
 export type PasskeyRegistrationOptions = {
 	userDisplayName?: string;
 	flow?: "app";
 };
 
-export class Passkey {
+export class Passkey<
+	OpenAuthsterClientType extends OpenAuthsterClient<any, any, any, any>,
+> {
 	constructor(
 		private issuerURI: string,
-		private client: PasskeyClientAdapter,
+		private client: PasskeyClientAdapter<OpenAuthsterClientType>,
 	) {}
 
 	async register(options?: PasskeyRegistrationOptions) {
