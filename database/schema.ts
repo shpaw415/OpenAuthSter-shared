@@ -76,21 +76,6 @@ export async function DeleteOTFusersTable(
 	}
 }
 
-export function parseDBUser(
-	user: Partial<OTFUsersType["select"]>,
-): Partial<OTFUsersParsedType> {
-	return {
-		...user,
-		data: typeof user.data === "string" ? JSON.parse(user.data) : user.data,
-		session_private: user.session_private
-			? JSON.parse(user.session_private)
-			: null,
-		session_public: user.session_public
-			? JSON.parse(user.session_public)
-			: null,
-	};
-}
-
 export const OTFusersTable = (clientID: string) => {
 	const name = `${clientID}_users`;
 	if (!isClientIdValid(name))
@@ -101,53 +86,19 @@ export const OTFusersTable = (clientID: string) => {
 		identifier: text().unique().notNull(),
 		data: text({
 			mode: "json",
-		}).notNull(),
-		session_private: text(),
-		session_public: text(),
+		})
+			.notNull()
+			.$type<Record<string, unknown>>(),
+		session_private: text({
+			mode: "json",
+		}).$type<Record<string, unknown> | null>(),
+		session_public: text({
+			mode: "json",
+		}).$type<Record<string, unknown> | null>(),
 		role: text(),
 		created_at: text().notNull(),
 	});
 };
-
-export function serializeDBUser(
-	user: Partial<OTFUsersParsedType>,
-): Partial<OTFUsersType["select"]> {
-	return {
-		...user,
-		data: user.data ? JSON.stringify(user.data) : user.data,
-		session_private: user.session_private
-			? JSON.stringify(user.session_private)
-			: user.session_private,
-		session_public: user.session_public
-			? JSON.stringify(user.session_public)
-			: user.session_public,
-	};
-}
-
-export function parseDBProject(
-	data: typeof projectTable.$inferSelect,
-): Project {
-	return {
-		...data,
-		clientID: String(data.clientID),
-		created_at: String(data.created_at),
-		active: Boolean(data.active),
-		providers_data:
-			typeof data.providers_data === "string"
-				? JSON.parse(data.providers_data)
-				: data.providers_data,
-		theme_id: data.theme_id || null,
-		projectData:
-			typeof data.projectData === "string"
-				? JSON.parse(data.projectData)
-				: data.projectData || {},
-		originURL: data.originURL || null,
-		authEndpointURL: String(data.authEndpointURL),
-		cloudflareDomaineID: String(data.cloudflareDomaineID),
-		registerOnInvite: Boolean(data.registerOnInvite),
-		secret: String(data.secret),
-	} satisfies Project;
-}
 
 export const uiStyleTable = sqliteTable("openauth_webui_ui_styles", {
 	id: integer().primaryKey({ autoIncrement: true }),
