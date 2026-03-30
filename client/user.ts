@@ -333,6 +333,10 @@ export class OpenAuthsterClient<
 					throw new Error(_json.error || "Failed to fetch user session");
 				return _json;
 			})
+			.then((e) => {
+				console.log(e);
+				return e;
+			})
 			.then((_json) =>
 				this.parseResponseData(v.parse(UserEndpointResponseValidation, _json)),
 			)
