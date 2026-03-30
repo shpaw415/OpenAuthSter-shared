@@ -61,8 +61,8 @@ export type UserResponseSchemaType<
 			role: Roles | null;
 			data: UserInfo;
 			created_at: string;
-			session_public: PublicSessionData;
-			session_private: PrivateSessionData;
+			session_public: PublicSessionData | null;
+			session_private: PrivateSessionData | null;
 		}>;
 		total: number;
 	};
@@ -89,8 +89,8 @@ export type UserResponseSchemaInferdType<
 			role: Roles | null;
 			data: UserInfo;
 			created_at: string;
-			session_public: PublicSessionData;
-			session_private: PrivateSessionData;
+			session_public: PublicSessionData | null;
+			session_private: PrivateSessionData | null;
 		}>;
 		total: number;
 	};

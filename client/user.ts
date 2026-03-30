@@ -19,7 +19,6 @@ import { createClient } from ".";
 import OpenAuthsterErrors, { type ErrorList } from "./errors";
 import { MFAmanager } from "./mfa";
 import { Passkey } from "./passkey";
-import type { Roles } from "cloudflare/resources/accounts.mjs";
 
 export const userEndpointURI = "/session" as const;
 
