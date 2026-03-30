@@ -58,7 +58,7 @@ export type UserResponseSchemaType<
 		users: Array<{
 			id: string;
 			identifier: string;
-			role: Roles;
+			role: Roles | null;
 			data: UserInfo;
 			created_at: string;
 			session_public: PublicSessionData;
@@ -86,7 +86,7 @@ export type UserResponseSchemaInferdType<
 		users: Array<{
 			id: string;
 			identifier: string;
-			role: Roles;
+			role: Roles | null;
 			data: UserInfo;
 			created_at: string;
 			session_public: PublicSessionData;
