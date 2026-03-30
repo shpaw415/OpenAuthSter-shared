@@ -939,6 +939,15 @@ export class OpenAuthsterClient<
 			.catch((err) => new Error(`Failed to update user by ID: ${err.message}`));
 	}
 
+	/**
+	 * Updates a user's role by their ID. Only the `role` field will be updated; all other fields are left unchanged.
+	 *
+	 * **`Requires secret to be set.`**
+	 *
+	 * @param user_id - The ID of the user to update.
+	 * @param role - The new role to assign to the user.
+	 * @returns The updated user data on success, or an Error on failure.
+	 */
 	setUserRoleById(
 		user_id: string,
 		role: Roles,
