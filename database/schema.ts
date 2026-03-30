@@ -3,10 +3,12 @@ import {
 	PUBLIC_CLIENT_ID,
 	type CopyDataSelection,
 	type Project,
+	type ProjectData,
 	type ProviderConfig,
 } from "..";
 import { drizzle } from "./drizzle";
 import type { OTFUsersParsedType, OTFUsersType } from "./types";
+import type { Theme } from "@kagii/openauth/ui/theme";
 
 export * from "./types";
 
@@ -154,7 +156,9 @@ export const uiStyleTable = sqliteTable("openauth_webui_ui_styles", {
 	owner_group_id: text().notNull(),
 	themeData: text({
 		mode: "json",
-	}).notNull(),
+	})
+		.notNull()
+		.$type<Partial<Theme>>(),
 });
 
 export const projectTable = sqliteTable("openauth_webui_projects", {
@@ -167,11 +171,15 @@ export const projectTable = sqliteTable("openauth_webui_projects", {
 	}).default(true),
 	providers_data: text({
 		mode: "json",
-	}).default("[]"),
+	})
+		.default("[]")
+		.$type<Array<ProviderConfig>>(),
 	theme_id: integer().references(() => uiStyleTable.id),
 	projectData: text({
 		mode: "json",
-	}).default("{}"),
+	})
+		.default("{}")
+		.$type<Partial<ProjectData>>(),
 	registerOnInvite: integer({
 		mode: "boolean",
 	}).default(false),
@@ -418,23 +426,28 @@ export function createWebUiProject({
 	secret,
 	originURL,
 	providers,
+	authEndpointURL,
 }: {
 	secret: string;
 	originURL: string;
 	providers?: Array<ProviderConfig>;
+	authEndpointURL?: string;
 }): Project {
 	return {
 		theme_id: null,
 		name: "openauthster webui",
 		owner_id: "admin",
 		owner_group_id: "admin",
-		projectData: {},
+		projectData: {
+			companyName: "M2-Tech",
+			appName: "OpenAuthster",
+		},
 		active: true,
 		clientID: PUBLIC_CLIENT_ID,
 		created_at: new Date().toISOString(),
 		registerOnInvite: false,
 		secret,
-		authEndpointURL: "",
+		authEndpointURL: authEndpointURL || "",
 		cloudflareDomaineID: "",
 		originURL,
 		providers_data: providers || [

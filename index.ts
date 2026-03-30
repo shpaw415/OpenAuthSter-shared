@@ -450,12 +450,30 @@ export type EGPCEmail =
 	| {
 			provider: "resend";
 			apiKey: string;
+			emailFrom: string;
 	  }
 	| {
 			provider: "custom";
 			sendEmailFunction: (
+				/**
+				 * destination address (email or phone number depending on the context)
+				 */
 				to: string,
+				/**
+				 * the code that was generated for the user, so they can use it to authenticate
+				 */
 				code: string,
+				/**
+				 * the body of the (email or SMS) to be sent
+				 */
+				body: string,
+				/**
+				 * subject of the email (only for email, ignored for SMS)
+				 */
+				subject: string,
+				/**
+				 * the subject of the email (only applicable for email, ignored for SMS)
+				 */
 				type: authCodeType,
 			) => Promise<void> | void;
 	  };
@@ -470,10 +488,26 @@ export type EGPCPhone =
 	| {
 			provider: "custom";
 			sendSMSFunction: (
+				/**
+				 * destination address (email or phone number depending on the context)
+				 */
 				to: string,
+				/**
+				 * the code that was generated for the user, so they can use it to authenticate
+				 */
 				code: string,
+				/**
+				 * the body of the (email or SMS) to be sent
+				 */
+				body: string,
+				/**
+				 * subject of the email (only for email, ignored for SMS)
+				 */
+				subject: string,
+				/**
+				 * the subject of the email (only applicable for email, ignored for SMS)
+				 */
 				type: authCodeType,
-				ctx: Context,
 			) => Promise<void> | void;
 	  };
 

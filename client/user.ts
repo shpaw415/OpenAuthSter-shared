@@ -19,6 +19,7 @@ import { createClient } from ".";
 import OpenAuthsterErrors, { type ErrorList } from "./errors";
 import { MFAmanager } from "./mfa";
 import { Passkey } from "./passkey";
+import type { Roles } from "cloudflare/resources/accounts.mjs";
 
 export const userEndpointURI = "/session" as const;
 
@@ -53,6 +54,7 @@ export const UserEndpointResponseValidation = v.object({
 			user_identifier: v.string(),
 			userInfo: v.looseObject({
 				provider: v.string(),
+				role: v.nullable(v.string()),
 			}),
 		}),
 	),
@@ -94,25 +96,31 @@ export type DeleteUserResult = {
 type AuthFlowCallbacks<
 	Public extends RequiredResponseData["public"],
 	Private extends RequiredResponseData["private"],
+	UserInfo extends RequiredResponseData["userInfo"],
+	Roles extends string,
 > = {
 	/**
 	 * Event triggered when the QR authentication flow is initiated. This can be used to perform a security mesure to verify that the user ia aware of the login attempt, for example by displaying a notification or requiring a confirmation before proceeding with the authentication process.
 	 * @returns true for prceeding with the authentication flow, false to abort. Can also return a Promise resolving to true or false for asynchronous operations.
 	 */
 	onQRAuthFlowStart: (
-		client: OpenAuthsterClient<Public, Private>,
+		client: OpenAuthsterClient<Public, Private, UserInfo, Roles>,
 	) => boolean | Promise<boolean>;
 	/**
 	 * Event triggered when the token is expired and a refresh attempt as failed.
 	 *
 	 * The callback must return true for redirecting the user to the login page, false to manage it yourself.
 	 */
-	onLoginRequired: (client: OpenAuthsterClient<Public, Private>) => void;
+	onLoginRequired: (
+		client: OpenAuthsterClient<Public, Private, UserInfo, Roles>,
+	) => void;
 };
 
 export type ClientProps<
 	PublicSessionData extends RequiredResponseData["public"],
 	PrivateSessionData extends RequiredResponseData["private"],
+	UserInfo extends RequiredResponseData["userInfo"],
+	Roles extends string,
 > = {
 	issuerURI: string;
 	clientID: string;
@@ -134,14 +142,15 @@ export type ClientProps<
 	 */
 	subject?: typeof defaultSubjectSchema;
 	authFlowCallbacks?: Partial<
-		AuthFlowCallbacks<PublicSessionData, PrivateSessionData>
+		AuthFlowCallbacks<PublicSessionData, PrivateSessionData, UserInfo, Roles>
 	>;
 	onError?: (err: ErrorList) => void;
 } & OpenAuthsterOptions;
 
-export type USerMetaData = {
+export type USerMetaData<Roles extends string> = {
 	user_id: string | null;
 	user_identifier: string | null;
+	role: Roles | null;
 };
 
 type RequiredResponseData = Exclude<ResponseData["data"], undefined>;
@@ -152,17 +161,17 @@ type ErrorType = {
 };
 
 type CallbackType<
-	PublicSessionData extends RequiredResponseData["public"] = Record<
-		string,
-		unknown
-	>,
-	PrivateSessionData extends RequiredResponseData["private"] = Record<
-		string,
-		unknown
-	>,
-	UserInfo extends RequiredResponseData["userInfo"] = { provider: string },
+	PublicSessionData extends RequiredResponseData["public"],
+	PrivateSessionData extends RequiredResponseData["private"],
+	UserInfo extends RequiredResponseData["userInfo"],
+	Roles extends string,
 > = (
-	client: OpenAuthsterClient<PublicSessionData, PrivateSessionData, UserInfo>,
+	client: OpenAuthsterClient<
+		PublicSessionData,
+		PrivateSessionData,
+		UserInfo,
+		Roles
+	>,
 	error?: ErrorType,
 ) => void | Promise<void>;
 
@@ -174,15 +183,10 @@ type CallbackType<
  * @typeParam UserInfo - The type of the user info data returned by the provider depending on the scopes you setted. Defaults to `any`.
  */
 export class OpenAuthsterClient<
-	PublicSessionData extends RequiredResponseData["public"] = Record<
-		string,
-		unknown
-	>,
-	PrivateSessionData extends RequiredResponseData["private"] = Record<
-		string,
-		unknown
-	>,
-	UserInfo extends RequiredResponseData["userInfo"] = { provider: string },
+	PublicSessionData extends RequiredResponseData["public"],
+	PrivateSessionData extends RequiredResponseData["private"],
+	UserInfo extends RequiredResponseData["userInfo"],
+	Roles extends string = "user",
 > {
 	public openAuthClient: Client;
 	public expiresAt: Date | null = null;
@@ -195,9 +199,10 @@ export class OpenAuthsterClient<
 		public: {} as PublicSessionData,
 		private: {} as PrivateSessionData,
 	};
-	public userMeta: USerMetaData = {
+	public userMeta: USerMetaData<Roles> = {
 		user_id: null,
 		user_identifier: null,
+		role: null,
 	};
 	public userInfo: UserInfo | null = null;
 	public error: { error: string; error_description: string | null } | null =
@@ -214,17 +219,19 @@ export class OpenAuthsterClient<
 	private refreshPromise: Promise<boolean> | null = null;
 	private initListeners: Map<
 		string,
-		CallbackType<PublicSessionData, PrivateSessionData, UserInfo>
+		CallbackType<PublicSessionData, PrivateSessionData, UserInfo, Roles>
 	> = new Map();
 	private subject: typeof defaultSubjectSchema = defaultSubjectSchema;
 	private authFlowCallbacks: Partial<
-		AuthFlowCallbacks<PublicSessionData, PrivateSessionData>
+		AuthFlowCallbacks<PublicSessionData, PrivateSessionData, UserInfo, Roles>
 	>;
 	private onError?: (err: ErrorList) => void;
 	public mfa: MFAmanager;
 	public passkey: Passkey;
 
-	constructor(props: ClientProps<PublicSessionData, PrivateSessionData>) {
+	constructor(
+		props: ClientProps<PublicSessionData, PrivateSessionData, UserInfo, Roles>,
+	) {
 		this.verifyProps(props);
 		this.issuerURI = props.issuerURI;
 		this.clientID = props.clientID;
@@ -244,7 +251,7 @@ export class OpenAuthsterClient<
 			fetch: this.fetch.bind(this) as typeof fetch,
 			onError: this.onError ?? (() => {}),
 		});
-		this.passkey = new Passkey(this.issuerURI, this as OpenAuthsterClient);
+		this.passkey = new Passkey(this.issuerURI, this);
 	}
 	/**
 	 * Trigger client initialization. Must be called after the first page load, for SSR compatibility.
@@ -513,7 +520,12 @@ export class OpenAuthsterClient<
 	 */
 	addInitializationListener(
 		key: string,
-		callback: CallbackType<PublicSessionData, PrivateSessionData, UserInfo>,
+		callback: CallbackType<
+			PublicSessionData,
+			PrivateSessionData,
+			UserInfo,
+			Roles
+		>,
 	) {
 		this.initListeners.set(key, callback);
 	}
@@ -927,6 +939,27 @@ export class OpenAuthsterClient<
 			.catch((err) => new Error(`Failed to update user by ID: ${err.message}`));
 	}
 
+	setUserRoleById(
+		user_id: string,
+		role: Roles,
+	): Promise<UserResponseSchemaType["data"] | Error> {
+		return this.fetchWithOptions(`${this.issuerURI}/user/${user_id}/role`, {
+			method: "PUT",
+			body: JSON.stringify({ role }),
+			headers: {
+				"Content-Type": "application/json",
+			},
+		})
+			.then((res) => res.json() as Promise<UserResponseSchemaType>)
+			.then((json) => {
+				if (!json.success) {
+					throw new Error(json.error || "Failed to update user role.");
+				}
+				return json.data;
+			})
+			.catch((err) => new Error(`Failed to update user role: ${err.message}`));
+	}
+
 	/**
 	 * Returns the current access token, falling back to the value stored in localStorage. Returns `null` if no token is available.
 	 */
@@ -946,6 +979,7 @@ export class OpenAuthsterClient<
 		id: string;
 		identifier: string;
 		provider: string;
+		role: Roles | null;
 		data: UserData;
 	} | null> {
 		const token = this.getToken();
@@ -957,6 +991,7 @@ export class OpenAuthsterClient<
 			id: props?.id ?? null,
 			identifier: props?.identifier ?? null,
 			provider: props?.provider ?? null,
+			role: (props?.role as Roles) ?? null,
 			data: props?.data as UserData,
 		};
 	}
@@ -987,6 +1022,7 @@ export class OpenAuthsterClient<
 			})
 			.catch((err) => {
 				console.error(err);
+				return false;
 			});
 	}
 
@@ -1163,6 +1199,8 @@ export class OpenAuthsterClient<
 		if (data.data.user_identifier)
 			this.userMeta.user_identifier = data.data.user_identifier;
 		if (data.data.userInfo) this.userInfo = data.data.userInfo as UserInfo;
+		if (data.data.userInfo?.role)
+			this.userMeta.role = data.data.userInfo.role as Roles;
 		return data.data as {
 			public: PublicSessionData;
 			private: PrivateSessionData;
@@ -1324,7 +1362,7 @@ export class OpenAuthsterClient<
 			.join("");
 	}
 	private verifyProps(
-		props: ClientProps<PublicSessionData, PrivateSessionData>,
+		props: ClientProps<PublicSessionData, PrivateSessionData, UserInfo, Roles>,
 	) {
 		if (!props.issuerURI.startsWith("http")) {
 			throw new Error("Invalid issuer URI. Must start with http or https.");
@@ -1353,15 +1391,18 @@ export function createOpenAuthsterClient<
 		string,
 		unknown
 	>,
+	Roles extends string = "user",
 	UserInfo extends RequiredResponseData["userInfo"] = {
 		provider: string;
+		role: Roles;
 	},
 >(
-	props: ClientProps<PublicSessionData, PrivateSessionData>,
-): OpenAuthsterClient<PublicSessionData, PrivateSessionData, UserInfo> {
+	props: ClientProps<PublicSessionData, PrivateSessionData, UserInfo, Roles>,
+): OpenAuthsterClient<PublicSessionData, PrivateSessionData, UserInfo, Roles> {
 	return new OpenAuthsterClient<
 		PublicSessionData,
 		PrivateSessionData,
-		UserInfo
+		UserInfo,
+		Roles
 	>(props);
 }
