@@ -1062,7 +1062,7 @@ export class OpenAuthsterClient<
 		return this.token || this.getStoredToken();
 	}
 	/**
-	 * Returns lightweight metadata for the current user (`id`, `identifier`, `provider`)
+	 * Returns lightweight metadata for the current user (`id`, `identifier`, `provider`, `role`)
 	 * by verifying the token and extracting its subject claims, without loading session blobs.
 	 * Useful for lightweight presence checks.
 	 *
