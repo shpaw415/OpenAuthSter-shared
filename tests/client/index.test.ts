@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { OpenAuthsterClient } from "../../client/user";
+import type { ProviderType } from "openauth-webui-shared-types";
 
 function createRefreshSuccess() {
 	return {
@@ -29,14 +30,22 @@ function createSessionResponse(overrides?: {
 						private: overrides?.private ?? { featureFlag: true },
 						user_id: "user-123",
 						user_identifier: "alice@example.com",
-						userInfo: overrides?.userInfo ?? { provider: "password" },
+						userInfo: overrides?.userInfo ?? {
+							provider: "password",
+							role: "admin",
+						},
 					},
 		error: overrides?.error,
 	};
 }
 
 describe("OpenAuthsterClient Token Refresh Flow", () => {
-	let client: OpenAuthsterClient;
+	let client: OpenAuthsterClient<
+		Record<string, unknown>,
+		Record<string, unknown>,
+		{ provider: ProviderType; role: "admin" | "user" },
+		"admin" | "user"
+	>;
 	let mockLocalStorage: Record<string, string> = {};
 	const originalFetch = global.fetch;
 
@@ -211,15 +220,16 @@ describe("OpenAuthsterClient Token Refresh Flow", () => {
 			private: { featureFlag: true },
 			user_id: "user-123",
 			user_identifier: "alice@example.com",
-			userInfo: { provider: "password" },
+			userInfo: { provider: "password", role: "admin" },
 		});
 		expect(client.data.public).toEqual({ theme: "amber" });
 		expect(client.data.private).toEqual({ featureFlag: true });
 		expect(client.userMeta).toEqual({
 			user_id: "user-123",
 			user_identifier: "alice@example.com",
+			role: "admin",
 		});
-		expect(client.userInfo).toEqual({ provider: "password" });
+		expect(client.userInfo).toEqual({ provider: "password", role: "admin" });
 	});
 
 	it("should send patch payload when updating private session data", async () => {
@@ -267,7 +277,7 @@ describe("OpenAuthsterClient Token Refresh Flow", () => {
 			private: { featureFlag: false, betaUser: true },
 			user_id: "user-123",
 			user_identifier: "alice@example.com",
-			userInfo: { provider: "password" },
+			userInfo: { provider: "password", role: "admin" },
 		});
 		expect(client.data.private).toEqual({ featureFlag: false, betaUser: true });
 	});

@@ -426,6 +426,11 @@ export class OpenAuthsterClient<
 			public: {} as PublicSessionData,
 			private: {} as PrivateSessionData,
 		};
+		this.userMeta = {
+			user_id: null,
+			user_identifier: null,
+			role: null,
+		};
 		return this.triggerUpdate();
 	}
 	/**
@@ -1077,12 +1082,17 @@ export class OpenAuthsterClient<
 		const result = await this.verifyToken(token);
 		if (result.err || !result.subject) return null;
 		const props = result.subject.properties;
+
+		this.userMeta.role = props.role as Roles | null;
+		this.userMeta.user_id = props.id;
+		this.userMeta.user_identifier = props.identifier;
+
 		return {
-			id: props?.id ?? null,
-			identifier: props?.identifier ?? null,
-			provider: props?.provider ?? null,
-			role: (props?.role as Roles) ?? null,
-			data: props?.data as UserData,
+			id: props.id ?? null,
+			identifier: props.identifier,
+			provider: props.provider,
+			role: props.role as Roles | null,
+			data: props.data as UserData,
 		};
 	}
 	/**
