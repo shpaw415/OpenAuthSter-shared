@@ -381,7 +381,8 @@ export type ProjectData<
 	logoUrl?: string;
 	primaryColor?: string;
 	emailFrom?: string;
-	[key: string]: string | undefined;
+	roles?: string[];
+	[key: string]: string | string[] | undefined;
 } & CTXProperties;
 
 // Project type

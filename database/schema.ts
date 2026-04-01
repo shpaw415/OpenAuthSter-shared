@@ -9,7 +9,6 @@ import {
 	PUBLIC_CLIENT_ID,
 } from "..";
 import { drizzle } from "./drizzle";
-import type { OTFUsersParsedType, OTFUsersType } from "./types";
 
 export * from "./types";
 
