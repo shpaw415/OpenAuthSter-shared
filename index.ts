@@ -67,7 +67,7 @@ export interface OAuth2ProviderConfig extends BaseProviderConfig {
 	data: {
 		clientID: string;
 		clientSecret: string;
-		scopes?: string[];
+		scopes: string[];
 		pkce?: boolean;
 		query?: Record<string, string>;
 	};
