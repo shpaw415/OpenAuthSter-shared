@@ -89,6 +89,7 @@ export const OTFusersTable = (clientID: string) => {
 		})
 			.notNull()
 			.$type<Record<string, unknown> & { provider: ProviderType }>(),
+		email: text(),
 		session_private: text({
 			mode: "json",
 		}).$type<Record<string, unknown> | null>(),
