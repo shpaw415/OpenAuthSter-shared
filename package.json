@@ -14,7 +14,7 @@
 		"hono": "^4.12.2"
 	},
 	"dependencies": {
-		"@kagii/openauth": "^0.6.0",
+		"@kagii/openauth": "^0.7.0",
 		"@simplewebauthn/browser": "^13.3.0",
 		"@simplewebauthn/server": "^13.3.0",
 		"cloudflare": "^5.2.0",

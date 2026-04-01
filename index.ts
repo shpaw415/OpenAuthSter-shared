@@ -143,13 +143,9 @@ export interface PasswordProviderConfig extends BaseProviderConfig {
 	type: "password";
 	data: {
 		minLength?: number;
-		shortPasswordMsg?: string;
 		requireUppercase?: boolean;
-		requireUppercaseMsg?: string;
 		requireNumber?: boolean;
-		requireNumberMsg?: string;
 		requireSpecialChar?: boolean;
-		requireSpecialCharMsg?: string;
 		resetPasswordTemplateId?: number | null;
 		registerTemplateId?: number | null;
 	};
