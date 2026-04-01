@@ -1124,7 +1124,7 @@ export class OpenAuthsterClient<
 		  >["data"]
 		| Error
 	> {
-		return this.fetchWithOptions(`${this.issuerURI}/user/${user_id}/role`, {
+		return this.fetchWithOptions(`${this.issuerURI}/user/role`, {
 			method: "PUT",
 			body: JSON.stringify({ user_id, role }),
 			headers: {

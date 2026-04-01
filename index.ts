@@ -12,7 +12,6 @@ import type { OidcConfig } from "@kagii/openauth/provider/oidc";
 import type { SlackConfig } from "@kagii/openauth/provider/slack";
 import type { CodeUICopy } from "@kagii/openauth/ui/code";
 import type { PasswordUIOptions } from "@kagii/openauth/ui/password";
-import type { Context } from "hono";
 import type { projectTable } from "./database/schema";
 import type { PASSKEY_DEFAULT_COPY } from "./providers/custom/passkey/index";
 // custom Provider types
