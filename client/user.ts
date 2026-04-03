@@ -25,6 +25,36 @@ export const userEndpointURI = "/session" as const;
 
 export type FlowTypes = "invite" | "qr" | "passkey";
 
+const providerTypes = [
+	"code",
+	"oidc",
+	"oauth",
+	"appleoauth",
+	"appleoidc",
+	"apple",
+	"x",
+	"slack",
+	"yahoo",
+	"google",
+	"github",
+	"twitch",
+	"spotify",
+	"cognito",
+	"discord",
+	"facebook",
+	"keycloak",
+	"password",
+	"microsoft",
+	"jumpcloud",
+	"qr",
+	"passkey",
+] as const satisfies readonly ProviderType[];
+
+const providerUserInfoSchema = v.optional(v.looseObject({}));
+const providerUserInfoSchemas = Object.fromEntries(
+	providerTypes.map((provider) => [provider, providerUserInfoSchema]),
+) as Record<ProviderType, typeof providerUserInfoSchema>;
+
 export const UserEndpointValidation = v.object({
 	type: v.union([v.literal("public"), v.literal("private")]),
 	data: v.optional(v.any()),
@@ -53,6 +83,8 @@ export const UserEndpointResponseValidation = v.object({
 			user_id: v.string(),
 			user_identifier: v.string(),
 			userInfo: v.looseObject({
+				...providerUserInfoSchemas,
+				email: v.optional(v.string()),
 				provider: v.string(),
 				role: v.nullable(v.string()),
 			}),
@@ -128,6 +160,7 @@ export type CacheStoreData<
 	Roles extends string,
 	UserData extends RequiredResponseData["userInfo"] & {
 		provider: ProviderType;
+		role: Roles;
 	},
 > = {
 	meta: UserMetaData<Roles, UserData>;
@@ -140,6 +173,7 @@ export type ClientProps<
 	UserInfo extends RequiredResponseData["userInfo"] & {
 		provider: ProviderType;
 		role: Roles;
+		email?: string;
 	},
 > = {
 	issuerURI: string;
@@ -184,6 +218,7 @@ export type UserMetaData<
 	Roles extends string,
 	UserData extends RequiredResponseData["userInfo"] & {
 		provider: ProviderType;
+		role: Roles;
 	},
 > = {
 	id: string | null;
@@ -1593,23 +1628,32 @@ export function createOpenAuthsterClient<
 		RequiredResponseData["userInfo"],
 		"provider" | "role"
 	> = Record<string, unknown>,
+	ProviderData extends Partial<
+		Record<ProviderType, Record<string, unknown>>
+	> = Partial<Record<ProviderType, Record<string, unknown>>>,
 >(
 	props: ClientProps<
 		PublicSessionData,
 		PrivateSessionData,
 		Roles,
-		UserInfo & { role: Roles; provider: ProviderType }
+		UserInfo & {
+			role: Roles;
+			provider: ProviderType;
+		} & ProviderData
 	>,
 ): OpenAuthsterClient<
 	PublicSessionData,
 	PrivateSessionData,
 	Roles,
-	UserInfo & { role: Roles; provider: ProviderType }
+	UserInfo & {
+		role: Roles;
+		provider: ProviderType;
+	} & ProviderData
 > {
 	return new OpenAuthsterClient<
 		PublicSessionData,
 		PrivateSessionData,
 		Roles,
-		UserInfo & { role: Roles; provider: ProviderType }
+		UserInfo & { role: Roles; provider: ProviderType } & ProviderData
 	>(props);
 }
