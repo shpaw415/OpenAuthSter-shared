@@ -1,61 +1,61 @@
 .qr-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 1.5rem;
-  padding: 1rem 0;
-  max-height: 100%;
-  overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 1.5rem;
+	padding: 1rem 0;
+	max-height: 100%;
+	overflow-y: auto;
 }
 
 .qr-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  align-items: center;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	align-items: center;
 }
 
 .qr-title {
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: var(--color-high);
-  margin: 0;
+	font-size: 1.8rem;
+	font-weight: 600;
+	color: var(--color-high);
+	margin: 0;
 }
 
 .qr-description {
-  font-size: 1.1rem;
-  color: color-mix(in oklch, var(--color-high) 70%, transparent);
-  margin: 0;
-  line-height: 1.5;
-  max-width: 280px;
+	font-size: 1.1rem;
+	color: color-mix(in oklch, var(--color-high) 70%, transparent);
+	margin: 0;
+	line-height: 1.5;
+	max-width: 280px;
 }
 
 .qr-canvas-wrapper {
-  padding: 1.25rem;
-  background: var(--color-background);
-  border-radius: calc(var(--border-radius) * 0.5rem);
-  box-shadow:
-    0 4px 6px -1px color-mix(in oklch, var(--color-high) 10%, transparent),
-    0 2px 4px -1px color-mix(in oklch, var(--color-high) 6%, transparent);
-  border: 1px solid color-mix(in oklch, var(--color-high) 15%, transparent);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-shrink: 0;
+	padding: 1.25rem;
+	background: var(--color-background);
+	border-radius: calc(var(--border-radius) * 0.5rem);
+	box-shadow:
+		0 4px 6px -1px color-mix(in oklch, var(--color-high) 10%, transparent),
+		0 2px 4px -1px color-mix(in oklch, var(--color-high) 6%, transparent);
+	border: 1px solid color-mix(in oklch, var(--color-high) 15%, transparent);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-shrink: 0;
 }
 
 .qr-canvas {
-  display: block;
-  width: 200px;
-  height: 200px;
-  max-width: 100%;
-  max-height: 40vh;
-  object-fit: contain;
-  background: #ffffff;
-  border-radius: calc(var(--border-radius) * 0.25rem);
+	display: block;
+	width: 200px;
+	height: 200px;
+	max-width: 100%;
+	max-height: 40vh;
+	object-fit: contain;
+	background: #ffffff;
+	border-radius: calc(var(--border-radius) * 0.25rem);
 }
 
 .qr-pixel {
-  fill: black;
+	fill: black;
 }
