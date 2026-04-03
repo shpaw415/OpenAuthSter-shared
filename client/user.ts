@@ -696,12 +696,22 @@ export class OpenAuthsterClient<
 	 * }
 	 * ```
 	 */
-	setTokenFromRequest(request: Request): Promise<this> {
+	async setTokenFromRequest(request: Request): Promise<this> {
 		const token = this.getTokenFromRequest(request);
 		if (!token) {
 			this.token = null;
 			this.isAuthenticated = false;
 			return Promise.resolve(this);
+		}
+
+		if (this.cacheProvider?.get) {
+			const cached = await this.cacheProvider.get(token);
+			if (cached) {
+				this.token = token;
+				this.isAuthenticated = true;
+				this.userMeta = cached.meta;
+				return this;
+			}
 		}
 		return this.verifyToken(token).then((res) => {
 			if (res.err) {
