@@ -6,6 +6,7 @@ import type {
 	RefreshSuccess,
 } from "@kagii/openauth/client";
 import { createSubjects } from "@kagii/openauth/subject";
+import type { JWTPayload } from "jose";
 import type { ProviderType } from "openauth-webui-shared-types";
 import type { InferOutput } from "valibot";
 import * as v from "valibot";
@@ -16,6 +17,7 @@ import {
 	type UserResponseSchemaType,
 } from "../database/endpoints";
 import type { OTFUsersParsedType } from "../database/schema";
+import type { QRProviderOnSuccessData } from "../providers/custom/qr/index.ts";
 import { createClient } from ".";
 import OpenAuthsterErrors, { type ErrorList } from "./errors";
 import { MFAmanager } from "./mfa";
@@ -92,6 +94,200 @@ export const UserEndpointResponseValidation = v.object({
 	),
 	error: v.optional(v.string()),
 });
+
+export type CodeUserInfo = {
+	email?: string;
+	phone?: string;
+};
+
+export type OIDCUserInfo = JWTPayload;
+
+export type OAuthUserInfo = Record<string, unknown>;
+
+export type AppleUserInfo = JWTPayload;
+
+export type PasswordUserInfo = {
+	email: string;
+};
+
+export type XUserInfo = {
+	data: {
+		id: string;
+		name: string;
+		username: string;
+		profile_image_url?: string;
+	};
+};
+
+export type SlackUserInfo = {
+	sub: string;
+	email?: string;
+	email_verified?: boolean;
+	name?: string;
+	picture?: string;
+	given_name?: string;
+	family_name?: string;
+	locale?: string;
+	[key: string]: unknown;
+};
+
+export type CognitoUserInfo = {
+	sub: string;
+	email?: string;
+	email_verified?: string;
+	username?: string;
+	name?: string;
+	[key: string]: unknown;
+};
+
+export type DiscordUserInfo = {
+	id: string;
+	username: string;
+	discriminator: string;
+	global_name?: string;
+	avatar?: string;
+	email?: string;
+	verified?: boolean;
+	locale?: string;
+};
+
+export type FacebookUserInfo = {
+	id: string;
+	name?: string;
+	email?: string;
+	picture?: {
+		data: {
+			url: string;
+			width: number;
+			height: number;
+		};
+	};
+};
+
+export type GitHubUserInfo = {
+	id: number;
+	login: string;
+	name?: string;
+	email?: string;
+	avatar_url?: string;
+	bio?: string;
+	company?: string;
+	location?: string;
+};
+
+export type GoogleUserInfo = {
+	email?: string;
+	email_verified?: boolean;
+	sub: string;
+	name?: string;
+	picture?: string;
+	given_name?: string;
+	family_name?: string;
+};
+
+export type JumpCloudUserInfo = {
+	sub: string;
+	email?: string;
+	email_verified?: boolean;
+	name?: string;
+	given_name?: string;
+	family_name?: string;
+};
+
+export type KeycloakUserInfo = {
+	sub: string;
+	email?: string;
+	email_verified?: boolean;
+	preferred_username?: string;
+	name?: string;
+	given_name?: string;
+	family_name?: string;
+	[key: string]: unknown;
+};
+
+export type MicrosoftUserInfo = {
+	id?: string;
+	sub?: string;
+	name?: string;
+	displayName?: string;
+	email?: string;
+	givenName?: string;
+	given_name?: string;
+	surname?: string;
+	family_name?: string;
+	mail?: string;
+	preferred_username?: string;
+	userPrincipalName?: string;
+	jobTitle?: string;
+};
+
+export type SpotifyUserInfo = {
+	id: string;
+	display_name?: string;
+	email?: string;
+	images?: Array<{ url: string; width: number; height: number }>;
+	country?: string;
+	product?: string;
+};
+
+export type TwitchUserInfo = {
+	data: Array<{
+		id: string;
+		login: string;
+		display_name: string;
+		email?: string;
+		profile_image_url?: string;
+		broadcaster_type?: string;
+	}>;
+};
+
+export type YahooUserInfo = {
+	sub: string;
+	name?: string;
+	email?: string;
+	email_verified?: boolean;
+	picture?: string;
+};
+
+export type QRUserInfo = QRProviderOnSuccessData;
+
+export type PasskeyUserInfo = Record<string, string>;
+
+export type ProviderUserInfoMap = {
+	code?: CodeUserInfo;
+	oidc?: OIDCUserInfo;
+	oauth?: OAuthUserInfo;
+	appleoauth?: AppleUserInfo;
+	appleoidc?: AppleUserInfo;
+	apple?: AppleUserInfo;
+	x?: XUserInfo["data"];
+	slack?: SlackUserInfo;
+	yahoo?: YahooUserInfo;
+	google?: GoogleUserInfo;
+	github?: GitHubUserInfo;
+	twitch?: TwitchUserInfo["data"][number];
+	spotify?: SpotifyUserInfo;
+	cognito?: CognitoUserInfo;
+	discord?: DiscordUserInfo;
+	facebook?: FacebookUserInfo;
+	keycloak?: KeycloakUserInfo;
+	password?: PasswordUserInfo;
+	microsoft?: MicrosoftUserInfo;
+	jumpcloud?: JumpCloudUserInfo;
+	qr?: QRUserInfo;
+	passkey?: PasskeyUserInfo;
+};
+
+export type UserInfoType<
+	Roles extends string,
+	ProviderData extends
+		Partial<ProviderUserInfoMap> = Partial<ProviderUserInfoMap>,
+> = {
+	provider: ProviderType;
+	role: Roles;
+	email?: string;
+} & ProviderData;
+
 export type UserFetchResponse<
 	PublicSessionData = unknown,
 	PrivateSessionData = unknown,
@@ -133,10 +329,8 @@ export type DeleteUserResult = {
 type AuthFlowCallbacks<
 	Public extends RequiredResponseData["public"],
 	Private extends RequiredResponseData["private"],
-	UserInfo extends RequiredResponseData["userInfo"] & {
-		provider: ProviderType;
-		role: Roles;
-	},
+	UserInfo extends UserInfoType<Roles, ProviderData>,
+	ProviderData extends Partial<ProviderUserInfoMap>,
 	Roles extends string,
 > = {
 	/**
@@ -144,7 +338,7 @@ type AuthFlowCallbacks<
 	 * @returns true for prceeding with the authentication flow, false to abort. Can also return a Promise resolving to true or false for asynchronous operations.
 	 */
 	onQRAuthFlowStart: (
-		client: OpenAuthsterClient<Public, Private, Roles, UserInfo>,
+		client: OpenAuthsterClient<Public, Private, Roles, UserInfo, ProviderData>,
 	) => boolean | Promise<boolean>;
 	/**
 	 * Event triggered when the token is expired and a refresh attempt as failed.
@@ -152,29 +346,24 @@ type AuthFlowCallbacks<
 	 * The callback must return true for redirecting the user to the login page, false to manage it yourself.
 	 */
 	onLoginRequired: (
-		client: OpenAuthsterClient<Public, Private, Roles, UserInfo>,
+		client: OpenAuthsterClient<Public, Private, Roles, UserInfo, ProviderData>,
 	) => void;
 };
 
 export type CacheStoreData<
 	Roles extends string,
-	UserData extends RequiredResponseData["userInfo"] & {
-		provider: ProviderType;
-		role: Roles;
-	},
+	UserInfo extends UserInfoType<Roles, ProviderData>,
+	ProviderData extends Partial<ProviderUserInfoMap>,
 > = {
-	meta: UserMetaData<Roles, UserData>;
+	meta: UserMetaData<Roles> & { data: UserInfo };
 };
 
 export type ClientProps<
 	PublicSessionData extends RequiredResponseData["public"],
 	PrivateSessionData extends RequiredResponseData["private"],
 	Roles extends string,
-	UserInfo extends RequiredResponseData["userInfo"] & {
-		provider: ProviderType;
-		role: Roles;
-		email?: string;
-	},
+	UserInfo extends UserInfoType<Roles, ProviderData> & Record<string, unknown>,
+	ProviderData extends Partial<ProviderUserInfoMap>,
 > = {
 	issuerURI: string;
 	clientID: string;
@@ -196,7 +385,13 @@ export type ClientProps<
 	 */
 	subject?: typeof defaultSubjectSchema;
 	authFlowCallbacks?: Partial<
-		AuthFlowCallbacks<PublicSessionData, PrivateSessionData, UserInfo, Roles>
+		AuthFlowCallbacks<
+			PublicSessionData,
+			PrivateSessionData,
+			UserInfo,
+			ProviderData,
+			Roles
+		>
 	>;
 	onError?: (err: ErrorList) => void;
 	/**
@@ -204,27 +399,22 @@ export type ClientProps<
 	 * Originaly designed for reducing the number of calls to the user endpoint in server side environments by caching the user meta data associated with a token, but can be used for any custom caching strategy you want to implement.
 	 */
 	cache_provider?: {
-		get: (key: string) => Promise<CacheStoreData<Roles, UserInfo> | null>;
+		get: (
+			key: string,
+		) => Promise<CacheStoreData<Roles, UserInfo, ProviderData> | null>;
 		set: (
 			key: string,
-			value: CacheStoreData<Roles, UserInfo>,
+			value: CacheStoreData<Roles, UserInfo, ProviderData>,
 			expires_at: Date,
 		) => Promise<void>;
 		delete: (key: string) => Promise<void>;
 	};
 } & OpenAuthsterOptions;
 
-export type UserMetaData<
-	Roles extends string,
-	UserData extends RequiredResponseData["userInfo"] & {
-		provider: ProviderType;
-		role: Roles;
-	},
-> = {
+export type UserMetaData<Roles extends string> = {
 	id: string | null;
 	identifier: string | null;
 	role: Roles | null;
-	data: UserData | null;
 };
 
 type RequiredResponseData = Exclude<ResponseData["data"], undefined>;
@@ -238,16 +428,15 @@ type CallbackType<
 	PublicSessionData extends RequiredResponseData["public"],
 	PrivateSessionData extends RequiredResponseData["private"],
 	Roles extends string,
-	UserInfo extends RequiredResponseData["userInfo"] & {
-		provider: ProviderType;
-		role: Roles;
-	},
+	UserInfo extends UserInfoType<Roles, ProviderData>,
+	ProviderData extends Partial<ProviderUserInfoMap>,
 > = (
 	client: OpenAuthsterClient<
 		PublicSessionData,
 		PrivateSessionData,
 		Roles,
-		UserInfo
+		UserInfo,
+		ProviderData
 	>,
 	error?: ErrorType,
 ) => void | Promise<void>;
@@ -264,10 +453,8 @@ export class OpenAuthsterClient<
 	PublicSessionData extends RequiredResponseData["public"],
 	PrivateSessionData extends RequiredResponseData["private"],
 	Roles extends string,
-	UserInfo extends RequiredResponseData["userInfo"] & {
-		provider: ProviderType;
-		role: Roles;
-	},
+	UserInfo extends UserInfoType<Roles, ProviderData>,
+	ProviderData extends Partial<ProviderUserInfoMap>,
 > {
 	public openAuthClient: Client;
 	public expiresAt: Date | null = null;
@@ -280,11 +467,10 @@ export class OpenAuthsterClient<
 		public: {} as PublicSessionData,
 		private: {} as PrivateSessionData,
 	};
-	public userMeta: UserMetaData<Roles, UserInfo> = {
+	public userMeta: UserMetaData<Roles> = {
 		id: null,
 		identifier: null,
 		role: null,
-		data: null,
 	};
 	public userInfo: UserInfo | null = null;
 	public error: { error: string; error_description: string | null } | null =
@@ -301,26 +487,51 @@ export class OpenAuthsterClient<
 	private refreshPromise: Promise<boolean> | null = null;
 	private initListeners: Map<
 		string,
-		CallbackType<PublicSessionData, PrivateSessionData, Roles, UserInfo>
+		CallbackType<
+			PublicSessionData,
+			PrivateSessionData,
+			Roles,
+			UserInfo,
+			ProviderData
+		>
 	> = new Map();
 	private subject: typeof defaultSubjectSchema = defaultSubjectSchema;
 	private authFlowCallbacks: Partial<
-		AuthFlowCallbacks<PublicSessionData, PrivateSessionData, UserInfo, Roles>
+		AuthFlowCallbacks<
+			PublicSessionData,
+			PrivateSessionData,
+			UserInfo,
+			ProviderData,
+			Roles
+		>
 	>;
 	private onError?: (err: ErrorList) => void;
 	private cacheProvider?: ClientProps<
 		PublicSessionData,
 		PrivateSessionData,
 		Roles,
-		UserInfo
+		UserInfo,
+		ProviderData
 	>["cache_provider"];
 	public mfa: MFAmanager;
 	public passkey: Passkey<
-		OpenAuthsterClient<PublicSessionData, PrivateSessionData, Roles, UserInfo>
+		OpenAuthsterClient<
+			PublicSessionData,
+			PrivateSessionData,
+			Roles,
+			UserInfo,
+			ProviderData
+		>
 	>;
 
 	constructor(
-		props: ClientProps<PublicSessionData, PrivateSessionData, Roles, UserInfo>,
+		props: ClientProps<
+			PublicSessionData,
+			PrivateSessionData,
+			Roles,
+			UserInfo,
+			ProviderData
+		>,
 	) {
 		this.verifyProps(props);
 		this.issuerURI = props.issuerURI;
@@ -532,7 +743,6 @@ export class OpenAuthsterClient<
 			id: null,
 			identifier: null,
 			role: null,
-			data: null,
 		};
 		return this.triggerUpdate();
 	}
@@ -631,7 +841,8 @@ export class OpenAuthsterClient<
 			PublicSessionData,
 			PrivateSessionData,
 			Roles,
-			UserInfo
+			UserInfo,
+			ProviderData
 		>,
 	) {
 		this.initListeners.set(key, callback);
@@ -671,7 +882,11 @@ export class OpenAuthsterClient<
 			throw new Error(
 				"Cannot set token to cookie: document is undefined or token is null",
 			);
-		document.cookie = `access_token=${this.token}; path=/; secure; samesite=lax;`;
+		Reflect.set(
+			document,
+			"cookie",
+			`access_token=${this.token}; path=/; secure; samesite=lax;`,
+		);
 	}
 
 	/**
@@ -936,7 +1151,17 @@ export class OpenAuthsterClient<
 	 *
 	 * @param ids - Array of user IDs to fetch.
 	 */
-	getManyUserById(ids: string[]) {
+	getManyUserById(
+		ids: string[],
+	): Promise<
+		| UserResponseSchemaInferdType<
+				PublicSessionData,
+				PrivateSessionData,
+				UserInfo,
+				Roles
+		  >
+		| Error
+	> {
 		const url = new URL(`${this.issuerURI}/users/specific`);
 		ids.forEach((id) => {
 			url.searchParams.append("user_id", id);
@@ -1209,7 +1434,9 @@ export class OpenAuthsterClient<
 	 *
 	 * **`Client or Server Side`**
 	 */
-	async getMetaData(): Promise<UserMetaData<Roles, UserInfo> | null> {
+	async getMetaData(): Promise<
+		(UserMetaData<Roles> & { data: UserInfo }) | null
+	> {
 		const token = this.getToken();
 		if (!token) return null;
 		const meta = await this.retriveUserMeta(token);
@@ -1221,11 +1448,17 @@ export class OpenAuthsterClient<
 				this.expiresAt ? this.expiresAt : new Date(Date.now() + 1 * 60 * 1000),
 			);
 		}
+
+		const { data, ...metaWithoutData } = meta ?? {};
+
+		this.userInfo = data ?? null;
+		this.userMeta = (metaWithoutData as UserMetaData<Roles>) ?? null;
+
 		return meta;
 	}
 	private async retriveUserMeta(
 		token: string,
-	): Promise<UserMetaData<Roles, UserInfo> | null> {
+	): Promise<(UserMetaData<Roles> & { data: UserInfo }) | null> {
 		if (this.cacheProvider?.get && token) {
 			const cachedMeta = await this.cacheProvider.get(token);
 			if (cachedMeta) {
@@ -1235,8 +1468,9 @@ export class OpenAuthsterClient<
 		const result = await this.verifyToken(token);
 		if (result.err || !result.subject) return null;
 		const props = result.subject.properties;
+
 		return {
-			id: props.id ?? null,
+			id: props.id,
 			identifier: props.identifier,
 			role: props.role as Roles | null,
 			data: props.data as UserInfo,
@@ -1445,7 +1679,9 @@ export class OpenAuthsterClient<
 		if (data.data.user_id) this.userMeta.id = data.data.user_id;
 		if (data.data.user_identifier)
 			this.userMeta.identifier = data.data.user_identifier;
-		if (data.data.userInfo) this.userInfo = data.data.userInfo as UserInfo;
+		if (data.data.userInfo) {
+			this.userInfo = data.data.userInfo as UserInfo;
+		}
 		if (data.data.userInfo?.role)
 			this.userMeta.role = data.data.userInfo.role as Roles;
 		return data.data as {
@@ -1609,7 +1845,13 @@ export class OpenAuthsterClient<
 			.join("");
 	}
 	private verifyProps(
-		props: ClientProps<PublicSessionData, PrivateSessionData, Roles, UserInfo>,
+		props: ClientProps<
+			PublicSessionData,
+			PrivateSessionData,
+			Roles,
+			UserInfo,
+			ProviderData
+		>,
 	) {
 		if (!props.issuerURI.startsWith("http")) {
 			throw new Error("Invalid issuer URI. Must start with http or https.");
@@ -1634,36 +1876,28 @@ export function createOpenAuthsterClient<
 	PublicSessionData extends RequiredResponseData["public"],
 	PrivateSessionData extends RequiredResponseData["private"],
 	Roles extends string,
-	UserInfo extends Omit<
-		RequiredResponseData["userInfo"],
-		"provider" | "role"
-	> = Record<string, unknown>,
-	ProviderData extends Partial<
-		Record<ProviderType, Record<string, unknown>>
-	> = Partial<Record<ProviderType, Record<string, unknown>>>,
+	ProviderData extends
+		Partial<ProviderUserInfoMap> = Partial<ProviderUserInfoMap>,
 >(
 	props: ClientProps<
 		PublicSessionData,
 		PrivateSessionData,
 		Roles,
-		UserInfo & {
-			role: Roles;
-			provider: ProviderType;
-		} & ProviderData
+		UserInfoType<Roles, ProviderData>,
+		ProviderData
 	>,
 ): OpenAuthsterClient<
 	PublicSessionData,
 	PrivateSessionData,
 	Roles,
-	UserInfo & {
-		role: Roles;
-		provider: ProviderType;
-	} & ProviderData
+	UserInfoType<Roles, ProviderData>,
+	ProviderData
 > {
 	return new OpenAuthsterClient<
 		PublicSessionData,
 		PrivateSessionData,
 		Roles,
-		UserInfo & { role: Roles; provider: ProviderType } & ProviderData
+		UserInfoType<Roles, ProviderData>,
+		ProviderData
 	>(props);
 }
