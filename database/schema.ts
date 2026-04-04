@@ -48,6 +48,7 @@ export async function createUserTable(
       session_private TEXT,
       session_public TEXT,
 	  role TEXT,
+	  email TEXT,
       created_at TEXT NOT NULL
     );
   `;

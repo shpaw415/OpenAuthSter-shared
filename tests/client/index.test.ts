@@ -44,7 +44,8 @@ describe("OpenAuthsterClient Token Refresh Flow", () => {
 		Record<string, unknown>,
 		Record<string, unknown>,
 		"admin" | "user",
-		{ provider: ProviderType; role: "admin" | "user" }
+		{ provider: ProviderType; role: "admin" | "user" },
+		Record<string, unknown>
 	>;
 	let mockLocalStorage: Record<string, string> = {};
 	const originalFetch = global.fetch;
@@ -228,7 +229,6 @@ describe("OpenAuthsterClient Token Refresh Flow", () => {
 			id: "user-123",
 			identifier: "alice@example.com",
 			role: "admin",
-			data: null,
 		});
 		expect(client.userInfo).toEqual({ provider: "password", role: "admin" });
 	});
