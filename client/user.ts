@@ -19,7 +19,7 @@ import {
 import type { OTFUsersParsedType } from "../database/schema";
 import type { QRProviderOnSuccessData } from "../providers/custom/qr/index.ts";
 import { createClient } from ".";
-import OpenAuthsterErrors, { TotpError, type ErrorList } from "./errors";
+import OpenAuthsterErrors, { type ErrorList } from "./errors";
 import { MFAmanager } from "./mfa";
 import { Passkey } from "./passkey";
 
@@ -89,6 +89,9 @@ export const UserEndpointResponseValidation = v.object({
 				email: v.optional(v.string()),
 				provider: v.string(),
 				role: v.nullable(v.string()),
+				mfa: v.object({
+					totp_enabled: v.boolean(),
+				}),
 			}),
 		}),
 	),
@@ -286,6 +289,9 @@ export type UserInfoType<
 	provider: ProviderType;
 	role: Roles;
 	email?: string;
+	mfa: {
+		totp_enabled: boolean;
+	};
 } & ProviderData;
 
 export type UserFetchResponse<
@@ -1656,7 +1662,8 @@ export class OpenAuthsterClient<
 		const result = await onStart(this);
 		let fetcher:
 			| typeof this.fetchWithOptions
-			| typeof this.mfa.totpClient.elevatedFetch = this.fetchWithOptions;
+			| typeof this.mfa.totpClient.elevatedFetch =
+			this.fetchWithOptions.bind(this);
 
 		if (result === false) return;
 
@@ -1665,7 +1672,7 @@ export class OpenAuthsterClient<
 			typeof result.totp_elevated_token === "string"
 		) {
 			fetcher = (input, init) =>
-				this.mfa.totpClient.elevatedFetch({
+				this.mfa.totpClient.elevatedFetch.bind(this)({
 					input,
 					init,
 					elevatedToken: result.totp_elevated_token,
