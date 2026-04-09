@@ -19,7 +19,7 @@ import {
 import type { OTFUsersParsedType } from "../database/schema";
 import type { QRProviderOnSuccessData } from "../providers/custom/qr/index.ts";
 import { createClient } from ".";
-import OpenAuthsterErrors, { type ErrorList } from "./errors";
+import OpenAuthsterErrors, { TotpError, type ErrorList } from "./errors";
 import { MFAmanager } from "./mfa";
 import { Passkey } from "./passkey";
 
@@ -336,10 +336,27 @@ type AuthFlowCallbacks<
 	/**
 	 * Event triggered when the QR authentication flow is initiated. This can be used to perform a security mesure to verify that the user ia aware of the login attempt, for example by displaying a notification or requiring a confirmation before proceeding with the authentication process.
 	 * @returns true for prceeding with the authentication flow, false to abort. Can also return a Promise resolving to true or false for asynchronous operations.
+	 * @returns `{ totp_elevated_token: <elevated_token> }` to proceed with the authentication flow using the provided elevated token, allowing you to login via QR Flow if require MFA is enabled
 	 */
 	onQRAuthFlowStart: (
 		client: OpenAuthsterClient<Public, Private, Roles, UserInfo, ProviderData>,
-	) => boolean | Promise<boolean>;
+	) =>
+		| boolean
+		| Promise<boolean>
+		| { totp_elevated_token: string }
+		| Promise<{ totp_elevated_token: string }>;
+	/**
+	 * Triggered when QR AuthFlow did succeed
+	 */
+	onQRAuthFlowSuccess: (
+		client: OpenAuthsterClient<Public, Private, Roles, UserInfo, ProviderData>,
+	) => void;
+	/**
+	 * Triggered when QR AuthFlow failed
+	 */
+	onQRAuthFlowError: (
+		client: OpenAuthsterClient<Public, Private, Roles, UserInfo, ProviderData>,
+	) => void;
 	/**
 	 * Event triggered when the token is expired and a refresh attempt as failed.
 	 *
@@ -1633,12 +1650,27 @@ export class OpenAuthsterClient<
 		}
 	}
 
-	private async QRauthFlowCallback(id: string | null) {
+	private async QRauthFlowCallback(id: string | null): Promise<unknown> {
+		const onStart = this.authFlowCallbacks.onQRAuthFlowStart ?? (() => true);
+
+		const result = await onStart(this);
+		let fetcher:
+			| typeof this.fetchWithOptions
+			| typeof this.mfa.totpClient.elevatedFetch = this.fetchWithOptions;
+
+		if (result === false) return;
+
 		if (
-			this.authFlowCallbacks.onQRAuthFlowStart &&
-			!(await this.authFlowCallbacks.onQRAuthFlowStart(this))
-		)
-			return;
+			typeof result === "object" &&
+			typeof result.totp_elevated_token === "string"
+		) {
+			fetcher = (input, init) =>
+				this.mfa.totpClient.elevatedFetch({
+					input,
+					init,
+					elevatedToken: result.totp_elevated_token,
+				});
+		}
 
 		if (!this.getStoredToken()) return this.login();
 		if (!id) {
@@ -1646,14 +1678,45 @@ export class OpenAuthsterClient<
 				error: "missing_qr_validation_id",
 				error_description: "No QR validation ID provided in URL.",
 			};
-			return this.triggerRefresh();
+			return;
 		}
 		const _url = new URL(`${this.issuerURI}/qr/validate`);
 		_url.searchParams.set("id", id);
 
-		return this.fetchWithOptions(_url.toString(), {
-			method: "POST",
-		});
+		const res: { success: boolean; error?: string } = await fetcher(
+			_url.toString(),
+			{
+				method: "POST",
+			},
+		)
+			.then((res) => res.text())
+			.then((text) => {
+				try {
+					return JSON.parse(text) as { success: boolean; error?: string };
+				} catch {
+					throw new Error(text);
+				}
+			})
+			.catch((err) => {
+				console.error("Error validating QR code: ", err);
+				this.error = {
+					error: "qr_validation_failed",
+					error_description: err.message,
+				};
+				return { success: false, error: err.message as string };
+			});
+
+		if (!res.success) {
+			this.triggerError(
+				new OpenAuthsterErrors.TotpError(
+					res.error ?? "QR auth flow verification failed",
+					"request_failed",
+				),
+			);
+			this.authFlowCallbacks.onQRAuthFlowError?.(this);
+		} else {
+			this.authFlowCallbacks.onQRAuthFlowSuccess?.(this);
+		}
 	}
 
 	private ensureReady() {

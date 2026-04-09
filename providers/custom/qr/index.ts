@@ -2,7 +2,6 @@ import type { AuthorizationState } from "@kagii/openauth/issuer";
 import type { Provider } from "@kagii/openauth/provider/provider";
 import type { SubjectSchema } from "@kagii/openauth/subject";
 import { Layout } from "@kagii/openauth/ui/base";
-import type { UnixSocketListener } from "bun";
 import type { Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
 import { jsxRenderer } from "hono/jsx-renderer";
