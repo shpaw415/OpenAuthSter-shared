@@ -328,4 +328,27 @@ export class TOTPClient {
 				return true;
 			});
 	}
+	/**
+	 * Retrieves the current TOTP enabled status for the user. This can be used to check if the user has TOTP enabled on their account, which can inform the UI to show TOTP-related options or prompts.
+	 *
+	 * **Client Side**
+	 */
+	async getTOTPEnabledStatus(): Promise<boolean | TotpError> {
+		const res = await this.fetch(`${this.issuerURI}/totp/status`, {
+			method: "GET",
+		});
+
+		const data = (await res.json()) as TOTPResponse<{ totp_enabled: boolean }>;
+
+		if (!res.ok || !data.success) {
+			const err = new TotpError(
+				data.error || "Request failed",
+				"request_failed",
+			);
+			this.onError(err);
+			return err;
+		}
+
+		return data.data.totp_enabled;
+	}
 }
