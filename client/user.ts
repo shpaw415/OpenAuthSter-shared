@@ -68,6 +68,9 @@ export const defaultSubjectSchema = createSubjects({
 		id: v.string(),
 		identifier: v.string(),
 		role: v.nullable(v.string()),
+		mfa: v.object({
+			totp_enabled: v.boolean(),
+		}),
 		data: v.any(),
 		clientID: v.string(),
 		provider: v.string(),
