@@ -68,9 +68,6 @@ export const defaultSubjectSchema = createSubjects({
 		id: v.string(),
 		identifier: v.string(),
 		role: v.nullable(v.string()),
-		mfa: v.object({
-			totp_enabled: v.boolean(),
-		}),
 		data: v.any(),
 		clientID: v.string(),
 		provider: v.string(),
@@ -92,9 +89,6 @@ export const UserEndpointResponseValidation = v.object({
 				email: v.optional(v.string()),
 				provider: v.string(),
 				role: v.nullable(v.string()),
-				mfa: v.object({
-					totp_enabled: v.boolean(),
-				}),
 			}),
 		}),
 	),
@@ -292,9 +286,6 @@ export type UserInfoType<
 	provider: ProviderType;
 	role: Roles;
 	email?: string;
-	mfa: {
-		totp_enabled: boolean;
-	};
 } & ProviderData;
 
 export type UserFetchResponse<
