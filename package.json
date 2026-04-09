@@ -1,7 +1,7 @@
 {
 	"name": "openauthster-shared",
 	"module": "index.ts",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"type": "module",
 	"private": false,
 	"devDependencies": {
@@ -45,6 +45,7 @@
 	},
 	"scripts": {
 		"build:ui": "bun bin/build_ui.ts",
-		"git:push": "bun run build:ui && git add . && git commit -m 'update UI' && git push"
+		"git:push": "bun run build:ui && git add . && git commit -m 'update UI' && git push",
+		"test": "bun test"
 	}
 }
