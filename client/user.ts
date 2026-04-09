@@ -312,8 +312,12 @@ export type ResponseData = InferOutput<typeof UserEndpointResponseValidation>;
 export type UpdateUserByIdData<
 	Public extends Record<string, unknown> | null,
 	Private extends Record<string, unknown> | null,
+	Roles extends string,
 > = Partial<
-	Omit<OTFUsersParsedType<Public, Private>, "created_at" | "id" | "identifier">
+	Omit<
+		OTFUsersParsedType<Public, Private>,
+		"created_at" | "id" | "identifier" | "role"
+	> & { role: Roles }
 >;
 
 export type OpenAuthsterOptions = {
@@ -342,9 +346,8 @@ type AuthFlowCallbacks<
 		client: OpenAuthsterClient<Public, Private, Roles, UserInfo, ProviderData>,
 	) =>
 		| boolean
-		| Promise<boolean>
 		| { totp_elevated_token: string }
-		| Promise<{ totp_elevated_token: string }>;
+		| Promise<{ totp_elevated_token: string } | boolean>;
 	/**
 	 * Triggered when QR AuthFlow did succeed
 	 */
@@ -1353,7 +1356,7 @@ export class OpenAuthsterClient<
 	 */
 	updateUserById(
 		user_id: string,
-		data: UpdateUserByIdData<PublicSessionData, PrivateSessionData>,
+		data: UpdateUserByIdData<PublicSessionData, PrivateSessionData, Roles>,
 	): Promise<
 		| UserResponseSchemaType<
 				PublicSessionData,
